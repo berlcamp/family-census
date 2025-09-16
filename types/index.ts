@@ -133,6 +133,7 @@ export interface HouseholdRemarks {
 export interface Household {
   id: number
   name: string
+  purok: string
   barangay?: string | null
   location_id?: number | null
   org_id?: number | null
@@ -146,6 +147,8 @@ export interface VoterLite {
   id: number
   voter_id: number
   fullname: string
+  is_registered: boolean
+  relation: string
 }
 
 // Family record (asenso.families)

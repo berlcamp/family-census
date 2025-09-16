@@ -12,8 +12,8 @@ import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import {
   addFamily,
   addHousehold,
+  deleteHousehold,
   selectPaginatedHouseholds,
-  selectTotalPages,
   setHouseholds,
   setPage,
   updateFamily,
@@ -21,7 +21,7 @@ import {
 } from '@/lib/redux/householdsSlice'
 import { clearLocation, setLocation } from '@/lib/redux/locationSlice'
 import { supabase } from '@/lib/supabase/client'
-import { Family, Household } from '@/types'
+import { Family, FamilyMember, Household } from '@/types'
 import { useParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import FamilyFormModal from './FamilyFormModal'
@@ -33,12 +33,13 @@ export default function HouseholdsPage() {
 
   const [loading, setLoading] = useState(false)
 
-  const paginated = useAppSelector(selectPaginatedHouseholds)
-  const totalPages = useAppSelector(selectTotalPages)
-  const currentPage = useAppSelector(
-    (state) => state.householdsList.currentPage
+  const households = useAppSelector(selectPaginatedHouseholds)
+
+  // Get pagination info from Redux
+  const { currentPage, pageSize, totalCount } = useAppSelector(
+    (state) => state.householdsList
   )
-  console.log('paginated', paginated)
+
   const [search, setSearch] = useState('')
 
   const [showHouseholdModal, setShowHouseholdModal] = useState(false)
@@ -56,14 +57,17 @@ export default function HouseholdsPage() {
 
   // Save Household
   const handleSaveHousehold = async (household: Partial<Household>) => {
+    if (!location) return
+
     if (household.id) {
-      // UPDATE
+      // UPDATE existing household
       const { data, error } = await supabase
         .from('households')
         .update({
           name: household.name,
-          barangay: location?.name,
-          address: location?.address,
+          purok: household.purok,
+          barangay: location.name,
+          address: location.address,
           location_id: locationIdNum
         })
         .eq('id', household.id)
@@ -72,20 +76,29 @@ export default function HouseholdsPage() {
 
       if (error) {
         toast.error('Error updating household')
-        setShowHouseholdModal(false)
         return
       }
 
-      dispatch(updateHousehold({ ...data, families: household.families ?? [] }))
+      // Preserve existing families in Redux
+      const existingFamilies =
+        households.find((h) => h.id === household.id)?.families ?? []
+
+      dispatch(
+        updateHousehold({
+          ...data,
+          families: existingFamilies
+        })
+      )
     } else {
-      // INSERT
+      // INSERT new household
       const { data, error } = await supabase
         .from('households')
         .insert([
           {
             name: household.name,
-            barangay: location?.name,
-            address: location?.address,
+            purok: household.purok,
+            barangay: location.name,
+            address: location.address,
             location_id: locationIdNum
           }
         ])
@@ -93,17 +106,23 @@ export default function HouseholdsPage() {
         .single()
 
       if (error) {
-        toast.error('Error updating household')
-        setShowHouseholdModal(false)
+        toast.error('Error adding household')
         return
       }
 
-      dispatch(addHousehold({ ...data, families: [] }))
+      dispatch(
+        addHousehold({
+          ...data,
+          families: []
+        })
+      )
     }
+
+    toast.success('Household saved successfully!')
     setShowHouseholdModal(false)
   }
 
-  // Save Family
+  // Save Family (Full Replace Strategy)
   const handleSaveFamily = async (family: Partial<Family>) => {
     if (!currentHouseholdId) return
 
@@ -145,6 +164,7 @@ export default function HouseholdsPage() {
     }
 
     let familyId = family.id
+    let savedFamily: Family | null = null
 
     // 3. Save Family (Insert or Update)
     if (family.id) {
@@ -166,12 +186,7 @@ export default function HouseholdsPage() {
         return
       }
 
-      dispatch(
-        updateFamily({
-          householdId: currentHouseholdId,
-          family: family as Family
-        })
-      )
+      familyId = family.id
     } else {
       // INSERT family
       const { data, error } = await supabase
@@ -195,103 +210,224 @@ export default function HouseholdsPage() {
       }
 
       familyId = data.id
+    }
 
+    // 4. Full Replace Family Members
+    let insertedMembers: FamilyMember[] = []
+
+    if (familyId) {
+      // Delete all existing members
+      await supabase.from('family_members').delete().eq('family_id', familyId)
+
+      // Insert fresh members
+      if (family.family_members?.length) {
+        const inserts = family.family_members.map((member) => ({
+          family_id: familyId,
+          voter_id: member.is_registered ? member.voter_id : null,
+          fullname: member.fullname,
+          relation: member.relation,
+          is_registered: member.is_registered
+        }))
+
+        const { data: membersData, error: insertError } = await supabase
+          .from('family_members')
+          .insert(inserts)
+          .select()
+
+        if (insertError) {
+          console.error('Error inserting members:', insertError)
+          toast.error('Failed to save family members.')
+          return
+        }
+
+        insertedMembers = membersData ?? []
+      }
+    }
+
+    console.log('insertedMembers', insertedMembers)
+
+    // 5. Prepare Family object for Redux
+    savedFamily = {
+      id: familyId,
+      household_id: currentHouseholdId,
+      husband: family.husband ?? null,
+      wife: family.wife ?? null,
+      husband_id: family.husband?.voter_id ?? null,
+      husband_name: family.husband?.fullname ?? null,
+      wife_id: family.wife?.voter_id ?? null,
+      wife_name: family.wife?.fullname ?? null,
+      family_members: insertedMembers
+    } as Family
+
+    // 6. Dispatch to Redux
+    if (family.id) {
+      dispatch(
+        updateFamily({
+          householdId: currentHouseholdId,
+          family: savedFamily
+        })
+      )
+    } else {
       dispatch(
         addFamily({
           householdId: currentHouseholdId,
-          family: { ...data, family_members: [] } as Family
+          family: savedFamily
         })
       )
     }
 
-    // 4. Save Family Members (with duplicate check)
-    if (family.family_members?.length) {
-      for (const member of family.family_members) {
-        // Prevent duplicate registered members
-        if (member.voter_id) {
-          const { data: existingMember } = await supabase
-            .from('family_members')
-            .select('id')
-            .eq('voter_id', member.voter_id)
-
-          if (existingMember?.length) {
-            toast.error(`${member.fullname} is already a family member.`)
-            continue
-          }
-        }
-
-        // Insert member
-        await supabase.from('family_members').insert([
-          {
-            family_id: familyId,
-            voter_id: member.is_registered ? member.voter_id : null,
-            full_name: member.fullname,
-            relation: member.relation,
-            is_registered: member.is_registered
-          }
-        ])
-      }
-    }
-
-    // ✅ success
     toast.success('Family saved successfully!')
     setShowFamilyModal(false)
   }
 
-  // Fetch Households by Location
-  const fetchHouseholds = async (locationIdNum: number) => {
+  const handleDeleteHousehold = async (householdId: number) => {
     try {
-      const { data, error } = await supabase
+      // 1. Call Supabase to delete from DB
+      const { error } = await supabase
         .from('households')
-        .select(
-          `
-          id, name, barangay, location_id,
-          families (
-            id, husband_name,wife_name,household_id,
-            husband:voters!families_husband_id_fkey (id, fullname),
-            wife:voters!families_wife_id_fkey (id, fullname),
-            family_members (id, voter_id, full_name, is_registered, relation)
-          )
-        `
-        )
-        .eq('location_id', locationIdNum)
+        .delete()
+        .eq('id', householdId)
 
       if (error) throw error
 
-      const mapped: Household[] = (data ?? []).map((h: any) => ({
+      // 2. Update Redux state
+      dispatch(deleteHousehold(householdId))
+
+      toast.success('Household deleted successfully!')
+
+      // 3. Close modal
+      setShowHouseholdModal(false)
+    } catch (err) {
+      console.error('Failed to delete household:', err)
+      toast.error('❌ Error deleting household. Please try again.')
+    }
+  }
+
+  // Fetch Households by Location
+  const fetchHouseholds = async (page: number, searchText = '') => {
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+
+    try {
+      let householdIds: number[] = []
+
+      if (searchText.trim()) {
+        // 1️⃣ Get matching household IDs using RPC
+        const { data: rpcData, error: rpcError } = await supabase.rpc(
+          'search_households',
+          { search_text: searchText, location_id_param: locationIdNum }
+        )
+
+        if (rpcError) throw rpcError
+
+        householdIds = (rpcData ?? []).map((h: any) => h.id)
+      }
+
+      // 2️⃣ Fetch full household data
+      let data: any, count
+
+      if (searchText.trim()) {
+        if (householdIds.length === 0) {
+          data = []
+          count = 0
+        } else {
+          const {
+            data: fullData,
+            count: fullCount,
+            error: fetchError
+          } = await supabase
+            .from('households')
+            .select(
+              `
+          id, name, barangay, location_id,
+          families (
+            id, husband_name, wife_name, household_id,
+            husband:voters!families_husband_id_fkey (id, fullname),
+            wife:voters!families_wife_id_fkey (id, fullname),
+            family_members (id, voter_id, fullname, is_registered, relation)
+          )
+        `,
+              { count: 'exact' }
+            )
+            .in('id', householdIds)
+            .range(from, to)
+            .order('id', { ascending: false })
+
+          if (fetchError) throw fetchError
+          data = fullData ?? []
+          count = fullCount ?? 0
+        }
+      } else {
+        // Normal paginated fetch without search
+        const {
+          data: supData,
+          count: supCount,
+          error
+        } = await supabase
+          .from('households')
+          .select(
+            `
+      id, name, purok,barangay, location_id,
+      families (
+        id, husband_name, wife_name, household_id,
+        husband:voters!families_husband_id_fkey (id, fullname),
+        wife:voters!families_wife_id_fkey (id, fullname),
+        family_members (id, voter_id, fullname, is_registered, relation)
+      )
+    `,
+            { count: 'exact' }
+          )
+          .eq('location_id', locationIdNum)
+          .range(from, to)
+          .order('id', { ascending: false })
+
+        if (error) throw error
+        data = supData ?? []
+        count = supCount ?? 0
+      }
+
+      const mapped = (data ?? []).map((h: any) => ({
         id: h.id,
         name: h.name,
+        purok: h.purok,
         barangay: h.barangay,
         location_id: h.location_id,
         families: (h.families ?? []).map((f: any) => ({
           ...f,
           id: f.id,
           household_id: f.household_id,
-          husband: f.husband?.length
+          husband: f.husband
             ? {
-                id: f.husband[0].id,
-                fullname: f.husband[0].fullname,
+                id: f.husband.id,
+                voter_id: f.husband.id,
+                fullname: f.husband.fullname,
                 is_registered: true
               }
             : null,
-          wife: f.wife?.length
+          wife: f.wife
             ? {
-                id: f.wife[0].id,
-                fullname: f.wife[0].fullname,
+                id: f.wife.id,
+                voter_id: f.wife.id,
+                fullname: f.wife.fullname,
                 is_registered: true
               }
             : null,
           family_members: (f.family_members ?? []).map((m: any) => ({
-            id: m.id,
-            fullname: m.full_name,
+            id: m.voter_id ?? null,
+            fullname: m.fullname,
             is_registered: m.is_registered,
             relation: m.relation
           }))
         }))
       }))
 
-      // ✅ update Redux state
-      dispatch(setHouseholds(mapped))
+      dispatch(
+        setHouseholds({
+          households: mapped,
+          totalCount: count,
+          page
+        })
+      )
     } catch (err) {
       console.error('Error fetching households:', err)
     }
@@ -340,11 +476,23 @@ export default function HouseholdsPage() {
     void fetchData()
   }, [locationIdNum])
 
-  // 🚀 Fetch households for this location
+  // 🚀 Fetch households whenever page or location changes (but not directly on search)
   useEffect(() => {
     if (!locationIdNum) return
-    fetchHouseholds(locationIdNum)
-  }, [locationIdNum])
+
+    fetchHouseholds(currentPage, search)
+  }, [currentPage, locationIdNum]) // 👈 removed search here
+
+  // 🔎 Debounced fetch on search input
+  useEffect(() => {
+    if (!locationIdNum) return
+
+    const delayDebounce = setTimeout(() => {
+      fetchHouseholds(1, search) // always reset to page 1 on search
+    }, 400)
+
+    return () => clearTimeout(delayDebounce)
+  }, [search, locationIdNum])
 
   if (loading) {
     return <LoadingSkeleton />
@@ -386,12 +534,13 @@ export default function HouseholdsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-        {paginated.map((h) => (
-          <Card key={h.id}>
+        {households.map((h) => (
+          <Card key={`household-${h.id}`}>
             <CardHeader>
               <CardTitle className="flex justify-between">
                 <span>{h.name}</span>
                 <Button
+                  variant="ghost"
                   size="sm"
                   onClick={() => {
                     setEditHousehold(h)
@@ -401,19 +550,17 @@ export default function HouseholdsPage() {
                   ✎
                 </Button>
               </CardTitle>
-              <p className="text-sm text-gray-500">{h.barangay}</p>
+              <p className="text-sm text-gray-500">Purok: {h.purok}</p>
             </CardHeader>
             <CardContent>
               {h.families?.map((f) => (
-                <div key={f.id} className="mb-3">
-                  <p className="font-semibold">
-                    {f.husband_name} &amp; {f.wife_name}
-                  </p>
+                <div key={`family-${f.id}-${h.id}`} className="mb-3">
+                  <p className="font-semibold">{f.husband_name}</p>
+                  <p className="font-semibold">{f.wife_name}</p>
                   <ul className="ml-4 list-disc text-sm text-gray-600">
                     {f.family_members?.map((m, i) => (
                       <li key={i}>
                         {m.fullname} {m.is_registered ? '' : '(NR)'} –{' '}
-                        {m.relation}
                       </li>
                     ))}
                   </ul>
@@ -449,13 +596,18 @@ export default function HouseholdsPage() {
 
       {/* PAGINATION LINKS */}
       <div className="flex justify-center mt-6 space-x-2">
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+        {Array.from(
+          { length: Math.ceil(totalCount / pageSize) },
+          (_, i) => i + 1
+        ).map((page) => (
           <button
             key={page}
             className={`px-3 py-1 rounded border ${
               page === currentPage ? 'bg-blue-500 text-white' : 'bg-white'
             }`}
-            onClick={() => dispatch(setPage(page))}
+            onClick={() => {
+              dispatch(setPage(page)) // useEffect will handle fetch with current search, pageSize, and locationIdNum
+            }}
           >
             {page}
           </button>
@@ -468,6 +620,7 @@ export default function HouseholdsPage() {
         onClose={() => setShowHouseholdModal(false)}
         onSave={handleSaveHousehold}
         initialData={editHousehold}
+        onDelete={handleDeleteHousehold} // ✅ wired to slice
       />
 
       <FamilyFormModal

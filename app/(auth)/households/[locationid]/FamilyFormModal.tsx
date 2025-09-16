@@ -49,6 +49,7 @@ export default function FamilyModal({
     initialFamily?.family_members ?? []
   )
 
+  console.log('initialFamily', initialFamily)
   const location = useAppSelector((state) => state.location.selectedLocation)
 
   // debounce queries
@@ -115,7 +116,7 @@ export default function FamilyModal({
           voter.is_registered === false
             ? `${voter.fullname} (NR)`
             : voter.fullname,
-        relation: 'Child',
+        relation: '',
         is_registered: voter.is_registered !== false
       }
     ])
@@ -131,6 +132,19 @@ export default function FamilyModal({
       family_members: members
     })
   }
+
+  // Sync initialFamily → state when editing
+  useEffect(() => {
+    if (initialFamily) {
+      setSelectedHusband(initialFamily.husband ?? null)
+      setSelectedWife(initialFamily.wife ?? null)
+      setMembers(initialFamily.family_members ?? [])
+    } else {
+      setSelectedHusband(null)
+      setSelectedWife(null)
+      setMembers([])
+    }
+  }, [initialFamily, open])
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>

@@ -5,15 +5,17 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { RootState } from '.'
 
 interface HouseholdsState {
-  value: Household[]
-  currentPage: number
-  pageSize: number
+  value: Household[] // current page households
+  currentPage: number // current page
+  pageSize: number // page size
+  totalCount: number // total households in DB
 }
 
 const initialState: HouseholdsState = {
   value: [],
   currentPage: 1,
-  pageSize: 10
+  pageSize: 10,
+  totalCount: 0
 }
 
 // ------------------
@@ -21,17 +23,12 @@ const initialState: HouseholdsState = {
 // ------------------
 export const selectHouseholds = (state: RootState) => state.householdsList.value
 
-export const selectPaginatedHouseholds = (state: RootState) => {
-  const { currentPage, pageSize, value } = state.householdsList
-  if (!value || value.length === 0) return []
-  const start = (currentPage - 1) * pageSize
-  const end = start + pageSize
-  return value.slice(start, end)
-}
+export const selectPaginatedHouseholds = (state: RootState) =>
+  state.householdsList.value
 
 export const selectTotalPages = (state: RootState) => {
-  const { value, pageSize } = state.householdsList
-  return value.length > 0 ? Math.ceil(value.length / pageSize) : 1
+  const { totalCount, pageSize } = state.householdsList
+  return totalCount > 0 ? Math.ceil(totalCount / pageSize) : 1
 }
 
 // ------------------
@@ -41,10 +38,18 @@ export const householdsSlice = createSlice({
   name: 'householdsList',
   initialState,
   reducers: {
-    // Replace the entire list
-    setHouseholds: (state, action: PayloadAction<Household[]>) => {
-      state.value = action.payload
-      state.currentPage = 1
+    // Replace current page households and totalCount
+    setHouseholds: (
+      state,
+      action: PayloadAction<{
+        households: Household[]
+        totalCount: number
+        page: number
+      }>
+    ) => {
+      state.value = action.payload.households
+      state.totalCount = action.payload.totalCount
+      state.currentPage = action.payload.page
     },
 
     // Household-level reducers
@@ -55,10 +60,12 @@ export const householdsSlice = createSlice({
       }
     },
     addHousehold: (state, action: PayloadAction<Household>) => {
-      state.value.push(action.payload)
+      state.value.unshift(action.payload)
+      state.totalCount += 1
     },
     deleteHousehold: (state, action: PayloadAction<number>) => {
       state.value = state.value.filter((h) => h.id !== action.payload)
+      state.totalCount -= 1
     },
 
     // Family-level reducers
