@@ -16,7 +16,10 @@ export default function Home() {
     const checkSession = async () => {
       const { data, error } = await supabase.auth.getUser()
       if (error) console.warn('Auth error:', error.message)
-      if (data.user) router.push('/home')
+      if (data.user) {
+        router.push('/home')
+        return
+      }
       setCheckingSession(false)
     }
 
