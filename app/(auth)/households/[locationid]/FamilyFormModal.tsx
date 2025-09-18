@@ -115,9 +115,7 @@ export default function FamilyModal({
       {
         voter_id: voter.id || null,
         fullname:
-          voter.is_registered === false
-            ? `${voter.fullname} (NR)`
-            : voter.fullname,
+          voter.is_registered === false ? `${voter.fullname}` : voter.fullname,
         relation: '',
         is_registered: voter.is_registered !== false
       }
@@ -177,7 +175,7 @@ export default function FamilyModal({
               value={husbandQuery}
               onChange={(e) => setHusbandQuery(e.target.value)}
               className="w-full border px-2 py-1 rounded"
-              placeholder="Search husband..."
+              placeholder="Husband name..."
             />
             {husbandOptions.length > 0 && (
               <ul className="border rounded mt-1 bg-white max-h-40 overflow-y-auto">
@@ -236,7 +234,7 @@ export default function FamilyModal({
               value={wifeQuery}
               onChange={(e) => setWifeQuery(e.target.value)}
               className="w-full border px-2 py-1 rounded"
-              placeholder="Search wife..."
+              placeholder="Wife name..."
             />
             {wifeOptions.length > 0 && (
               <ul className="border rounded mt-1 bg-white max-h-40 overflow-y-auto">
@@ -275,7 +273,10 @@ export default function FamilyModal({
             )}
             {selectedWife && (
               <div className="mt-2 text-sm flex items-center gap-2 border rounded px-2 py-1 bg-gray-50">
-                <strong>{selectedWife.fullname}</strong>
+                <strong>
+                  {selectedWife.fullname}{' '}
+                  {!selectedWife.is_registered && '(NR)'}
+                </strong>
                 <button
                   className="text-red-500 hover:text-red-700"
                   onClick={() => setSelectedWife(null)}
@@ -293,7 +294,7 @@ export default function FamilyModal({
               value={memberQuery}
               onChange={(e) => setMemberQuery(e.target.value)}
               className="w-full border px-2 py-1 rounded"
-              placeholder="Search member..."
+              placeholder="Member name..."
             />
             {memberOptions.length > 0 && (
               <ul className="border rounded mt-1 bg-white max-h-40 overflow-y-auto">
@@ -335,7 +336,9 @@ export default function FamilyModal({
                     key={idx}
                     className="flex justify-between items-center border px-2 py-1 rounded bg-gray-50"
                   >
-                    <span>{m.fullname}</span>
+                    <span>
+                      {m.fullname} {!m.is_registered && '(NR)'}
+                    </span>
                     <button
                       className="text-red-500 hover:text-red-700"
                       onClick={() =>
