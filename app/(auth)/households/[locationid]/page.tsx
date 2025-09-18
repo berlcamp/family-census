@@ -67,6 +67,7 @@ export default function HouseholdsPage() {
         .update({
           name: household.name,
           purok: household.purok,
+          sitio: household.sitio,
           barangay: location.name,
           address: location.address,
           location_id: locationIdNum
@@ -98,6 +99,7 @@ export default function HouseholdsPage() {
           {
             name: household.name,
             purok: household.purok,
+            sitio: household.sitio,
             barangay: location.name,
             address: location.address,
             location_id: locationIdNum
@@ -467,6 +469,7 @@ export default function HouseholdsPage() {
         id: h.id,
         name: h.name,
         purok: h.purok,
+        sitio: h.sitio,
         barangay: h.barangay,
         location_id: h.location_id,
         families: (h.families ?? []).map((f: any) => ({
@@ -630,6 +633,9 @@ export default function HouseholdsPage() {
                 </Button>
               </CardTitle>
               <p className="text-sm text-gray-500">Purok: {h.purok}</p>
+              {h.sitio && (
+                <p className="text-sm text-gray-500">Sitio: {h.sitio}</p>
+              )}
             </CardHeader>
             <CardContent>
               {h.families?.map((f) => (

@@ -50,6 +50,8 @@ export default function FamilyModal({
     initialFamily?.family_members ?? []
   )
 
+  const [saving, setSaving] = useState(false)
+
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
 
   const location = useAppSelector((state) => state.location.selectedLocation)
@@ -125,6 +127,7 @@ export default function FamilyModal({
   }
 
   const handleSubmit = () => {
+    setSaving(true)
     onSave({
       id: initialFamily?.id,
       husband: selectedHusband,
@@ -158,6 +161,7 @@ export default function FamilyModal({
     setHusbandQuery('')
     setWifeQuery('')
     setMemberQuery('')
+    setSaving(false)
   }, [initialFamily, open])
 
   return (
@@ -364,10 +368,12 @@ export default function FamilyModal({
               </Button>
             )}
             <div className="ml-auto flex gap-2">
-              <Button variant="outline" onClick={onCancel}>
+              <Button variant="outline" disabled={saving} onClick={onCancel}>
                 Cancel
               </Button>
-              <Button onClick={handleSubmit}>Save</Button>
+              <Button disabled={saving} onClick={handleSubmit}>
+                {saving ? 'Saving...' : 'Save'}
+              </Button>
             </div>
           </div>
           {/* <DialogFooter>

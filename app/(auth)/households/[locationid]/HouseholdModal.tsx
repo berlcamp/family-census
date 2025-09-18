@@ -29,8 +29,10 @@ export default function HouseholdModal({
 }: Props) {
   const location = useAppSelector((state) => state.location.selectedLocation)
 
+  const [saving, setSaving] = useState(false)
   const [name, setName] = useState('')
   const [purok, setPurok] = useState('')
+  const [sitio, setSitio] = useState('')
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
 
   // Sync modal state with initialData whenever it changes
@@ -38,17 +40,22 @@ export default function HouseholdModal({
     if (initialData) {
       setName(initialData.name ?? '')
       setPurok(initialData.purok ?? '')
+      setSitio(initialData.sitio ?? '')
     } else {
       setName('')
       setPurok('')
+      setSitio('')
     }
+    setSaving(false)
   }, [initialData, open])
 
   const handleSubmit = () => {
+    setSaving(true)
     onSave({
       id: initialData?.id,
       name,
       purok,
+      sitio,
       barangay: location?.name,
       location_id: location?.id
     })
@@ -92,6 +99,15 @@ export default function HouseholdModal({
                 onChange={(e) => setPurok(e.target.value)}
               />
             </div>
+            {/* Sitio */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Sitio (optional)</label>
+              <Input
+                placeholder="Sitio"
+                value={sitio}
+                onChange={(e) => setSitio(e.target.value)}
+              />
+            </div>
 
             <div className="flex justify-between gap-2">
               {/* Show Delete only in edit mode */}
@@ -104,10 +120,12 @@ export default function HouseholdModal({
                 </Button>
               )}
               <div className="ml-auto flex gap-2">
-                <Button variant="outline" onClick={onClose}>
+                <Button variant="outline" disabled={saving} onClick={onClose}>
                   Cancel
                 </Button>
-                <Button onClick={handleSubmit}>Save</Button>
+                <Button disabled={saving} onClick={handleSubmit}>
+                  {saving ? 'Saving...' : 'Save'}
+                </Button>
               </div>
             </div>
           </div>
