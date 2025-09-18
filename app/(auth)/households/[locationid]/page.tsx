@@ -12,6 +12,7 @@ import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import {
   addFamily,
   addHousehold,
+  deleteFamily,
   deleteHousehold,
   selectPaginatedHouseholds,
   setHouseholds,
@@ -133,31 +134,83 @@ export default function HouseholdsPage() {
     }
 
     // 2. Check duplicates (husband/wife already part of another family)
-    if (family.husband?.voter_id) {
-      const { data: existingHusband } = await supabase
+    // ✅ Gather all voter_ids for this family (husband, wife, members)
+    const voterIdsToCheck = [
+      family.husband?.voter_id,
+      family.wife?.voter_id,
+      ...(family.family_members?.map((m) => m.voter_id) ?? [])
+    ].filter(Boolean) // remove null/undefined
+
+    if (voterIdsToCheck.length) {
+      // Check against families table (husband_id, wife_id)
+      const { data: existingFamilies, error: familiesErr } = await supabase
         .from('families')
-        .select('id')
-        .eq('husband_id', family.husband.voter_id)
+        .select('id, husband_id, wife_id,barangay')
+        .in('husband_id', voterIdsToCheck)
         .neq('id', family.id ?? 0)
 
-      if (existingHusband?.length) {
-        toast.error(
-          `${family.husband.fullname} is already a Husband in another family.`
-        )
+      const { data: existingWives, error: wivesErr } = await supabase
+        .from('families')
+        .select('id, husband_id, wife_id,barangay')
+        .in('wife_id', voterIdsToCheck)
+        .neq('id', family.id ?? 0)
+
+      // Check against family_members
+      const { data: existingMembers, error: membersErr } = await supabase
+        .from('family_members')
+        .select('id, voter_id, family_id,barangay')
+        .in('voter_id', voterIdsToCheck)
+        .neq('family_id', family.id ?? 0)
+
+      if (familiesErr || wivesErr || membersErr) {
+        console.error(familiesErr || wivesErr || membersErr)
+        toast.error('Error checking duplicates. Please try again.')
         return
       }
-    }
 
-    if (family.wife?.voter_id) {
-      const { data: existingWife } = await supabase
-        .from('families')
-        .select('id')
-        .eq('wife_id', family.wife.voter_id)
-        .neq('id', family.id ?? 0)
+      // Combine results
+      const conflicts = new Set([
+        ...(existingFamilies?.map((f) => f.husband_id) ?? []),
+        ...(existingWives?.map((f) => f.wife_id) ?? []),
+        ...(existingMembers?.map((m) => m.voter_id) ?? [])
+      ])
 
-      if (existingWife?.length) {
+      // If any voter_id is in conflicts, stop saving
+      const conflicted = voterIdsToCheck.find((id) => conflicts.has(id))
+      if (conflicted) {
+        // Build conflicts with barangay info
+        const conflictsWithBarangay: Record<string, string> = {}
+
+        existingFamilies?.forEach((f) => {
+          if (f.husband_id) conflictsWithBarangay[f.husband_id] = f.barangay
+        })
+        existingWives?.forEach((f) => {
+          if (f.wife_id) conflictsWithBarangay[f.wife_id] = f.barangay
+        })
+        existingMembers?.forEach((m) => {
+          if (m.voter_id) conflictsWithBarangay[m.voter_id] = m.barangay
+        })
+
+        // ✅ Map voter_id → fullname
+        const voterNameMap: Record<string, string> = {}
+
+        if (family.husband?.voter_id) {
+          voterNameMap[family.husband.voter_id] = family.husband.fullname
+        }
+        if (family.wife?.voter_id) {
+          voterNameMap[family.wife.voter_id] = family.wife.fullname
+        }
+        for (const member of family.family_members ?? []) {
+          if (member.voter_id) {
+            voterNameMap[member.voter_id] = member.fullname
+          }
+        }
+        const conflictedName =
+          voterNameMap[conflicted] || `Voter ID ${conflicted}`
+        const conflictedBarangay = conflictsWithBarangay[conflicted]
+
         toast.error(
-          `${family.wife.fullname} is already a Wife in another family.`
+          `${conflictedName} is already part of another family in ${conflictedBarangay}.`
         )
         return
       }
@@ -197,7 +250,8 @@ export default function HouseholdsPage() {
             husband_id: family.husband?.voter_id ?? null,
             husband_name: family.husband?.fullname ?? null,
             wife_id: family.wife?.voter_id ?? null,
-            wife_name: family.wife?.fullname ?? null
+            wife_name: family.wife?.fullname ?? null,
+            barangay: location?.name
           }
         ])
         .select()
@@ -226,7 +280,8 @@ export default function HouseholdsPage() {
           voter_id: member.is_registered ? member.voter_id : null,
           fullname: member.fullname,
           relation: member.relation,
-          is_registered: member.is_registered
+          is_registered: member.is_registered,
+          barangay: location?.name
         }))
 
         const { data: membersData, error: insertError } = await supabase
@@ -300,6 +355,28 @@ export default function HouseholdsPage() {
     } catch (err) {
       console.error('Failed to delete household:', err)
       toast.error('❌ Error deleting household. Please try again.')
+    }
+  }
+  const handleDeleteFamily = async (householdId: number, familyId: number) => {
+    try {
+      // 1. Call Supabase to delete from DB
+      const { error } = await supabase
+        .from('families')
+        .delete()
+        .eq('id', familyId)
+
+      if (error) throw error
+
+      // 2. Update Redux state
+      dispatch(deleteFamily({ householdId, familyId }))
+
+      toast.success('Family deleted successfully!')
+
+      // 3. Close modal
+      setShowHouseholdModal(false)
+    } catch (err) {
+      console.error('Failed to delete Family:', err)
+      toast.error('❌ Error deleting Family. Please try again.')
     }
   }
 
@@ -395,6 +472,7 @@ export default function HouseholdsPage() {
         families: (h.families ?? []).map((f: any) => ({
           ...f,
           id: f.id,
+          barangay: h.barangay,
           household_id: f.household_id,
           husband: f.husband
             ? {
@@ -415,6 +493,7 @@ export default function HouseholdsPage() {
           family_members: (f.family_members ?? []).map((m: any) => ({
             id: m.voter_id ?? null,
             fullname: m.fullname,
+            barangay: m.barangay,
             is_registered: m.is_registered,
             relation: m.relation
           }))
@@ -535,7 +614,7 @@ export default function HouseholdsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
         {households.map((h) => (
-          <Card key={`household-${h.id}`}>
+          <Card key={`household-${h.id}`} className="bg-yellow-50">
             <CardHeader>
               <CardTitle className="flex justify-between">
                 <span>{h.name}</span>
@@ -557,7 +636,7 @@ export default function HouseholdsPage() {
                 <div key={`family-${f.id}-${h.id}`} className="mb-3">
                   <p className="font-semibold">{f.husband_name}</p>
                   <p className="font-semibold">{f.wife_name}</p>
-                  <ul className="ml-4 list-disc text-sm text-gray-600">
+                  <ul className="ml-4 list-disc text-sm text-gray-700">
                     {f.family_members?.map((m, i) => (
                       <li key={i}>
                         {m.fullname} {m.is_registered ? '' : '(NR)'} –{' '}
@@ -628,6 +707,7 @@ export default function HouseholdsPage() {
         onCancel={() => setShowFamilyModal(false)}
         onSave={handleSaveFamily}
         initialFamily={editFamily}
+        onDelete={handleDeleteFamily} // ✅ wired to slice
       />
     </div>
   )

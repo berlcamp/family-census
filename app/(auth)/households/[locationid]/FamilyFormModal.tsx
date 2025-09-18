@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
@@ -23,6 +22,7 @@ interface Voter {
 interface FamilyFormProps {
   open: boolean
   onSave: (family: any) => void
+  onDelete?: (householdId: number, familyId: number) => void // 🔥 Add delete handler
   onCancel: () => void
   initialFamily?: any
 }
@@ -30,6 +30,7 @@ interface FamilyFormProps {
 export default function FamilyModal({
   open,
   onSave,
+  onDelete,
   onCancel,
   initialFamily
 }: FamilyFormProps) {
@@ -49,7 +50,8 @@ export default function FamilyModal({
     initialFamily?.family_members ?? []
   )
 
-  console.log('initialFamily', initialFamily)
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+
   const location = useAppSelector((state) => state.location.selectedLocation)
 
   // debounce queries
@@ -133,6 +135,14 @@ export default function FamilyModal({
     })
   }
 
+  const handleDelete = () => {
+    if (initialFamily?.household_id && initialFamily?.id && onDelete) {
+      onDelete(initialFamily.household_id, initialFamily.id)
+      setShowConfirmDelete(false)
+      onCancel()
+    }
+  }
+
   // Sync initialFamily → state when editing
   useEffect(() => {
     if (initialFamily) {
@@ -144,197 +154,247 @@ export default function FamilyModal({
       setSelectedWife(null)
       setMembers([])
     }
+    setHusbandOptions([])
+    setWifeOptions([])
+    setMemberOptions([])
+    setHusbandQuery('')
+    setWifeQuery('')
+    setMemberQuery('')
   }, [initialFamily, open])
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Family</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Family</DialogTitle>
+          </DialogHeader>
 
-        {/* Husband */}
-        <div className="mb-3">
-          <label className="block text-sm font-medium">Husband</label>
-          <input
-            value={husbandQuery}
-            onChange={(e) => setHusbandQuery(e.target.value)}
-            className="w-full border px-2 py-1 rounded"
-            placeholder="Search husband..."
-          />
-          {husbandOptions.length > 0 && (
-            <ul className="border rounded mt-1 bg-white max-h-40 overflow-y-auto">
-              {husbandOptions.map((v) => (
-                <li
-                  key={v.id}
-                  className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => {
-                    setSelectedHusband({
-                      ...v,
-                      voter_id: v.id,
-                      is_registered: true
-                    })
-                    setHusbandOptions([])
-                    setHusbandQuery('')
-                  }}
-                >
-                  {v.fullname} ({v.barangay})
-                </li>
-              ))}
-            </ul>
-          )}
-          {/* Add as non-registered option */}
-          {husbandQuery && husbandOptions.length === 0 && (
-            <button
-              className="mt-1 text-sm text-blue-600"
-              onClick={() => {
-                setSelectedHusband({
-                  fullname: `${husbandQuery} (NR)`,
-                  is_registered: false
-                })
-                setHusbandQuery('')
-              }}
-            >
-              Add “{husbandQuery}” as Non-registered
-            </button>
-          )}
-          {/* Show selected husband below */}
-          {selectedHusband && (
-            <div className="mt-2 text-sm flex items-center gap-2 border rounded px-2 py-1 bg-gray-50">
-              <strong>{selectedHusband.fullname}</strong>
-              <button
-                className="text-red-500 hover:text-red-700"
-                onClick={() => setSelectedHusband(null)}
-              >
-                ✕
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Wife */}
-        <div className="mb-3">
-          <label className="block text-sm font-medium">Wife</label>
-          <input
-            value={wifeQuery}
-            onChange={(e) => setWifeQuery(e.target.value)}
-            className="w-full border px-2 py-1 rounded"
-            placeholder="Search wife..."
-          />
-          {wifeOptions.length > 0 && (
-            <ul className="border rounded mt-1 bg-white max-h-40 overflow-y-auto">
-              {wifeOptions.map((v) => (
-                <li
-                  key={v.id}
-                  className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => {
-                    setSelectedWife({
-                      ...v,
-                      voter_id: v.id,
-                      is_registered: true
-                    })
-                    setWifeOptions([])
-                    setWifeQuery('')
-                  }}
-                >
-                  {v.fullname} ({v.barangay})
-                </li>
-              ))}
-            </ul>
-          )}
-          {wifeQuery && wifeOptions.length === 0 && (
-            <button
-              className="mt-1 text-sm text-blue-600"
-              onClick={() => {
-                setSelectedWife({
-                  fullname: `${wifeQuery} (NR)`,
-                  is_registered: false
-                })
-                setWifeQuery('')
-              }}
-            >
-              Add “{wifeQuery}” as Non-registered
-            </button>
-          )}
-          {selectedWife && (
-            <div className="mt-2 text-sm flex items-center gap-2 border rounded px-2 py-1 bg-gray-50">
-              <strong>{selectedWife.fullname}</strong>
-              <button
-                className="text-red-500 hover:text-red-700"
-                onClick={() => setSelectedWife(null)}
-              >
-                ✕
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Members */}
-        <div className="mb-3">
-          <label className="block text-sm font-medium">Add Member</label>
-          <input
-            value={memberQuery}
-            onChange={(e) => setMemberQuery(e.target.value)}
-            className="w-full border px-2 py-1 rounded"
-            placeholder="Search member..."
-          />
-          {memberOptions.length > 0 && (
-            <ul className="border rounded mt-1 bg-white max-h-40 overflow-y-auto">
-              {memberOptions.map((v) => (
-                <li
-                  key={v.id}
-                  className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => handleAddMember({ ...v, is_registered: true })}
-                >
-                  {v.fullname} ({v.barangay})
-                </li>
-              ))}
-            </ul>
-          )}
-          {memberQuery && memberOptions.length === 0 && (
-            <button
-              className="mt-1 text-sm text-blue-600"
-              onClick={() =>
-                handleAddMember({ fullname: memberQuery, is_registered: false })
-              }
-            >
-              Add “{memberQuery}” as Non-registered
-            </button>
-          )}
-        </div>
-
-        {/* Members List */}
-        {members.length > 0 && (
+          {/* Husband */}
           <div className="mb-3">
-            <h4 className="font-medium">Family Members</h4>
-            <ul className="mt-2 space-y-1">
-              {members.map((m, idx) => (
-                <li
-                  key={idx}
-                  className="flex justify-between items-center border px-2 py-1 rounded bg-gray-50"
+            <label className="block text-sm font-medium">Husband</label>
+            <input
+              value={husbandQuery}
+              onChange={(e) => setHusbandQuery(e.target.value)}
+              className="w-full border px-2 py-1 rounded"
+              placeholder="Search husband..."
+            />
+            {husbandOptions.length > 0 && (
+              <ul className="border rounded mt-1 bg-white max-h-40 overflow-y-auto">
+                {husbandOptions.map((v) => (
+                  <li
+                    key={v.id}
+                    className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => {
+                      setSelectedHusband({
+                        ...v,
+                        voter_id: v.id,
+                        is_registered: true
+                      })
+                      setHusbandOptions([])
+                      setHusbandQuery('')
+                    }}
+                  >
+                    {v.fullname} ({v.barangay})
+                  </li>
+                ))}
+              </ul>
+            )}
+            {/* Add as non-registered option */}
+            {husbandQuery && husbandOptions.length === 0 && (
+              <button
+                className="mt-1 text-sm text-blue-600"
+                onClick={() => {
+                  setSelectedHusband({
+                    fullname: `${husbandQuery} (NR)`,
+                    is_registered: false
+                  })
+                  setHusbandQuery('')
+                }}
+              >
+                Add “{husbandQuery}” as Non-registered
+              </button>
+            )}
+            {/* Show selected husband below */}
+            {selectedHusband && (
+              <div className="mt-2 text-sm flex items-center gap-2 border rounded px-2 py-1 bg-gray-50">
+                <strong>{selectedHusband.fullname}</strong>
+                <button
+                  className="text-red-500 hover:text-red-700"
+                  onClick={() => setSelectedHusband(null)}
                 >
-                  <span>{m.fullname}</span>
-                  <button
-                    className="text-red-500 hover:text-red-700"
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Wife */}
+          <div className="mb-3">
+            <label className="block text-sm font-medium">Wife</label>
+            <input
+              value={wifeQuery}
+              onChange={(e) => setWifeQuery(e.target.value)}
+              className="w-full border px-2 py-1 rounded"
+              placeholder="Search wife..."
+            />
+            {wifeOptions.length > 0 && (
+              <ul className="border rounded mt-1 bg-white max-h-40 overflow-y-auto">
+                {wifeOptions.map((v) => (
+                  <li
+                    key={v.id}
+                    className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => {
+                      setSelectedWife({
+                        ...v,
+                        voter_id: v.id,
+                        is_registered: true
+                      })
+                      setWifeOptions([])
+                      setWifeQuery('')
+                    }}
+                  >
+                    {v.fullname} ({v.barangay})
+                  </li>
+                ))}
+              </ul>
+            )}
+            {wifeQuery && wifeOptions.length === 0 && (
+              <button
+                className="mt-1 text-sm text-blue-600"
+                onClick={() => {
+                  setSelectedWife({
+                    fullname: `${wifeQuery} (NR)`,
+                    is_registered: false
+                  })
+                  setWifeQuery('')
+                }}
+              >
+                Add “{wifeQuery}” as Non-registered
+              </button>
+            )}
+            {selectedWife && (
+              <div className="mt-2 text-sm flex items-center gap-2 border rounded px-2 py-1 bg-gray-50">
+                <strong>{selectedWife.fullname}</strong>
+                <button
+                  className="text-red-500 hover:text-red-700"
+                  onClick={() => setSelectedWife(null)}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Members */}
+          <div className="mb-3">
+            <label className="block text-sm font-medium">Add Member</label>
+            <input
+              value={memberQuery}
+              onChange={(e) => setMemberQuery(e.target.value)}
+              className="w-full border px-2 py-1 rounded"
+              placeholder="Search member..."
+            />
+            {memberOptions.length > 0 && (
+              <ul className="border rounded mt-1 bg-white max-h-40 overflow-y-auto">
+                {memberOptions.map((v) => (
+                  <li
+                    key={v.id}
+                    className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
                     onClick={() =>
-                      setMembers(members.filter((_, i) => i !== idx))
+                      handleAddMember({ ...v, is_registered: true })
                     }
                   >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    {v.fullname} ({v.barangay})
+                  </li>
+                ))}
+              </ul>
+            )}
+            {memberQuery && memberOptions.length === 0 && (
+              <button
+                className="mt-1 text-sm text-blue-600"
+                onClick={() =>
+                  handleAddMember({
+                    fullname: memberQuery,
+                    is_registered: false
+                  })
+                }
+              >
+                Add “{memberQuery}” as Non-registered
+              </button>
+            )}
           </div>
-        )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit}>Save</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          {/* Members List */}
+          {members.length > 0 && (
+            <div className="mb-3">
+              <h4 className="font-medium">Family Members</h4>
+              <ul className="mt-2 space-y-1">
+                {members.map((m, idx) => (
+                  <li
+                    key={idx}
+                    className="flex justify-between items-center border px-2 py-1 rounded bg-gray-50"
+                  >
+                    <span>{m.fullname}</span>
+                    <button
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() =>
+                        setMembers(members.filter((_, i) => i !== idx))
+                      }
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="flex justify-between gap-2">
+            {/* Show Delete only in edit mode */}
+            {initialFamily && onDelete && (
+              <Button
+                variant="ghost"
+                onClick={() => setShowConfirmDelete(true)}
+              >
+                Delete This Family
+              </Button>
+            )}
+            <div className="ml-auto flex gap-2">
+              <Button variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit}>Save</Button>
+            </div>
+          </div>
+          {/* <DialogFooter>
+            <Button variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit}>Save</Button>
+          </DialogFooter> */}
+        </DialogContent>
+      </Dialog>
+      {/* Confirm Delete Modal */}
+      <Dialog open={showConfirmDelete} onOpenChange={setShowConfirmDelete}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+          </DialogHeader>
+          <p>Are you sure you want to delete this family?</p>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmDelete(false)}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
