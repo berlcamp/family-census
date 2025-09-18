@@ -43,8 +43,6 @@ export function AppSidebar() {
 
   const pathname = usePathname()
 
-  const user = useAppSelector((state) => state.user.user)
-
   return (
     <Sidebar className="pt-13">
       <SidebarContent>
@@ -64,41 +62,40 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {user?.type === 'super admin' && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="border-t rounded-none border-gray-600">
-              Locations
-            </SidebarGroupLabel>
-            <SidebarGroupContent className="pb-20">
-              <SidebarMenu>
-                {locations.map((item, idx) => {
-                  const isActive = pathname === `/${item.id}`
 
-                  return (
-                    <SidebarMenuItem
-                      key={idx}
-                      className="rounded-xl"
-                      style={{
-                        backgroundColor: isActive ? '#49494a' : 'transparent'
-                      }}
-                    >
-                      <SidebarMenuButton asChild>
-                        <Link href={`/${item.id}`}>
-                          <button
-                            type="button"
-                            className="w-4 h-4 rounded-full relative"
-                            style={{ backgroundColor: item.color }}
-                          ></button>
-                          <span className="text-gray-300">{item.name}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        <SidebarGroup>
+          <SidebarGroupLabel className="border-t rounded-none border-gray-600">
+            Locations
+          </SidebarGroupLabel>
+          <SidebarGroupContent className="pb-20">
+            <SidebarMenu>
+              {locations.map((item, idx) => {
+                const isActive = pathname === `/${item.id}`
+
+                return (
+                  <SidebarMenuItem
+                    key={idx}
+                    className="rounded-xl"
+                    style={{
+                      backgroundColor: isActive ? '#49494a' : 'transparent'
+                    }}
+                  >
+                    <SidebarMenuButton asChild>
+                      <Link href={`/${item.id}`}>
+                        <button
+                          type="button"
+                          className="w-4 h-4 rounded-full relative"
+                          style={{ backgroundColor: item.color }}
+                        ></button>
+                        <span className="text-gray-300">{item.name}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   )
