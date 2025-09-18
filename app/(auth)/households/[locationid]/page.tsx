@@ -608,7 +608,7 @@ export default function HouseholdsPage() {
           placeholder="Search households..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-1/3"
+          className="w-full md:w-1/3"
         />
       </div>
 
