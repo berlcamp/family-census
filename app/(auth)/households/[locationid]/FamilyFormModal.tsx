@@ -261,7 +261,7 @@ export default function FamilyModal({
             )}
             {/* Show selected husband below */}
             {selectedHusband && (
-              <div className="mt-2 text-sm flex items-center gap-2 border rounded px-2 py-1 bg-gray-50">
+              <div className="mt-2 text-sm flex items-center gap-2 border rounded px-2 py-1 bg-yellow-100">
                 <strong>{selectedHusband.fullname}</strong>
                 <button
                   className="text-red-500 hover:text-red-700"
@@ -318,7 +318,7 @@ export default function FamilyModal({
               </button>
             )}
             {selectedWife && (
-              <div className="mt-2 text-sm flex items-center gap-2 border rounded px-2 py-1 bg-gray-50">
+              <div className="mt-2 text-sm flex items-center gap-2 border rounded px-2 py-1 bg-yellow-100">
                 <strong>
                   {selectedWife.fullname}{' '}
                   {!selectedWife.is_registered && '(NR)'}
@@ -380,7 +380,7 @@ export default function FamilyModal({
                 {members.map((m, idx) => (
                   <li
                     key={idx}
-                    className="flex justify-between items-center border px-2 py-1 rounded bg-gray-50"
+                    className="flex justify-between items-center border px-2 py-1 rounded bg-yellow-100"
                   >
                     <span>
                       {m.fullname} {!m.is_registered && '(NR)'}

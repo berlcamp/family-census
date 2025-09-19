@@ -610,7 +610,7 @@ export default function HouseholdsPage() {
 
       <div className="flex justify-between my-4 p-4">
         <Input
-          placeholder="Search households..."
+          placeholder="Search name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full md:w-1/3"
