@@ -49,6 +49,7 @@ export default function FamilyModal({
   const [members, setMembers] = useState<any[]>(
     initialFamily?.family_members ?? []
   )
+  const [allVoters, setAllVoters] = useState<Voter[]>([])
 
   const [saving, setSaving] = useState(false)
 
@@ -61,51 +62,68 @@ export default function FamilyModal({
   const [debouncedWifeQuery] = useDebounce(wifeQuery, 400)
   const [debouncedMemberQuery] = useDebounce(memberQuery, 400)
 
-  // fetch voters
-  const fetchVoters = async (query: string, setOptions: any) => {
-    if (!query.trim()) {
-      setOptions([])
+  // husband search
+  useEffect(() => {
+    if (!debouncedHusbandQuery.trim()) {
+      setHusbandOptions([]) // empty, so no dropdown
       return
     }
 
-    const { data, error } = await supabase
-      .from('voters')
-      .select('id, fullname, barangay')
-      .eq('barangay', location?.name)
-      .ilike('fullname', `%${query}%`)
-      .limit(10)
+    const searchWords = debouncedHusbandQuery
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ') // 🔑 remove everything except letters, numbers, spaces
+      .split(/\s+/)
+      .filter(Boolean)
 
-    if (!error) {
-      setOptions(data || [])
-    }
-  }
+    const filtered = allVoters.filter((user) => {
+      const fullName = `${user.fullname || ''}`.toLowerCase()
+      return searchWords.every((word) => fullName.includes(word))
+    })
 
-  // husband search
-  useEffect(() => {
-    if (debouncedHusbandQuery) {
-      fetchVoters(debouncedHusbandQuery, setHusbandOptions)
-    } else {
-      setHusbandOptions([])
-    }
-  }, [debouncedHusbandQuery])
+    setHusbandOptions(filtered)
+  }, [debouncedHusbandQuery, allVoters])
 
   // wife search
   useEffect(() => {
-    if (debouncedWifeQuery) {
-      fetchVoters(debouncedWifeQuery, setWifeOptions)
-    } else {
-      setWifeOptions([])
+    if (!debouncedWifeQuery.trim()) {
+      setWifeOptions([]) // empty, so no dropdown
+      return
     }
-  }, [debouncedWifeQuery])
+
+    const searchWords = debouncedWifeQuery
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ') // 🔑 remove everything except letters, numbers, spaces
+      .split(/\s+/)
+      .filter(Boolean)
+
+    const filtered = allVoters.filter((user) => {
+      const fullName = `${user.fullname || ''}`.toLowerCase()
+      return searchWords.every((word) => fullName.includes(word))
+    })
+
+    setWifeOptions(filtered)
+  }, [debouncedWifeQuery, allVoters])
 
   // member search
   useEffect(() => {
-    if (debouncedMemberQuery) {
-      fetchVoters(debouncedMemberQuery, setMemberOptions)
-    } else {
-      setMemberOptions([])
+    if (!debouncedMemberQuery.trim()) {
+      setMemberOptions([]) // empty, so no dropdown
+      return
     }
-  }, [debouncedMemberQuery])
+
+    const searchWords = debouncedMemberQuery
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ') // 🔑 remove everything except letters, numbers, spaces
+      .split(/\s+/)
+      .filter(Boolean)
+
+    const filtered = allVoters.filter((user) => {
+      const fullName = `${user.fullname || ''}`.toLowerCase()
+      return searchWords.every((word) => fullName.includes(word))
+    })
+
+    setMemberOptions(filtered)
+  }, [debouncedMemberQuery, allVoters])
 
   const handleAddMember = (voter: Voter) => {
     if (members.some((m) => m.fullname === voter.fullname)) {
@@ -143,6 +161,29 @@ export default function FamilyModal({
       onCancel()
     }
   }
+
+  // ✅ Fetch all voters in barangay once
+  useEffect(() => {
+    const fetchInitialVoters = async () => {
+      const { data, error } = await supabase
+        .from('voters')
+        .select('id, fullname')
+        .eq('barangay', location?.name)
+
+      if (!error && data) {
+        // add fullname field for easier search
+        const votersWithFullname = data.map((user) => ({
+          ...user,
+          fullname: user.fullname
+        }))
+        setAllVoters(votersWithFullname)
+      }
+    }
+
+    if (location?.name) {
+      fetchInitialVoters()
+    }
+  }, [location?.name])
 
   // Sync initialFamily → state when editing
   useEffect(() => {
@@ -197,7 +238,7 @@ export default function FamilyModal({
                       setHusbandQuery('')
                     }}
                   >
-                    {v.fullname} ({v.barangay})
+                    {v.fullname}
                   </li>
                 ))}
               </ul>
@@ -256,7 +297,7 @@ export default function FamilyModal({
                       setWifeQuery('')
                     }}
                   >
-                    {v.fullname} ({v.barangay})
+                    {v.fullname}
                   </li>
                 ))}
               </ul>
@@ -310,7 +351,7 @@ export default function FamilyModal({
                       handleAddMember({ ...v, is_registered: true })
                     }
                   >
-                    {v.fullname} ({v.barangay})
+                    {v.fullname}
                   </li>
                 ))}
               </ul>
