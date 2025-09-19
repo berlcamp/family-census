@@ -33,6 +33,7 @@ export default function HouseholdsPage() {
   const locationIdNum = Number(locationid)
 
   const [loading, setLoading] = useState(false)
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
   const households = useAppSelector(selectPaginatedHouseholds)
 
@@ -495,6 +496,7 @@ export default function HouseholdsPage() {
             : null,
           family_members: (f.family_members ?? []).map((m: any) => ({
             id: m.voter_id ?? null,
+            voter_id: m.voter_id ?? null,
             fullname: m.fullname,
             barangay: m.barangay,
             is_registered: m.is_registered,
@@ -615,9 +617,38 @@ export default function HouseholdsPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+      {/* ✅ Toggle buttons */}
+      <div className="flex justify-end gap-2 p-4">
+        <Button
+          variant={viewMode === 'grid' ? 'outline' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('grid')}
+        >
+          Grid View
+        </Button>
+        <Button
+          variant={viewMode === 'list' ? 'outline' : 'ghost'}
+          size="sm"
+          onClick={() => setViewMode('list')}
+        >
+          List View
+        </Button>
+      </div>
+      {/* ✅ Conditional layout */}
+      <div
+        className={
+          viewMode === 'grid'
+            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4'
+            : 'flex flex-col gap-4 p-4'
+        }
+      >
         {households.map((h) => (
-          <Card key={`household-${h.id}`} className="bg-yellow-50">
+          <Card
+            key={`household-${h.id}`}
+            className={`rounded-none border-gray-300 ${
+              viewMode === 'grid' ? 'bg-yellow-100' : ''
+            }`}
+          >
             <CardHeader>
               <CardTitle className="flex justify-between">
                 <span>{h.name}</span>
@@ -645,14 +676,14 @@ export default function HouseholdsPage() {
                   <ul className="ml-4 list-disc text-sm text-gray-700">
                     {f.family_members?.map((m, i) => (
                       <li key={i}>
-                        {m.fullname} {m.is_registered ? '' : '(NR)'} –{' '}
+                        {m.fullname} {m.is_registered ? '' : '(NR)'}
                       </li>
                     ))}
                   </ul>
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="mt-1"
+                    variant="link"
+                    className="mt-1 text-blue-700"
                     onClick={() => {
                       setCurrentHouseholdId(h.id)
                       setEditFamily(f)
@@ -664,7 +695,7 @@ export default function HouseholdsPage() {
                 </div>
               ))}
               <Button
-                size="sm"
+                size="xs"
                 className="mt-2"
                 onClick={() => {
                   setCurrentHouseholdId(h.id)
