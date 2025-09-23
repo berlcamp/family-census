@@ -8,6 +8,7 @@ interface ExtendedUser extends User {
   type?: string
   admin: boolean
   name?: string
+  address?: string
   location_ids?: string[]
 }
 

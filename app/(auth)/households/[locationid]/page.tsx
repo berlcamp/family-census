@@ -43,6 +43,7 @@ export default function HouseholdsPage() {
   )
 
   const [search, setSearch] = useState('')
+  const [purok, setPurok] = useState('')
 
   const [showHouseholdModal, setShowHouseholdModal] = useState(false)
   const [editHousehold, setEditHousehold] = useState<Household | null>(null)
@@ -130,9 +131,22 @@ export default function HouseholdsPage() {
   const handleSaveFamily = async (family: Partial<Family>) => {
     if (!currentHouseholdId) return
 
-    // 1. Husband or Wife must be set
-    if (!family.husband?.voter_id && !family.wife?.voter_id) {
-      toast.error('At least one of Husband or Wife must be a registered voter.')
+    // 1. Check if husband, wife, or any member is registered
+    const hasHusband = !!family.husband?.voter_id
+    const hasWife = !!family.wife?.voter_id
+    const hasRegisteredMember = family.family_members?.some(
+      (m) => m.is_registered && !!m.voter_id
+    )
+
+    if (
+      !hasHusband &&
+      !hasWife &&
+      !hasRegisteredMember &&
+      !family.allowNonRegistered
+    ) {
+      toast.error(
+        'At least one of Husband, Wife, or Family Members must be a registered voter.'
+      )
       return
     }
 
@@ -222,6 +236,13 @@ export default function HouseholdsPage() {
     let familyId = family.id
     let savedFamily: Family | null = null
 
+    // 🔍 Check if absolutely everyone is non-registered
+    const isAllNonRegistered =
+      !family.husband?.voter_id &&
+      !family.wife?.voter_id &&
+      (family.family_members?.every((m) => !m.is_registered || !m.voter_id) ??
+        true)
+
     // 3. Save Family (Insert or Update)
     if (family.id) {
       // UPDATE family
@@ -232,7 +253,8 @@ export default function HouseholdsPage() {
           husband_id: family.husband?.voter_id ?? null,
           husband_name: family.husband?.fullname ?? null,
           wife_id: family.wife?.voter_id ?? null,
-          wife_name: family.wife?.fullname ?? null
+          wife_name: family.wife?.fullname ?? null,
+          all_nr: isAllNonRegistered // 🔥 set column
         })
         .eq('id', family.id)
 
@@ -254,7 +276,8 @@ export default function HouseholdsPage() {
             husband_name: family.husband?.fullname ?? null,
             wife_id: family.wife?.voter_id ?? null,
             wife_name: family.wife?.fullname ?? null,
-            barangay: location?.name
+            barangay: location?.name,
+            all_nr: isAllNonRegistered // 🔥 set column
           }
         ])
         .select()
@@ -384,29 +407,36 @@ export default function HouseholdsPage() {
   }
 
   // Fetch Households by Location
-  const fetchHouseholds = async (page: number, searchText = '') => {
+  const fetchHouseholds = async (
+    page: number,
+    searchText = '',
+    purokText = ''
+  ) => {
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
     try {
       let householdIds: number[] = []
 
-      if (searchText.trim()) {
-        // 1️⃣ Get matching household IDs using RPC
+      if (searchText.trim() || purokText.trim()) {
+        // ✅ Call RPC with both search and purok
         const { data: rpcData, error: rpcError } = await supabase.rpc(
           'search_households',
-          { search_text: searchText, location_id_param: locationIdNum }
+          {
+            purok_text: purokText,
+            search_text: searchText,
+            location_id_param: locationIdNum
+          }
         )
 
         if (rpcError) throw rpcError
-
         householdIds = (rpcData ?? []).map((h: any) => h.id)
       }
 
       // 2️⃣ Fetch full household data
       let data: any, count
 
-      if (searchText.trim()) {
+      if (searchText.trim() || purokText.trim()) {
         if (householdIds.length === 0) {
           data = []
           count = 0
@@ -419,9 +449,9 @@ export default function HouseholdsPage() {
             .from('households')
             .select(
               `
-          id, name, barangay, location_id,
+          id, name, barangay, location_id,purok,
           families (
-            id, husband_name, wife_name, household_id,
+            id, husband_name, wife_name, household_id,all_nr,
             husband:voters!families_husband_id_fkey (id, fullname),
             wife:voters!families_wife_id_fkey (id, fullname),
             family_members (id, voter_id, fullname, is_registered, relation)
@@ -449,7 +479,7 @@ export default function HouseholdsPage() {
             `
       id, name, purok,barangay, location_id,
       families (
-        id, husband_name, wife_name, household_id,
+        id, husband_name, wife_name, household_id,all_nr,
         husband:voters!families_husband_id_fkey (id, fullname),
         wife:voters!families_wife_id_fkey (id, fullname),
         family_members (id, voter_id, fullname, is_registered, relation)
@@ -477,23 +507,28 @@ export default function HouseholdsPage() {
           ...f,
           id: f.id,
           barangay: h.barangay,
+          all_nr: f.all_nr,
           household_id: f.household_id,
-          husband: f.husband
-            ? {
-                id: f.husband.id,
-                voter_id: f.husband.id,
-                fullname: f.husband.fullname,
-                is_registered: true
-              }
-            : null,
-          wife: f.wife
-            ? {
-                id: f.wife.id,
-                voter_id: f.wife.id,
-                fullname: f.wife.fullname,
-                is_registered: true
-              }
-            : null,
+          husband:
+            f.husband || f.husband_name
+              ? {
+                  id: f.husband?.id ?? null,
+                  voter_id: f.husband?.id ?? null, // will only exist if registered
+                  fullname: f.husband?.fullname || f.husband_name, // prefer voters.fullname else stored name
+                  is_registered: !!f.husband?.id
+                }
+              : null,
+
+          wife:
+            f.wife || f.wife_name
+              ? {
+                  id: f.wife?.id ?? null,
+                  voter_id: f.wife?.id ?? null,
+                  fullname: f.wife?.fullname || f.wife_name,
+                  is_registered: !!f.wife?.id
+                }
+              : null,
+
           family_members: (f.family_members ?? []).map((m: any) => ({
             id: m.voter_id ?? null,
             voter_id: m.voter_id ?? null,
@@ -564,19 +599,8 @@ export default function HouseholdsPage() {
   useEffect(() => {
     if (!locationIdNum) return
 
-    fetchHouseholds(currentPage, search)
+    fetchHouseholds(currentPage, search, purok)
   }, [currentPage, locationIdNum]) // 👈 removed search here
-
-  // 🔎 Debounced fetch on search input
-  useEffect(() => {
-    if (!locationIdNum) return
-
-    const delayDebounce = setTimeout(() => {
-      fetchHouseholds(1, search) // always reset to page 1 on search
-    }, 400)
-
-    return () => clearTimeout(delayDebounce)
-  }, [search, locationIdNum])
 
   if (loading) {
     return <LoadingSkeleton />
@@ -608,32 +632,83 @@ export default function HouseholdsPage() {
 
       <VerticalMenu activeTab="households" />
 
-      <div className="flex justify-between my-4 p-4">
-        <Input
-          placeholder="Search name..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full md:w-1/3"
-        />
-      </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          fetchHouseholds(1, search, purok)
+        }}
+        className="flex flex-wrap items-end gap-2 my-4 p-4 xl:w-2/3"
+      >
+        {/* Search Input */}
+        <div className="flex-1 min-w-[200px]">
+          <Input
+            placeholder="Search name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        {/* Purok Dropdown */}
+        <div className="min-w-[150px]">
+          <label className="text-xs font-medium text-gray-600">Purok</label>
+          <select
+            value={purok}
+            onChange={(e) => setPurok(e.target.value)}
+            className="w-full border rounded p-2 text-sm"
+          >
+            <option value="">-- All Puroks --</option>
+            {Array.isArray(location?.purok) &&
+              location.purok.map((p: string, i: number) => (
+                <option key={i} value={p}>
+                  {p}
+                </option>
+              ))}
+          </select>
+        </div>
+
+        {/* Search & Reset Buttons */}
+        <div className="flex gap-2 ml-auto">
+          <Button type="submit" variant="blue">
+            Search
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setSearch('')
+              setPurok('')
+              fetchHouseholds(1, '', '') // reset
+            }}
+          >
+            Reset
+          </Button>
+        </div>
+      </form>
 
       {/* ✅ Toggle buttons */}
-      <div className="flex justify-end gap-2 p-4">
-        <Button
-          variant={viewMode === 'grid' ? 'outline' : 'ghost'}
-          size="sm"
-          onClick={() => setViewMode('grid')}
-        >
-          Grid View
-        </Button>
-        <Button
-          variant={viewMode === 'list' ? 'outline' : 'ghost'}
-          size="sm"
-          onClick={() => setViewMode('list')}
-        >
-          List View
-        </Button>
-      </div>
+      {households.length > 0 && (
+        <div className="flex justify-end gap-2 p-4">
+          <Button
+            variant={viewMode === 'grid' ? 'outline' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('grid')}
+          >
+            Grid View
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'outline' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+          >
+            List View
+          </Button>
+        </div>
+      )}
+
+      {households.length === 0 && (
+        <div className="p-4 text-xl text-gray-600">No households found.</div>
+      )}
+
       {/* ✅ Conditional layout */}
       <div
         className={
@@ -670,9 +745,18 @@ export default function HouseholdsPage() {
             </CardHeader>
             <CardContent>
               {h.families?.map((f) => (
-                <div key={`family-${f.id}-${h.id}`} className="mb-3">
-                  <p className="font-semibold">{f.husband_name}</p>
-                  <p className="font-semibold">{f.wife_name}</p>
+                <div
+                  key={`family-${f.id}-${h.id}`}
+                  className={`mb-3 rounded p-2 ${
+                    f.all_nr ? 'bg-red-100 border border-red-300' : ''
+                  }`}
+                >
+                  <p className="font-semibold">
+                    {f.husband_name} {!f.husband?.voter_id && '(NR)'}
+                  </p>
+                  <p className="font-semibold">
+                    {f.wife_name} {!f.wife?.voter_id && '(NR)'}
+                  </p>
                   <ul className="ml-4 list-disc text-sm text-gray-700">
                     {f.family_members?.map((m, i) => (
                       <li key={i}>

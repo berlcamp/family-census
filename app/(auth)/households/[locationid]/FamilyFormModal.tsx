@@ -21,7 +21,8 @@ interface Voter {
 
 interface FamilyFormProps {
   open: boolean
-  onSave: (family: any) => void
+  onSave: (family: any) => Promise<void> // 🔥 return a Promise
+
   onDelete?: (householdId: number, familyId: number) => void // 🔥 Add delete handler
   onCancel: () => void
   initialFamily?: any
@@ -52,10 +53,11 @@ export default function FamilyModal({
   const [allVoters, setAllVoters] = useState<Voter[]>([])
 
   const [saving, setSaving] = useState(false)
-
+  const [allowNonRegistered, setAllowNonRegistered] = useState(false)
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
 
   const location = useAppSelector((state) => state.location.selectedLocation)
+  const user = useAppSelector((state) => state.user.user)
 
   // debounce queries
   const [debouncedHusbandQuery] = useDebounce(husbandQuery, 400)
@@ -144,14 +146,19 @@ export default function FamilyModal({
     setMemberOptions([])
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setSaving(true)
-    onSave({
-      id: initialFamily?.id,
-      husband: selectedHusband,
-      wife: selectedWife,
-      family_members: members
-    })
+    try {
+      await onSave({
+        id: initialFamily?.id,
+        husband: selectedHusband,
+        wife: selectedWife,
+        family_members: members,
+        allowNonRegistered
+      })
+    } finally {
+      setSaving(false) // ✅ reset after save
+    }
   }
 
   const handleDelete = () => {
@@ -169,7 +176,7 @@ export default function FamilyModal({
         .from('voters')
         .select('id, fullname')
         .eq('barangay', location?.name)
-        .eq('address', 'OZAMIZ CITY')
+        .eq('address', user?.address)
 
       if (!error && data) {
         // add fullname field for easier search
@@ -184,7 +191,7 @@ export default function FamilyModal({
     if (location?.name) {
       fetchInitialVoters()
     }
-  }, [location?.name])
+  }, [location?.name, user?.address])
 
   // Sync initialFamily → state when editing
   useEffect(() => {
@@ -250,7 +257,7 @@ export default function FamilyModal({
                 className="mt-1 text-sm text-blue-600"
                 onClick={() => {
                   setSelectedHusband({
-                    fullname: `${husbandQuery} (NR)`,
+                    fullname: `${husbandQuery}`,
                     is_registered: false
                   })
                   setHusbandQuery('')
@@ -308,7 +315,7 @@ export default function FamilyModal({
                 className="mt-1 text-sm text-blue-600"
                 onClick={() => {
                   setSelectedWife({
-                    fullname: `${wifeQuery} (NR)`,
+                    fullname: `${wifeQuery}`,
                     is_registered: false
                   })
                   setWifeQuery('')
@@ -398,6 +405,19 @@ export default function FamilyModal({
               </ul>
             </div>
           )}
+
+          <div className="flex items-center mb-2">
+            <input
+              id="allowNonRegistered"
+              type="checkbox"
+              checked={allowNonRegistered}
+              onChange={(e) => setAllowNonRegistered(e.target.checked)}
+              className="mr-2"
+            />
+            <label htmlFor="allowNonRegistered" className="text-sm">
+              Allow saving even if no members are registered
+            </label>
+          </div>
 
           <div className="flex justify-between gap-2">
             {/* Show Delete only in edit mode */}

@@ -47,6 +47,7 @@ export interface Location {
   description?: string
   org_id?: string
   color: string
+  purok?: string[]
 }
 export interface LocationUser {
   id: number
@@ -161,11 +162,13 @@ export interface Family {
   created_at?: string
   wife_name: string
   husband_name: string
+  all_nr?: boolean
 
   // Relations
   husband?: VoterLite | null
   wife?: VoterLite | null
   family_members?: FamilyMember[]
+  allowNonRegistered?: boolean
 }
 
 // Family member record (asenso.family_members)

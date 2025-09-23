@@ -1,4 +1,4 @@
-import { Home } from 'lucide-react'
+import { BarChart, Home } from 'lucide-react'
 
 import {
   Sidebar,
@@ -14,34 +14,44 @@ import { useAppSelector } from '@/lib/redux/hook'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-// Menu items.
-const items = [
-  {
-    title: 'Home',
-    url: '/home',
-    icon: Home
-  }
-  // {
-  //   title: 'Data Processing Agreement',
-  //   url: '/data-processing-agreement',
-  //   icon: Calendar
-  // },
-  // {
-  //   title: 'Data Privacy',
-  //   url: '/privacy-policy',
-  //   icon: Search
-  // },
-  // {
-  //   title: 'Settings',
-  //   url: '#',
-  //   icon: Settings
-  // }
-]
-
 export function AppSidebar() {
   const locations = useAppSelector((state) => state.locationsList.value)
+  const user = useAppSelector((state) => state.user.user)
 
   const pathname = usePathname()
+
+  // Menu items.
+  const items = [
+    {
+      title: 'Home',
+      url: '/home',
+      icon: Home
+    },
+    ...(user?.type === 'super admin'
+      ? [
+          {
+            title: 'Dashboard',
+            url: '/dashboard',
+            icon: BarChart
+          }
+        ]
+      : [])
+    // {
+    //   title: 'Data Processing Agreement',
+    //   url: '/data-processing-agreement',
+    //   icon: Calendar
+    // },
+    // {
+    //   title: 'Data Privacy',
+    //   url: '/privacy-policy',
+    //   icon: Search
+    // },
+    // {
+    //   title: 'Settings',
+    //   url: '#',
+    //   icon: Settings
+    // }
+  ]
 
   return (
     <Sidebar className="pt-13">

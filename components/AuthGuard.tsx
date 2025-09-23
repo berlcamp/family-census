@@ -55,7 +55,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           const { data, error } = await supabase
             .from('locations')
             .select('*')
-            .eq('address', 'ozamiz')
+            .eq('address', systemUser.address)
             .eq('org_id', process.env.NEXT_PUBLIC_ORG_ID)
             .order('id', { ascending: true })
 
@@ -80,7 +80,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             const { data, error } = await supabase
               .from('locations')
               .select('*')
-              .eq('address', 'ozamiz')
+              .eq('address', systemUser.address)
               .eq('org_id', process.env.NEXT_PUBLIC_ORG_ID)
               .filter('id', 'in', idList)
               .order('id', { ascending: true })
@@ -100,6 +100,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             admin,
             name: systemUser.name,
             type: systemUser.type,
+            address: systemUser.address,
             location_ids: locations.length > 0 ? locations.map((b) => b.id) : []
           })
         )

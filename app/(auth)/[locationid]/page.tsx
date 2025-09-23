@@ -2,6 +2,7 @@
 'use client'
 
 import LoadingSkeleton from '@/components/LoadingSkeleton'
+import Notfoundpage from '@/components/Notfoundpage'
 import { OverviewTab } from '@/components/OverviewTab'
 import VerticalMenu from '@/components/VerticalMenu'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
@@ -69,13 +70,7 @@ export default function Page() {
   }
 
   if (!location) {
-    return (
-      <div className="space-y-4 w-full">
-        <div className="app__title">
-          <h1 className="text-xl font-semibold">Page not found</h1>
-        </div>
-      </div>
-    )
+    return <Notfoundpage />
   }
 
   return (

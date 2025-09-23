@@ -93,11 +93,19 @@ export default function HouseholdModal({
             {/* Purok */}
             <div className="space-y-1">
               <label className="text-sm font-medium">Purok</label>
-              <Input
-                placeholder="Ex. 3"
+              <select
                 value={purok}
                 onChange={(e) => setPurok(e.target.value)}
-              />
+                className="w-full border rounded p-2 text-sm"
+              >
+                <option value="">-- Select Purok --</option>
+                {Array.isArray(location?.purok) &&
+                  location.purok.map((p, i) => (
+                    <option key={i} value={p}>
+                      {p}
+                    </option>
+                  ))}
+              </select>
             </div>
             {/* Sitio */}
             <div className="space-y-1">
