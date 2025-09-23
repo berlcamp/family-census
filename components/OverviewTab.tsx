@@ -9,6 +9,7 @@ import { Check } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import LocationUsers from './LocationUsers'
+import OverviewBarGraph from './OverviewBarGraph'
 import { Button } from './ui/button'
 
 const COLORS = [
@@ -134,9 +135,15 @@ export const OverviewTab = () => {
       </div>
 
       {/* Users Section */}
-      <div className="col-span-2 p-4 bg-gray-50">
-        <h1 className="text-lg font-semibold">Users</h1>
-        <LocationUsers location={location} />
+      <div className="col-span-2 bg-gray-50">
+        <div className="border-t lg:border-t-0">
+          <OverviewBarGraph locationId={location?.id} />
+        </div>
+        <div className="p-4 border-t">
+          <h1 className="text-lg font-semibold">Users</h1>
+          <LocationUsers location={location} />
+        </div>
+        {/* Overview */}
       </div>
     </div>
   )

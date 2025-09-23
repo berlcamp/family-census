@@ -289,15 +289,16 @@ export default function AddMemberModal({
 
               {/* Search Results */}
               {results.length > 0 && !selectedUser && (
-                <div className="border rounded-md max-h-60 overflow-y-auto">
+                <div className="max-h-60 overflow-y-auto space-x-2">
                   {results.map((user) => (
-                    <button
+                    <Button
                       key={user.id}
                       onClick={() => handleSelectUser(user)}
-                      className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800"
+                      variant="blue"
+                      className="mt-2"
                     >
                       {user.email}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
@@ -310,14 +311,15 @@ export default function AddMemberModal({
                 results.length === 0 &&
                 !selectedUser &&
                 query.includes('@') && (
-                  <button
+                  <Button
                     onClick={() =>
                       handleSelectUser({ id: 'new', email: query })
                     }
-                    className="w-full text-left px-4 py-2 rounded-md border hover:bg-gray-100 dark:hover:bg-gray-800"
+                    className="mt-2"
+                    variant="blue"
                   >
-                    Invite <strong>{query}</strong>
-                  </button>
+                    Add <strong>{query}</strong>
+                  </Button>
                 )}
 
               {/* Selected User Info */}
@@ -333,7 +335,7 @@ export default function AddMemberModal({
               )}
 
               {/* Role Selection */}
-              <div className="space-y-2 mt-4">
+              <div className="space-y-2 mt-4 hidden">
                 <div>Assign roles:</div>
                 <div className="flex gap-2 flex-wrap">
                   <label className="flex items-center gap-1 text-sm cursor-pointer">
@@ -355,7 +357,7 @@ export default function AddMemberModal({
                   ))}
                 </div>
               </div>
-              <div className="text-gray-400 text-xs italic font-light mt-1">
+              <div className="text-gray-400 text-xs italic font-light mt-1 hidden">
                 <div>Viewer can only view households and residents</div>
                 <div>Editor can add or edit households/residents</div>
                 <div>Importer can add or bulk import residents</div>

@@ -20,7 +20,6 @@ import {
 type Checked = DropdownMenuCheckboxItemProps['checked']
 
 function LocationUser({ user }: { user: LocationUserType }) {
-  const [importer, setImporter] = useState<Checked>(user.is_importer)
   const [editor, setEditor] = useState<Checked>(user.is_editor)
 
   const handleRoleUpdate = async (updates: Partial<LocationUserType>) => {
@@ -41,10 +40,10 @@ function LocationUser({ user }: { user: LocationUserType }) {
     void handleRoleUpdate({ is_editor: !!checked })
   }
 
-  const toggleImporter = (checked: Checked) => {
-    setImporter(checked)
-    void handleRoleUpdate({ is_importer: !!checked })
-  }
+  // const toggleImporter = (checked: Checked) => {
+  //   setImporter(checked)
+  //   void handleRoleUpdate({ is_importer: !!checked })
+  // }
 
   return (
     <div className="flex space-x-2 hover:bg-gray-100 py-2 border-t">
@@ -63,12 +62,11 @@ function LocationUser({ user }: { user: LocationUserType }) {
         <div className="text-xs">{user.user.name}</div>
         <div className="text-xs font-light">{user.user.email}</div>
       </div>
-      <div>
+      <div className="hidden">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="text-xs">
               Role: Viewer {editor ? '+ Editor' : ''}{' '}
-              {importer ? '+ Importer' : ''}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56">
@@ -79,12 +77,6 @@ function LocationUser({ user }: { user: LocationUserType }) {
               onCheckedChange={toggleEditor}
             >
               Editor
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={importer}
-              onCheckedChange={toggleImporter}
-            >
-              Importer
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem checked={true} disabled>
               Viewer
