@@ -41,7 +41,7 @@ export default function BarangayDashboard({ address }: { address: string }) {
 
   return (
     <div className="p-6 space-y-6">
-      <h2 className="text-xl font-bold mb-4">Barangay Dashboard ({address})</h2>
+      <h2 className="text-xl font-bold mb-4">{address} Dashboard</h2>
 
       <Card>
         <CardContent className="p-4">
