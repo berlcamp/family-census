@@ -54,6 +54,11 @@ export default function OverviewBarGraph({
             fill="#F59E0B"
             name="Registered Members"
           />
+          <Bar
+            dataKey="total_non_registered"
+            fill="#787878"
+            name="Non-Registered Members"
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>
