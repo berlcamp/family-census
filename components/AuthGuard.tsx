@@ -47,11 +47,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         let locations = []
         let admin = false
         // Super admins
-        if (
-          ['berlcamp@gmail.com', 'indy.oaminal@gmail.com'].includes(
-            systemUser.email
-          )
-        ) {
+        if (systemUser.type === 'super admin') {
           const { data, error } = await supabase
             .from('locations')
             .select('*')
