@@ -752,10 +752,11 @@ export default function HouseholdsPage() {
                   }`}
                 >
                   <p className="font-semibold">
-                    {f.husband_name} {!f.husband?.voter_id && '(NR)'}
+                    {f.husband_name}{' '}
+                    {f.husband && !f.husband?.voter_id && '(NR)'}
                   </p>
                   <p className="font-semibold">
-                    {f.wife_name} {!f.wife?.voter_id && '(NR)'}
+                    {f.wife_name} {f.wife && !f.wife?.voter_id && '(NR)'}
                   </p>
                   <ul className="ml-4 list-disc text-sm text-gray-700">
                     {f.family_members?.map((m, i) => (
