@@ -269,7 +269,10 @@ export default function FamilyModal({
             {/* Show selected husband below */}
             {selectedHusband && (
               <div className="mt-2 text-sm flex items-center gap-2 border rounded px-2 py-1 bg-yellow-100">
-                <strong>{selectedHusband.fullname}</strong>
+                <strong>
+                  {selectedHusband.fullname}
+                  {!selectedHusband.is_registered && '(NR)'}
+                </strong>
                 <button
                   className="text-red-500 hover:text-red-700"
                   onClick={() => setSelectedHusband(null)}
