@@ -176,7 +176,7 @@ export default function FamilyModal({
         .from('voters')
         .select('id, fullname')
         .eq('barangay', location?.name)
-        .eq('address', user?.address)
+        .eq('address', location?.address)
 
       if (!error && data) {
         // add fullname field for easier search

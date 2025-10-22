@@ -196,6 +196,8 @@ export default function AddMemberModal({
         email: selectedUser.email,
         password: password,
         type: 'user',
+        org_id: process.env.NEXT_PUBLIC_ORG_ID,
+        address: location?.address,
         is_active: true
       }
 
