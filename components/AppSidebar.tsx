@@ -27,7 +27,7 @@ export function AppSidebar() {
       url: '/home',
       icon: Home
     },
-    ...(user?.type === 'super admin'
+    ...(user?.type === 'super admin' || user?.type === 'province admin'
       ? [
           {
             title: 'Dashboard',

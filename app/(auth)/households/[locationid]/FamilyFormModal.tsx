@@ -16,14 +16,15 @@ interface Voter {
   voter_id?: number
   fullname: string
   barangay?: string | null
+  address?: string | null
+  from_rpc?: boolean | null
   is_registered?: boolean
 }
 
 interface FamilyFormProps {
   open: boolean
-  onSave: (family: any) => Promise<void> // 🔥 return a Promise
-
-  onDelete?: (householdId: number, familyId: number) => void // 🔥 Add delete handler
+  onSave: (family: any) => Promise<void>
+  onDelete?: (householdId: number, familyId: number) => void
   onCancel: () => void
   initialFamily?: any
 }
@@ -38,9 +39,11 @@ export default function FamilyModal({
   const [husbandQuery, setHusbandQuery] = useState('')
   const [wifeQuery, setWifeQuery] = useState('')
   const [memberQuery, setMemberQuery] = useState('')
+
   const [husbandOptions, setHusbandOptions] = useState<Voter[]>([])
   const [wifeOptions, setWifeOptions] = useState<Voter[]>([])
   const [memberOptions, setMemberOptions] = useState<Voter[]>([])
+
   const [selectedHusband, setSelectedHusband] = useState<Voter | null>(
     initialFamily?.husband ?? null
   )
@@ -50,83 +53,112 @@ export default function FamilyModal({
   const [members, setMembers] = useState<any[]>(
     initialFamily?.family_members ?? []
   )
-  const [allVoters, setAllVoters] = useState<Voter[]>([])
 
+  const [allVoters, setAllVoters] = useState<Voter[]>([])
   const [saving, setSaving] = useState(false)
   const [allowNonRegistered, setAllowNonRegistered] = useState(false)
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
 
   const location = useAppSelector((state) => state.location.selectedLocation)
-  const user = useAppSelector((state) => state.user.user)
+
+  const [searchingHusband, setSearchingHusband] = useState(false)
+
+  const [searchingWife, setSearchingWife] = useState(false)
+
+  const [searchingMember, setSearchingMember] = useState(false)
 
   // debounce queries
   const [debouncedHusbandQuery] = useDebounce(husbandQuery, 400)
   const [debouncedWifeQuery] = useDebounce(wifeQuery, 400)
   const [debouncedMemberQuery] = useDebounce(memberQuery, 400)
 
-  // husband search
-  useEffect(() => {
-    if (!debouncedHusbandQuery.trim()) {
-      setHusbandOptions([]) // empty, so no dropdown
-      return
+  // Helper: shared search function
+  const searchPerson = async (
+    query: string,
+    all: Voter[],
+    onSearching?: (val: boolean) => void
+  ): Promise<Voter[]> => {
+    if (!query.trim()) {
+      return []
     }
 
-    const searchWords = debouncedHusbandQuery
+    onSearching?.(true)
+
+    const searchWords = query
       .toLowerCase()
-      .replace(/[^\w\s]/g, ' ') // 🔑 remove everything except letters, numbers, spaces
+      .replace(/[^\w\s]/g, ' ')
       .split(/\s+/)
       .filter(Boolean)
 
-    const filtered = allVoters.filter((user) => {
+    // 1️⃣ Local search
+    const localMatches = all.filter((user) => {
       const fullName = `${user.fullname || ''}`.toLowerCase()
       return searchWords.every((word) => fullName.includes(word))
     })
 
-    setHusbandOptions(filtered)
+    if (localMatches.length > 0) {
+      onSearching?.(false)
+      return localMatches
+    }
+
+    // 2️⃣ Fallback RPC
+    const { data, error } = await supabase.rpc('search_voters_similar', {
+      query,
+      limit_count: 2
+    })
+
+    onSearching?.(false)
+
+    if (!error && data?.length > 0) {
+      return data.map((d: any) => ({
+        ...d,
+        from_rpc: true
+      }))
+    }
+
+    return []
+  }
+
+  // husband
+  useEffect(() => {
+    const run = async () => {
+      const results = await searchPerson(
+        debouncedHusbandQuery,
+        allVoters,
+        setSearchingHusband
+      )
+      setHusbandOptions(results || [])
+    }
+    run()
   }, [debouncedHusbandQuery, allVoters])
 
-  // wife search
+  // wife
   useEffect(() => {
-    if (!debouncedWifeQuery.trim()) {
-      setWifeOptions([]) // empty, so no dropdown
-      return
+    const run = async () => {
+      const results = await searchPerson(
+        debouncedWifeQuery,
+        allVoters,
+        setSearchingWife
+      )
+      setWifeOptions(results)
     }
-
-    const searchWords = debouncedWifeQuery
-      .toLowerCase()
-      .replace(/[^\w\s]/g, ' ') // 🔑 remove everything except letters, numbers, spaces
-      .split(/\s+/)
-      .filter(Boolean)
-
-    const filtered = allVoters.filter((user) => {
-      const fullName = `${user.fullname || ''}`.toLowerCase()
-      return searchWords.every((word) => fullName.includes(word))
-    })
-
-    setWifeOptions(filtered)
+    run()
   }, [debouncedWifeQuery, allVoters])
 
-  // member search
+  // member
   useEffect(() => {
-    if (!debouncedMemberQuery.trim()) {
-      setMemberOptions([]) // empty, so no dropdown
-      return
+    const run = async () => {
+      const results = await searchPerson(
+        debouncedMemberQuery,
+        allVoters,
+        setSearchingMember
+      )
+      setMemberOptions(results)
     }
-
-    const searchWords = debouncedMemberQuery
-      .toLowerCase()
-      .replace(/[^\w\s]/g, ' ') // 🔑 remove everything except letters, numbers, spaces
-      .split(/\s+/)
-      .filter(Boolean)
-
-    const filtered = allVoters.filter((user) => {
-      const fullName = `${user.fullname || ''}`.toLowerCase()
-      return searchWords.every((word) => fullName.includes(word))
-    })
-
-    setMemberOptions(filtered)
+    run()
   }, [debouncedMemberQuery, allVoters])
 
+  // Add member handler
   const handleAddMember = (voter: Voter) => {
     if (members.some((m) => m.fullname === voter.fullname)) {
       alert(`${voter.fullname} is already added as a member.`)
@@ -157,7 +189,7 @@ export default function FamilyModal({
         allowNonRegistered
       })
     } finally {
-      setSaving(false) // ✅ reset after save
+      setSaving(false)
     }
   }
 
@@ -169,7 +201,7 @@ export default function FamilyModal({
     }
   }
 
-  // ✅ Fetch all voters in barangay once
+  // fetch all voters in barangay once
   useEffect(() => {
     const fetchInitialVoters = async () => {
       const { data, error } = await supabase
@@ -179,21 +211,16 @@ export default function FamilyModal({
         .eq('address', location?.address)
 
       if (!error && data) {
-        // add fullname field for easier search
-        const votersWithFullname = data.map((user) => ({
-          ...user,
-          fullname: user.fullname
-        }))
-        setAllVoters(votersWithFullname)
+        setAllVoters(data)
       }
     }
 
     if (location?.name) {
       fetchInitialVoters()
     }
-  }, [location?.name, user?.address])
+  }, [location?.address, location?.name])
 
-  // Sync initialFamily → state when editing
+  // sync when editing
   useEffect(() => {
     if (initialFamily) {
       setSelectedHusband(initialFamily.husband ?? null)
@@ -221,7 +248,7 @@ export default function FamilyModal({
             <DialogTitle>Family</DialogTitle>
           </DialogHeader>
 
-          {/* Husband */}
+          {/* HUSBAND */}
           <div className="mb-3">
             <label className="block text-sm font-medium">Husband</label>
             <input
@@ -230,7 +257,7 @@ export default function FamilyModal({
               className="w-full border px-2 py-1 rounded"
               placeholder="Husband name..."
             />
-            {husbandOptions.length > 0 && (
+            {!searchingHusband && husbandOptions.length > 0 && (
               <ul className="border rounded mt-1 bg-white max-h-40 overflow-y-auto">
                 {husbandOptions.map((v) => (
                   <li
@@ -247,30 +274,42 @@ export default function FamilyModal({
                     }}
                   >
                     {v.fullname}
+                    {v.from_rpc && v.barangay && (
+                      <span className="text-xs text-gray-500 ml-2">
+                        (registered from {v.barangay}
+                        {v.address ? `, ${v.address}` : ''})
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
             )}
-            {/* Add as non-registered option */}
-            {husbandQuery && husbandOptions.length === 0 && (
-              <button
-                className="mt-1 text-sm text-blue-600"
-                onClick={() => {
-                  setSelectedHusband({
-                    fullname: `${husbandQuery}`,
-                    is_registered: false
-                  })
-                  setHusbandQuery('')
-                }}
-              >
-                Add “{husbandQuery}” as Non-registered
-              </button>
+            {/* Show “Searching from other places…” */}
+            {searchingHusband && (
+              <p className="text-xs text-gray-500 mt-1">Searching…</p>
             )}
-            {/* Show selected husband below */}
+            {!searchingHusband &&
+              husbandQuery &&
+              (husbandOptions.length === 0 ||
+                husbandOptions.every((v) => v.from_rpc)) && (
+                <button
+                  className="mt-1 text-sm text-blue-600"
+                  onClick={() => {
+                    setSelectedHusband({
+                      fullname: `${husbandQuery}`,
+                      is_registered: false
+                    })
+                    setHusbandOptions([])
+                    setHusbandQuery('')
+                  }}
+                >
+                  Add “{husbandQuery}” as Non-registered
+                </button>
+              )}
             {selectedHusband && (
               <div className="mt-2 text-sm flex items-center gap-2 border rounded px-2 py-1 bg-yellow-100">
                 <strong>
-                  {selectedHusband.fullname}
+                  {selectedHusband.fullname}{' '}
                   {!selectedHusband.is_registered && '(NR)'}
                 </strong>
                 <button
@@ -283,7 +322,7 @@ export default function FamilyModal({
             )}
           </div>
 
-          {/* Wife */}
+          {/* WIFE */}
           <div className="mb-3">
             <label className="block text-sm font-medium">Wife</label>
             <input
@@ -292,7 +331,7 @@ export default function FamilyModal({
               className="w-full border px-2 py-1 rounded"
               placeholder="Wife name..."
             />
-            {wifeOptions.length > 0 && (
+            {!searchingWife && wifeOptions.length > 0 && (
               <ul className="border rounded mt-1 bg-white max-h-40 overflow-y-auto">
                 {wifeOptions.map((v) => (
                   <li
@@ -309,24 +348,38 @@ export default function FamilyModal({
                     }}
                   >
                     {v.fullname}
+                    {v.from_rpc && v.barangay && (
+                      <span className="text-xs text-gray-500 ml-2">
+                        (registered from {v.barangay}
+                        {v.address ? `, ${v.address}` : ''})
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
             )}
-            {wifeQuery && wifeOptions.length === 0 && (
-              <button
-                className="mt-1 text-sm text-blue-600"
-                onClick={() => {
-                  setSelectedWife({
-                    fullname: `${wifeQuery}`,
-                    is_registered: false
-                  })
-                  setWifeQuery('')
-                }}
-              >
-                Add “{wifeQuery}” as Non-registered
-              </button>
+            {/* Show “Searching from other places…” */}
+            {searchingWife && (
+              <p className="text-xs text-gray-500 mt-1">Searching…</p>
             )}
+            {!searchingWife &&
+              wifeQuery &&
+              (wifeOptions.length === 0 ||
+                wifeOptions.every((v) => v.from_rpc)) && (
+                <button
+                  className="mt-1 text-sm text-blue-600"
+                  onClick={() => {
+                    setSelectedWife({
+                      fullname: `${wifeQuery}`,
+                      is_registered: false
+                    })
+                    setWifeOptions([])
+                    setWifeQuery('')
+                  }}
+                >
+                  Add “{wifeQuery}” as Non-registered
+                </button>
+              )}
             {selectedWife && (
               <div className="mt-2 text-sm flex items-center gap-2 border rounded px-2 py-1 bg-yellow-100">
                 <strong>
@@ -343,7 +396,7 @@ export default function FamilyModal({
             )}
           </div>
 
-          {/* Members */}
+          {/* MEMBERS */}
           <div className="mb-3">
             <label className="block text-sm font-medium">Add Member</label>
             <input
@@ -352,7 +405,7 @@ export default function FamilyModal({
               className="w-full border px-2 py-1 rounded"
               placeholder="Member name..."
             />
-            {memberOptions.length > 0 && (
+            {!searchingMember && memberOptions.length > 0 && (
               <ul className="border rounded mt-1 bg-white max-h-40 overflow-y-auto">
                 {memberOptions.map((v) => (
                   <li
@@ -363,26 +416,38 @@ export default function FamilyModal({
                     }
                   >
                     {v.fullname}
+                    {v.from_rpc && v.barangay && (
+                      <span className="text-xs text-gray-500 ml-2">
+                        (registered from {v.barangay}
+                        {v.address ? `, ${v.address}` : ''})
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
             )}
-            {memberQuery && memberOptions.length === 0 && (
-              <button
-                className="mt-1 text-sm text-blue-600"
-                onClick={() =>
-                  handleAddMember({
-                    fullname: memberQuery,
-                    is_registered: false
-                  })
-                }
-              >
-                Add “{memberQuery}” as Non-registered
-              </button>
+            {searchingMember && (
+              <p className="text-xs text-gray-500 mt-1">Searching…</p>
             )}
+            {!searchingMember &&
+              memberQuery &&
+              (memberOptions.length === 0 ||
+                memberOptions.every((v) => v.from_rpc)) && (
+                <button
+                  className="mt-1 text-sm text-blue-600"
+                  onClick={() =>
+                    handleAddMember({
+                      fullname: memberQuery,
+                      is_registered: false
+                    })
+                  }
+                >
+                  Add “{memberQuery}” as Non-registered
+                </button>
+              )}
           </div>
 
-          {/* Members List */}
+          {/* MEMBERS LIST */}
           {members.length > 0 && (
             <div className="mb-3">
               <h4 className="font-medium">Family Members</h4>
@@ -423,7 +488,6 @@ export default function FamilyModal({
           </div>
 
           <div className="flex justify-between gap-2">
-            {/* Show Delete only in edit mode */}
             {initialFamily && onDelete && (
               <Button
                 variant="ghost"
@@ -441,15 +505,10 @@ export default function FamilyModal({
               </Button>
             </div>
           </div>
-          {/* <DialogFooter>
-            <Button variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit}>Save</Button>
-          </DialogFooter> */}
         </DialogContent>
       </Dialog>
-      {/* Confirm Delete Modal */}
+
+      {/* Confirm Delete */}
       <Dialog open={showConfirmDelete} onOpenChange={setShowConfirmDelete}>
         <DialogContent>
           <DialogHeader>

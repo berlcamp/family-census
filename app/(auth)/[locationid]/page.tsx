@@ -32,7 +32,7 @@ export default function Page() {
       setLoading(true)
 
       // Super admin
-      if (user?.admin) {
+      if (user?.type === 'berl') {
         const { data, error } = await supabase
           .from('locations')
           .select()

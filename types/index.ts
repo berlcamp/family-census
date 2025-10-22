@@ -137,6 +137,7 @@ export interface Household {
   purok: string
   sitio: string
   barangay?: string | null
+  address?: string | null
   location_id?: number | null
   org_id?: number | null
   created_at?: string

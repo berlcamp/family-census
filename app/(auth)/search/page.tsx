@@ -1,158 +1,115 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useAppSelector } from '@/lib/redux/hook'
 import { supabase } from '@/lib/supabase/client'
+import { Family, FamilyMember, Household } from '@/types'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import MemberModal from './MemberModal'
-import VoterModal from './VoterModal'
-
-const PER_PAGE = 10
 
 export default function SearchPage() {
   const searchParams = useSearchParams()
   const query = searchParams.get('q') || ''
 
-  const [selectedVoter, setSelectedVoter] = useState<any | null>(null)
-  const [selectedMember, setSelectedMember] = useState<any | null>(null)
-
-  const [asensoResults, setAsensoResults] = useState<any[]>([])
-  const [voterResults, setVoterResults] = useState<any[]>([])
+  const [households, setHouseholds] = useState<Household[]>([])
   const [loading, setLoading] = useState(false)
 
+  const user = useAppSelector((state) => state.user.user)
+
   useEffect(() => {
-    const fetchResults = async () => {
-      setAsensoResults([])
-      setVoterResults([])
+    if (!query.trim()) return
 
-      if (!query.trim()) return
+    const runSearch = async () => {
       setLoading(true)
-
-      // 1️⃣ Fetch from Asenso RPC
-      const { data: asensoData, error: asensoError } = await supabase.rpc(
-        'search_existing_members',
-        {
-          p_query: query,
-          p_limit: PER_PAGE,
-          p_offset: 0
-        }
-      )
-      if (asensoError) console.error('Asenso search error:', asensoError)
-      else setAsensoResults(asensoData ?? [])
-
-      // 2️⃣ Fetch from Registered Voters
-      const { data: voterData, error } = await supabase.rpc(
-        'search_similar_voter_ids',
-        {
-          search: query,
-          orgid: process.env.NEXT_PUBLIC_ORG_ID
-        }
-      )
-
-      if (error) {
-        console.error('Voter search RPC error:', error)
-        setLoading(false)
-        return
-      } else {
-        setVoterResults(voterData ?? [])
-      }
-
+      const { data, error } = await supabase.rpc('search_households_similar', {
+        query
+      })
+      if (!error && data) setHouseholds(data)
       setLoading(false)
     }
 
-    fetchResults()
+    runSearch()
   }, [query])
 
+  if (user?.type === 'user') {
+    return (
+      <div className="p-4">
+        <h1 className="text-2xl font-semibold mb-4 text-gray-800">
+          Search access denied
+        </h1>
+      </div>
+    )
+  }
+
+  if (!query)
+    return (
+      <div className="p-4 text-gray-500">
+        Type something in the search bar above to start searching.
+      </div>
+    )
+
+  if (loading)
+    return <div className="p-4 text-gray-500">Searching for “{query}”...</div>
+
+  if (households.length === 0)
+    return (
+      <div className="p-4 text-xl text-gray-600">
+        No households found matching “{query}”.
+      </div>
+    )
+
   return (
-    <div className="w-full p-6">
-      <h1 className="text-xl font-semibold mb-6">
-        Search results for: <span className="text-blue-600">{query}</span>
+    <div className="p-4">
+      <h1 className="text-2xl font-semibold mb-4 text-gray-800">
+        Search Results for “{query}”
       </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Left column: Asenso Pinoy */}
-        <div>
-          <h2 className="text-lg font-bold mb-4">Results from ADB</h2>
-          {loading && <p>Loading results...</p>}
-          {asensoResults.length === 0 && !loading ? (
-            <p className="text-muted-foreground">No results found.</p>
-          ) : (
-            <div className="space-y-6">
-              {asensoResults.map((item) => (
-                <div
-                  key={`asenso-${item.id}`}
-                  className="group cursor-pointer"
-                  onClick={() => setSelectedMember(item)}
-                >
-                  <div className="text-lg font-medium text-blue-600 group-hover:underline">
-                    {item.firstname} {item.middlename} {item.lastname}{' '}
-                    {item.fullname}
-                  </div>
-                  <div className="text-xs text-green-700 mt-0.5">
-                    Result from ADB
-                  </div>
-                  <div className="text-muted-foreground text-sm mt-1">
-                    {item.barangay}
-                    {', '}
-                    {item.municipality && <span>{item.municipality}, </span>}
-                    Misamis Occidental
-                  </div>
-                  <div className="text-muted-foreground text-sm mt-1">
-                    Birthday: {item.birthday}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {households.map((h) => (
+          <Card
+            key={`household-${h.id}`}
+            className="rounded-none border-gray-300 bg-yellow-100"
+          >
+            <CardHeader>
+              <CardTitle className="flex justify-between">
+                {/* <span>{h.name}</span> */}
+              </CardTitle>
+              <p className="text-sm text-gray-500">
+                Address: {h.purok}, {h.barangay}, {h.address}
+              </p>
+              {h.sitio && (
+                <p className="text-sm text-gray-500">Sitio: {h.sitio}</p>
+              )}
+            </CardHeader>
 
-        {/* Right column: Registered Voters */}
-        <div>
-          <h2 className="text-lg font-bold mb-4">
-            Results from Registered Voters
-          </h2>
-          {loading && <p>Loading results...</p>}
-          {voterResults.length === 0 && !loading ? (
-            <p className="text-muted-foreground">No results found.</p>
-          ) : (
-            <div className="space-y-6">
-              {voterResults.map((item) => (
+            <CardContent>
+              {h.families?.map((f: Family) => (
                 <div
-                  key={`voter-${item.id}`}
-                  className="group cursor-pointer"
-                  onClick={() => setSelectedVoter(item)}
+                  key={`family-${f.id}-${h.id}`}
+                  className={`mb-3 rounded p-2 ${
+                    f.all_nr ? 'bg-red-100 border border-red-300' : ''
+                  }`}
                 >
-                  <div className="text-lg font-medium text-blue-600 group-hover:underline">
-                    {item.fullname}
-                  </div>
-                  <div className="text-xs text-green-700 mt-0.5">
-                    Result from Registered Voters
-                  </div>
-                  <div className="text-muted-foreground text-sm mt-1">
-                    {item.barangay && <span>{item.barangay}, </span>}
-                    {item.address && <span>{item.address}, </span>}
-                    MISAMIS OCCIDENTAL
-                  </div>
-                  {item.birthday && (
-                    <div className="text-muted-foreground text-sm mt-1">
-                      Birthday: {item.birthday}
-                    </div>
-                  )}
+                  <p className="font-semibold">
+                    {f.husband_name}{' '}
+                    {f.husband && !f.husband?.voter_id && '(NR)'}
+                  </p>
+                  <p className="font-semibold">
+                    {f.wife_name} {f.wife && !f.wife?.voter_id && '(NR)'}
+                  </p>
+                  <ul className="ml-4 list-disc text-sm text-gray-700">
+                    {f.family_members?.map((m: FamilyMember, i: number) => (
+                      <li key={i}>
+                        {m.fullname} {m.is_registered ? '' : '(NR)'}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ))}
-            </div>
-          )}
-        </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
-      {/* Modal component */}
-      <VoterModal
-        voter={selectedVoter}
-        onClose={() => setSelectedVoter(null)}
-      />
-      <MemberModal
-        member={selectedMember}
-        onClose={() => setSelectedMember(null)}
-      />
     </div>
   )
 }
