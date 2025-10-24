@@ -46,7 +46,7 @@ export default function Page() {
           {/* Address dropdown */}
           <Select onValueChange={(value) => setSelectedAddress(value)}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a Barangay" />
+              <SelectValue placeholder="Select a Address" />
             </SelectTrigger>
             <SelectContent>
               {addresses.map((address) => (

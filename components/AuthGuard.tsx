@@ -46,8 +46,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       try {
         let locations = []
         let admin = false
-        // Super admins
-        if (systemUser.type === 'super admin') {
+        if (systemUser.type === 'province admin') {
+          admin = true
+        } else if (systemUser.type === 'super admin') {
+          // Super admins
           const { data, error } = await supabase
             .from('locations')
             .select('*')

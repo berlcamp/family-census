@@ -75,7 +75,7 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className="border-t rounded-none border-gray-600">
-            Locations
+            {locations.length > 0 && 'Locations'}
           </SidebarGroupLabel>
           <SidebarGroupContent className="pb-20">
             <SidebarMenu>
