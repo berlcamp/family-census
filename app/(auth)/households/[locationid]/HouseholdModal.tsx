@@ -16,7 +16,7 @@ interface Props {
   open: boolean
   onClose: () => void
   onSave: (household: Partial<Household>) => void
-  onDelete?: (householdId: number) => void // 🔥 Add delete handler
+  onDelete?: (householdId: number) => void
   initialData?: Household | null
 }
 
@@ -34,6 +34,7 @@ export default function HouseholdModal({
   const [purok, setPurok] = useState('')
   const [sitio, setSitio] = useState('')
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+  const [errors, setErrors] = useState<{ name?: string; purok?: string }>({})
 
   // Sync modal state with initialData whenever it changes
   useEffect(() => {
@@ -47,9 +48,19 @@ export default function HouseholdModal({
       setSitio('')
     }
     setSaving(false)
+    setErrors({})
   }, [initialData, open])
 
   const handleSubmit = () => {
+    const newErrors: typeof errors = {}
+    if (!name.trim()) newErrors.name = 'Household name is required.'
+    if (!purok.trim()) newErrors.purok = 'Purok is required.'
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+
     setSaving(true)
     onSave({
       id: initialData?.id,
@@ -82,21 +93,27 @@ export default function HouseholdModal({
           <div className="space-y-6">
             {/* Household Name */}
             <div className="space-y-1">
-              <label className="text-sm font-medium">Household Name</label>
+              <label className="text-sm font-medium">Household Name *</label>
               <Input
                 placeholder="Ex. Dela Cruz Household"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                className={errors.name ? 'border-red-500' : ''}
               />
+              {errors.name && (
+                <p className="text-xs text-red-500">{errors.name}</p>
+              )}
             </div>
 
             {/* Purok */}
             <div className="space-y-1">
-              <label className="text-sm font-medium">Purok</label>
+              <label className="text-sm font-medium">Purok *</label>
               <select
                 value={purok}
                 onChange={(e) => setPurok(e.target.value)}
-                className="w-full border rounded p-2 text-sm"
+                className={`w-full border rounded p-2 text-sm ${
+                  errors.purok ? 'border-red-500' : ''
+                }`}
               >
                 <option value="">-- Select Purok --</option>
                 {Array.isArray(location?.purok) &&
@@ -106,7 +123,11 @@ export default function HouseholdModal({
                     </option>
                   ))}
               </select>
+              {errors.purok && (
+                <p className="text-xs text-red-500">{errors.purok}</p>
+              )}
             </div>
+
             {/* Sitio */}
             <div className="space-y-1">
               <label className="text-sm font-medium">Sitio (optional)</label>
@@ -118,7 +139,6 @@ export default function HouseholdModal({
             </div>
 
             <div className="flex justify-between gap-2">
-              {/* Show Delete only in edit mode */}
               {initialData && onDelete && (
                 <Button
                   variant="ghost"
