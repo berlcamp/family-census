@@ -337,7 +337,7 @@ export default function FamilyModal({
             )}
             {!searchingHusband &&
               husbandQuery &&
-              (husbandOptions.length === 0 ||
+              (husbandOptions.length >= 0 ||
                 husbandOptions.every((v) => v.from_rpc)) && (
                 <button
                   className="mt-1 text-sm text-blue-600"
@@ -411,7 +411,7 @@ export default function FamilyModal({
             )}
             {!searchingWife &&
               wifeQuery &&
-              (wifeOptions.length === 0 ||
+              (wifeOptions.length >= 0 ||
                 wifeOptions.every((v) => v.from_rpc)) && (
                 <button
                   className="mt-1 text-sm text-blue-600"
