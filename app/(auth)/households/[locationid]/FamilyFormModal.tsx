@@ -478,7 +478,7 @@ export default function FamilyModal({
             )}
             {!searchingMember &&
               memberQuery &&
-              (memberOptions.length > 0 ||
+              (memberOptions.length >= 0 ||
                 memberOptions.every((v) => v.from_rpc)) && (
                 <button
                   className="mt-1 text-sm text-blue-600"
