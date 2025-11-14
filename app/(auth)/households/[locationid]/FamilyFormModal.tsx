@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { useAppSelector } from '@/lib/redux/hook'
 import { supabase } from '@/lib/supabase/client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useDebounce } from 'use-debounce'
 
 interface Voter {
@@ -28,6 +28,8 @@ interface FamilyFormProps {
   onCancel: () => void
   initialFamily?: any
 }
+
+type AbortRef = { current: AbortController | null }
 
 export default function FamilyModal({
   open,
@@ -72,11 +74,16 @@ export default function FamilyModal({
   const [debouncedWifeQuery] = useDebounce(wifeQuery, 400)
   const [debouncedMemberQuery] = useDebounce(memberQuery, 400)
 
+  const husbandSearchAbort = useRef<AbortController | null>(null)
+  const wifeSearchAbort = useRef<AbortController | null>(null)
+  const memberSearchAbort = useRef<AbortController | null>(null)
+
   // Helper: shared search function
   const searchPerson = async (
     query: string,
     all: Voter[],
-    onSearching?: (val: boolean) => void
+    onSearching?: (val: boolean) => void,
+    abortRef?: AbortRef
   ): Promise<Voter[]> => {
     if (!query.trim()) {
       return []
@@ -101,11 +108,37 @@ export default function FamilyModal({
       return localMatches
     }
 
+    const trimmedQuery = query.trim()
+    // Split query into words
+    const words = trimmedQuery
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter(Boolean)
+
+    // 🚫 Skip if less than 2 words
+    if (words.length < 2) {
+      onSearching?.(false)
+      return []
+    }
+
+    // Abort previous RPC
+    if (abortRef?.current) {
+      abortRef.current.abort()
+    }
+
+    // New controller
+    const controller = new AbortController()
+    if (abortRef) abortRef.current = controller
+
     // 2️⃣ Fallback RPC
-    const { data, error } = await supabase.rpc('search_voters_similar', {
-      query,
-      limit_count: 2
-    })
+    const { data, error } = await supabase.rpc(
+      'search_voters_similar',
+      {
+        query,
+        limit_count: 2
+      },
+      { signal: controller.signal } as any
+    )
 
     onSearching?.(false)
 
@@ -125,7 +158,8 @@ export default function FamilyModal({
       const results = await searchPerson(
         debouncedHusbandQuery,
         allVoters,
-        setSearchingHusband
+        setSearchingHusband,
+        husbandSearchAbort
       )
       setHusbandOptions(results || [])
     }
@@ -138,7 +172,8 @@ export default function FamilyModal({
       const results = await searchPerson(
         debouncedWifeQuery,
         allVoters,
-        setSearchingWife
+        setSearchingWife,
+        wifeSearchAbort
       )
       setWifeOptions(results)
     }
@@ -151,7 +186,8 @@ export default function FamilyModal({
       const results = await searchPerson(
         debouncedMemberQuery,
         allVoters,
-        setSearchingMember
+        setSearchingMember,
+        memberSearchAbort
       )
       setMemberOptions(results)
     }
@@ -266,7 +302,7 @@ export default function FamilyModal({
               value={husbandQuery}
               onChange={(e) => setHusbandQuery(e.target.value)}
               className="w-full border px-2 py-1 rounded"
-              placeholder="Husband name..."
+              placeholder="Lastname, Firstname Middlename"
             />
             {!searchingHusband && husbandOptions.length > 0 && (
               <ul className="border rounded mt-1 bg-white max-h-40 overflow-y-auto">
@@ -340,7 +376,7 @@ export default function FamilyModal({
               value={wifeQuery}
               onChange={(e) => setWifeQuery(e.target.value)}
               className="w-full border px-2 py-1 rounded"
-              placeholder="Wife name..."
+              placeholder="Lastname, Firstname Middlename"
             />
             {!searchingWife && wifeOptions.length > 0 && (
               <ul className="border rounded mt-1 bg-white max-h-40 overflow-y-auto">
@@ -414,7 +450,7 @@ export default function FamilyModal({
               value={memberQuery}
               onChange={(e) => setMemberQuery(e.target.value)}
               className="w-full border px-2 py-1 rounded"
-              placeholder="Member name..."
+              placeholder="Lastname, Firstname Middlename"
             />
             {!searchingMember && memberOptions.length > 0 && (
               <ul className="border rounded mt-1 bg-white max-h-40 overflow-y-auto">
