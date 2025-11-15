@@ -36,6 +36,7 @@ export default function Page() {
         const { data, error } = await supabase
           .from('locations')
           .select()
+          .eq('address', user?.address)
           .eq('id', locationId)
           .single()
 

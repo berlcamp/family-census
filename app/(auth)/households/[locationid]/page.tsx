@@ -569,6 +569,7 @@ export default function HouseholdsPage() {
         const { data, error } = await supabase
           .from('locations')
           .select()
+          .eq('address', user?.address)
           .eq('id', locationIdNum)
           .single()
 
