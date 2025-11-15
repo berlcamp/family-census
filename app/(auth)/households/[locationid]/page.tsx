@@ -479,7 +479,7 @@ export default function HouseholdsPage() {
           .from('households')
           .select(
             `
-      id, name, purok,barangay, location_id,
+      id, name, sp, purok,barangay, location_id,
       families (
         id, husband_name, wife_name, household_id,all_nr,
         husband:voters!families_husband_id_fkey (id, fullname),
@@ -503,6 +503,7 @@ export default function HouseholdsPage() {
         name: h.name,
         purok: h.purok,
         sitio: h.sitio,
+        sp: h.sp,
         barangay: h.barangay,
         location_id: h.location_id,
         families: (h.families ?? []).map((f: any) => ({
