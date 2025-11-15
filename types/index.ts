@@ -48,6 +48,7 @@ export interface Location {
   org_id?: string
   color: string
   purok?: string[]
+  sps?: string[]
 }
 export interface LocationUser {
   id: number
@@ -135,6 +136,7 @@ export interface Household {
   id: number
   name: string
   purok: string
+  sp?: string
   sitio: string
   barangay?: string | null
   address?: string | null

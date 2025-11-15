@@ -62,7 +62,7 @@ function LocationUser({ user }: { user: LocationUserType }) {
         <div className="text-xs">{user.user.name}</div>
         <div className="text-xs font-light">{user.user.email}</div>
       </div>
-      <div className="hidden">
+      <div className="">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="text-xs">

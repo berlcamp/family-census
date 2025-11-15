@@ -33,6 +33,7 @@ export default function HouseholdModal({
   const [name, setName] = useState('')
   const [purok, setPurok] = useState('')
   const [sitio, setSitio] = useState('')
+  const [sp, setSp] = useState('')
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
   const [errors, setErrors] = useState<{ name?: string; purok?: string }>({})
 
@@ -42,8 +43,10 @@ export default function HouseholdModal({
       setName(initialData.name ?? '')
       setPurok(initialData.purok ?? '')
       setSitio(initialData.sitio ?? '')
+      setSp(initialData.sp ?? '')
     } else {
       setName('')
+      setSp('')
       setPurok('')
       setSitio('')
     }
@@ -67,6 +70,7 @@ export default function HouseholdModal({
       name,
       purok,
       sitio,
+      sp,
       barangay: location?.name,
       location_id: location?.id
     })
@@ -128,6 +132,28 @@ export default function HouseholdModal({
               )}
             </div>
 
+            {/* Service Provider */}
+            {location?.address !== 'OZAMIZ CITY' && (
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Service Provider</label>
+                <select
+                  value={sp}
+                  onChange={(e) => setSp(e.target.value)}
+                  className={`w-full border rounded p-2 text-sm`}
+                >
+                  <option value="">-- Select Service Provider --</option>
+                  {Array.isArray(location?.sps) &&
+                    location.sps.map((p, i) => (
+                      <option key={i} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                </select>
+                {/* {errors.sp && (
+                <p className="text-xs text-red-500">{errors.sp}</p>
+              )} */}
+              </div>
+            )}
             {/* Sitio */}
             <div className="space-y-1">
               <label className="text-sm font-medium">Sitio (optional)</label>

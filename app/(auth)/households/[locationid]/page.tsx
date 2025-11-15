@@ -70,6 +70,7 @@ export default function HouseholdsPage() {
           name: household.name,
           purok: household.purok,
           sitio: household.sitio,
+          sp: household.sp,
           barangay: location.name,
           address: location.address,
           location_id: locationIdNum
@@ -102,6 +103,7 @@ export default function HouseholdsPage() {
             name: household.name,
             purok: household.purok,
             sitio: household.sitio,
+            sp: household.sp,
             barangay: location.name,
             address: location.address,
             location_id: locationIdNum
@@ -739,6 +741,9 @@ export default function HouseholdsPage() {
                 </Button>
               </CardTitle>
               <p className="text-sm text-gray-500">Purok: {h.purok}</p>
+              {location?.address !== 'OZAMIZ CITY' && (
+                <p className="text-sm text-gray-500">SP: {h.sp}</p>
+              )}
               {h.sitio && (
                 <p className="text-sm text-gray-500">Sitio: {h.sitio}</p>
               )}
