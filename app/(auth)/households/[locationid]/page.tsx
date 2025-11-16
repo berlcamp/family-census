@@ -641,7 +641,7 @@ export default function HouseholdsPage() {
           e.preventDefault()
           fetchHouseholds(1, search, purok)
         }}
-        className="flex flex-wrap items-end gap-2 my-4 p-4 xl:w-2/3"
+        className="flex items-end gap-2 my-4 p-4 xl:w-2/3"
       >
         {/* Search Input */}
         <div className="flex-1 min-w-[200px]">
@@ -803,23 +803,23 @@ export default function HouseholdsPage() {
       </div>
 
       {/* PAGINATION LINKS */}
-      <div className="flex justify-center mt-6 space-x-2">
-        {Array.from(
-          { length: Math.ceil(totalCount / pageSize) },
-          (_, i) => i + 1
-        ).map((page) => (
-          <button
-            key={page}
-            className={`px-3 py-1 rounded border ${
-              page === currentPage ? 'bg-blue-500 text-white' : 'bg-white'
-            }`}
-            onClick={() => {
-              dispatch(setPage(page)) // useEffect will handle fetch with current search, pageSize, and locationIdNum
-            }}
-          >
-            {page}
-          </button>
-        ))}
+      <div className="flex justify-center my-6">
+        <div className="flex flex-wrap justify-center gap-2 max-w-full px-2">
+          {Array.from(
+            { length: Math.ceil(totalCount / pageSize) },
+            (_, i) => i + 1
+          ).map((page) => (
+            <button
+              key={page}
+              className={`px-3 py-1 rounded border ${
+                page === currentPage ? 'bg-blue-500 text-white' : 'bg-white'
+              }`}
+              onClick={() => dispatch(setPage(page))}
+            >
+              {page}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Modals */}
