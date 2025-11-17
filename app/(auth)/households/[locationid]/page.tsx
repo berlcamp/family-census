@@ -33,7 +33,8 @@ export default function HouseholdsPage() {
   const locationIdNum = Number(locationid)
 
   const [loading, setLoading] = useState(false)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+
+  const [selectedDate, setSelectedDate] = useState('')
 
   const households = useAppSelector(selectPaginatedHouseholds)
 
@@ -123,6 +124,15 @@ export default function HouseholdsPage() {
           families: []
         })
       )
+
+      // Log user action
+      await supabase.rpc('log_action', {
+        p_location_id: locationIdNum,
+        p_system_user_id: user?.system_user_id,
+        p_user_name: user?.name,
+        p_action: 'Added New Household',
+        p_details: `Added new household: ${household.name}`
+      })
     }
 
     toast.success('Household saved successfully!')
@@ -327,8 +337,6 @@ export default function HouseholdsPage() {
       }
     }
 
-    console.log('insertedMembers', insertedMembers)
-
     // 5. Prepare Family object for Redux
     savedFamily = {
       id: familyId,
@@ -350,6 +358,15 @@ export default function HouseholdsPage() {
           family: savedFamily
         })
       )
+
+      // Log user action
+      await supabase.rpc('log_action', {
+        p_location_id: locationIdNum,
+        p_system_user_id: user?.system_user_id,
+        p_user_name: user?.name,
+        p_action: 'Updated Family',
+        p_details: `Updated family on household ID:${currentHouseholdId}`
+      })
     } else {
       dispatch(
         addFamily({
@@ -357,6 +374,15 @@ export default function HouseholdsPage() {
           family: savedFamily
         })
       )
+
+      // Log user action
+      await supabase.rpc('log_action', {
+        p_location_id: locationIdNum,
+        p_system_user_id: user?.system_user_id,
+        p_user_name: user?.name,
+        p_action: 'Added New Family',
+        p_details: `Added new family on household ID:${currentHouseholdId}`
+      })
     }
 
     toast.success('Family saved successfully!')
@@ -375,6 +401,15 @@ export default function HouseholdsPage() {
 
       // 2. Update Redux state
       dispatch(deleteHousehold(householdId))
+
+      // Log user action
+      await supabase.rpc('log_action', {
+        p_location_id: locationIdNum,
+        p_system_user_id: user?.system_user_id,
+        p_user_name: user?.name,
+        p_action: 'Deleted Household',
+        p_details: `Deleted household ID:${householdId}`
+      })
 
       toast.success('Household deleted successfully!')
 
@@ -398,6 +433,15 @@ export default function HouseholdsPage() {
       // 2. Update Redux state
       dispatch(deleteFamily({ householdId, familyId }))
 
+      // Log user action
+      await supabase.rpc('log_action', {
+        p_location_id: locationIdNum,
+        p_system_user_id: user?.system_user_id,
+        p_user_name: user?.name,
+        p_action: 'Deleted Family',
+        p_details: `Deleted family ID:${familyId} of household ID:${householdId}`
+      })
+
       toast.success('Family deleted successfully!')
 
       // 3. Close modal
@@ -406,6 +450,47 @@ export default function HouseholdsPage() {
       console.error('Failed to delete Family:', err)
       toast.error('❌ Error deleting Family. Please try again.')
     }
+  }
+
+  const handleDownloadLogs = async () => {
+    if (!selectedDate) {
+      alert('Please select a date.')
+      return
+    }
+
+    // Fetch logs from Supabase (adjust the table name)
+    const { data, error } = await supabase
+      .from('system_logs')
+      .select('*')
+      .gte('created_at', `${selectedDate} 00:00:00`)
+      .lte('created_at', `${selectedDate} 23:59:59`)
+      .order('created_at')
+
+    if (error) {
+      console.error(error)
+      alert('Failed to fetch logs.')
+      return
+    }
+
+    // Build text output
+    const textContent = data.length
+      ? data
+          .map((log) => `[${log.created_at}] ${log.user_name} — ${log.details}`)
+          .join('\n')
+      : 'No logs found for this date.'
+
+    // Create downloadable TXT file
+    const blob = new Blob([textContent], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `user_logs_${selectedDate}.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    URL.revokeObjectURL(url)
   }
 
   // Fetch Households by Location
@@ -561,7 +646,6 @@ export default function HouseholdsPage() {
     dispatch(clearLocation()) // 👈 Clear old location when URL changes
 
     const fetchData = async () => {
-      console.log('location details fetched')
       setLoading(true)
 
       // Super admin
@@ -582,7 +666,6 @@ export default function HouseholdsPage() {
           input_user_id: user?.system_user_id,
           input_location_id: locationIdNum
         })
-        console.log('location details fetched2')
 
         if (error) {
           console.error('Error checking access:', error)
@@ -597,7 +680,13 @@ export default function HouseholdsPage() {
       setLoading(false)
     }
     void fetchData()
-  }, [locationIdNum])
+  }, [
+    dispatch,
+    locationIdNum,
+    user?.address,
+    user?.admin,
+    user?.system_user_id
+  ])
 
   // 🚀 Fetch households whenever page or location changes (but not directly on search)
   useEffect(() => {
@@ -690,7 +779,7 @@ export default function HouseholdsPage() {
       </form>
 
       {/* ✅ Toggle buttons */}
-      {households.length > 0 && (
+      {/* {households.length > 0 && (
         <div className="flex justify-end gap-2 p-4">
           <Button
             variant={viewMode === 'grid' ? 'outline' : 'ghost'}
@@ -707,26 +796,35 @@ export default function HouseholdsPage() {
             List View
           </Button>
         </div>
-      )}
+      )} */}
+
+      {/* Logs */}
+      <div className="flex items-center justify-end gap-2 p-4">
+        <span className="text-xs">User logs:</span>
+
+        <input
+          type="date"
+          className="text-xs border p-1"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          required
+        />
+
+        <Button variant="outline" size="xs" onClick={handleDownloadLogs}>
+          <span className="text-xs">Download Logs</span>
+        </Button>
+      </div>
 
       {households.length === 0 && (
         <div className="p-4 text-xl text-gray-600">No households found.</div>
       )}
 
       {/* ✅ Conditional layout */}
-      <div
-        className={
-          viewMode === 'grid'
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4'
-            : 'flex flex-col gap-4 p-4'
-        }
-      >
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
         {households.map((h) => (
           <Card
             key={`household-${h.id}`}
-            className={`rounded-none border-gray-300 ${
-              viewMode === 'grid' ? 'bg-yellow-100' : ''
-            }`}
+            className="rounded-none border-gray-300 bg-yellow-100"
           >
             <CardHeader>
               <CardTitle className="flex justify-between">
