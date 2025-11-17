@@ -40,9 +40,7 @@ export default function BarangayDashboard({ address }: { address: string }) {
   }, [address])
 
   return (
-    <div className="p-6 space-y-6">
-      <h2 className="text-xl font-bold mb-4">{address} Dashboard</h2>
-
+    <div className="space-y-6">
       <Card>
         <CardContent className="p-4">
           {data.length === 0 ? (

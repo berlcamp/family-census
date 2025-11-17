@@ -1,6 +1,7 @@
 'use client'
 
 import BarangayDashboard from '@/components/BarangayDashboard'
+import DashboardStats from '@/components/DashboardStats'
 import Notfoundpage from '@/components/Notfoundpage'
 import {
   Select,
@@ -26,11 +27,11 @@ export default function Page() {
   if (user?.type === 'super admin') {
     return (
       <div className="w-full">
-        {' '}
-        <div className="mt-20 grid gap-4">
-          {' '}
-          {user?.address && <BarangayDashboard address={user?.address} />}{' '}
-        </div>{' '}
+        <div className="mt-20 space-y-10 p-4">
+          <h1>{user?.address} Dashboard</h1>
+          <DashboardStats />
+          {user?.address && <BarangayDashboard address={user?.address} />}
+        </div>
       </div>
     )
   }
