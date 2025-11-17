@@ -1,5 +1,6 @@
 'use client'
 
+import { DownloadHouseholdExcel } from '@/lib/functions/DownloadHouseholdExcel'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import { setLocation } from '@/lib/redux/locationSlice'
 import { updateList } from '@/lib/redux/locationsSlice'
@@ -160,7 +161,19 @@ export const OverviewTab = () => {
       </div>
 
       {/* Users Section */}
-      <div className="col-span-2 bg-gray-50">
+      <div className="col-span-2">
+        <div className="hidden p-4 w-full lg:flex">
+          {location?.id && (
+            <Button
+              variant="blue"
+              size="sm"
+              className="ml-auto"
+              onClick={() => DownloadHouseholdExcel(location?.id)}
+            >
+              Download Households Data to Excel
+            </Button>
+          )}
+        </div>
         <div className="border-t lg:border-t-0">
           <OverviewBarGraph locationId={location?.id} />
         </div>
