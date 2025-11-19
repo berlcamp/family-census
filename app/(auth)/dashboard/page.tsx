@@ -49,12 +49,16 @@ export default function Page() {
           {user?.address && (
             <div className="space-y-4">
               <BarangayDashboard address={user?.address} />
-              <BarangayDashboardList address={user?.address} />
+              <div className="lg:w-2/3">
+                <BarangayDashboardList address={user?.address} />
+              </div>
             </div>
           )}
         </div>
 
-        <DashboardProvinceStats />
+        <div className="lg:w-2/3">
+          <DashboardProvinceStats />
+        </div>
       </div>
     )
   }

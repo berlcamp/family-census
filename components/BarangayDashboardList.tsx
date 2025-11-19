@@ -40,37 +40,48 @@ export default function BarangayDashboardList({
           {data.length === 0 ? (
             <p className="text-center text-gray-500">No data available</p>
           ) : (
-            <table>
+            <table className="w-full border-collapse border border-gray-200 text-sm">
               <thead>
-                <tr>
-                  <th className="px-2">Barangay</th>
-                  <th className="px-2">Households</th>
-                  <th className="px-2">Families</th>
+                <tr className="bg-gray-100">
+                  <th className="border px-2 py-1 text-left">Barangay</th>
+                  <th className="border px-2 py-1 text-right">Households</th>
+                  <th className="border px-2 py-1 text-right">Families</th>
+                  <th className="border px-2 py-1 text-right">
+                    Families (ALL NR)
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {data.map((d, idx) => (
                   <tr key={idx}>
-                    <td className="px-2">{d.barangay}</td>
-                    <td className="px-2">
+                    <td className="border px-2 py-1">{d.barangay}</td>
+                    <td className="border px-2 py-1">
                       {new Intl.NumberFormat().format(d.households)}
                     </td>
-                    <td className="px-2">
+                    <td className="border px-2 py-1">
                       {new Intl.NumberFormat().format(d.families)}
+                    </td>
+                    <td className="border px-2 py-1">
+                      {new Intl.NumberFormat().format(d.total_non_registered)}
                     </td>
                   </tr>
                 ))}
                 {/* TOTAL ROW */}
                 <tr className="font-bold border-t">
-                  <td className="px-2">TOTAL</td>
-                  <td className="px-2">
+                  <td className="border px-2 py-1">TOTAL</td>
+                  <td className="border px-2 py-1">
                     {new Intl.NumberFormat().format(
                       data.reduce((sum, d) => sum + d.households, 0)
                     )}
                   </td>
-                  <td className="px-2">
+                  <td className="border px-2 py-1">
                     {new Intl.NumberFormat().format(
                       data.reduce((sum, d) => sum + d.families, 0)
+                    )}
+                  </td>
+                  <td className="border px-2 py-1">
+                    {new Intl.NumberFormat().format(
+                      data.reduce((sum, d) => sum + d.total_non_registered, 0)
                     )}
                   </td>
                 </tr>
