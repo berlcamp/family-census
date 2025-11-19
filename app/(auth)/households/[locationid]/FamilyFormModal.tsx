@@ -241,6 +241,9 @@ export default function FamilyModal({
   // fetch all voters in barangay once
   useEffect(() => {
     const fetchInitialVoters = async () => {
+      const cleanBarangay = location?.name?.trim()
+      const cleanAddress = location?.address?.trim()
+
       if (location?.address === 'CONCEPCION') {
         const { data, error } = await supabase
           .from('voters')
@@ -254,9 +257,12 @@ export default function FamilyModal({
         const { data, error } = await supabase
           .from('voters')
           .select('id, fullname')
-          .eq('barangay', location?.name)
-          .eq('address', location?.address)
+          // .eq('barangay', location?.name)
+          // .eq('address', location?.address)
+          .ilike('barangay', `%${cleanBarangay}%`)
+          .ilike('address', `%${cleanAddress}%`)
 
+        console.log('data', cleanBarangay, cleanAddress, data?.length)
         if (!error && data) {
           setAllVoters(data)
         }
