@@ -204,7 +204,7 @@ export const OverviewTab = () => {
 
       {/* Users Section */}
       <div className="col-span-2">
-        <div className="hidden p-4 w-full lg:flex">
+        <div className="hidden p-4 w-full">
           {location?.id && (
             <Button
               variant="blue"
