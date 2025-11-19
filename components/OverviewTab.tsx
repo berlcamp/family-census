@@ -36,8 +36,36 @@ export const OverviewTab = () => {
   )
   const [loading, setLoading] = useState(false)
   const [showSave, setShowSave] = useState(false)
+  const [householdCount, setHouseholdCount] = useState<number>(0)
+  const [loadingHouseholds, setLoadingHouseholds] = useState(false)
 
   const dispatch = useAppDispatch()
+
+  // Fetch total households for current location
+  useEffect(() => {
+    if (!location?.id) return
+
+    const fetchHouseholdCount = async () => {
+      setLoadingHouseholds(true)
+      const { count, error } = await supabase
+        .from('households')
+        .select('*', { count: 'exact', head: true })
+        .eq('location_id', location.id)
+
+      setLoadingHouseholds(false)
+
+      if (error) {
+        console.error('Error fetching household count:', error)
+        setHouseholdCount(0)
+      } else {
+        setHouseholdCount(count || 0)
+      }
+    }
+
+    fetchHouseholdCount()
+  }, [location?.id])
+
+  const isDisabled = householdCount > 20 || loadingHouseholds
 
   const handleSave = async () => {
     if (!location) return
@@ -45,12 +73,10 @@ export const OverviewTab = () => {
 
     setLoading(true)
 
-    // convert textarea lines → array
     const purokArray = purokText
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)
-    // convert textarea lines → array
     const spsArray = spsText
       .split('\n')
       .map((line) => line.trim())
@@ -61,7 +87,7 @@ export const OverviewTab = () => {
       .update({
         color: selectedColor,
         sps: spsArray,
-        purok: purokArray // ✅ save as JSONB array
+        purok: purokArray
       })
       .eq('id', location.id)
       .select()
@@ -101,6 +127,19 @@ export const OverviewTab = () => {
   return (
     <div className="lg:grid grid-cols-3 min-h-screen">
       <div className="p-4 flex flex-col gap-4 lg:border-r h-full">
+        {/* Warning if editing is disabled */}
+        {/* {isDisabled && (
+          <div className="bg-red-100 text-red-800 p-2 rounded text-sm mb-2">
+            Editing purok is disabled as more than 20 households already added
+          </div>
+        )} */}
+        {!isDisabled && (
+          <div className="bg-green-100 text-green-800 p-2 rounded text-sm mb-2">
+            Editing purok will be disabled once households exceeds 20
+          </div>
+        )}
+
+        {/* Color */}
         <div>
           <div className="text-sm mb-2">Color</div>
           <div className="flex flex-wrap gap-2">
@@ -116,6 +155,7 @@ export const OverviewTab = () => {
                 )}
                 style={{ backgroundColor: color }}
                 onClick={() => setSelectedColor(color)}
+                disabled={isDisabled}
               >
                 {selectedColor === color && (
                   <Check className="w-5 h-5 text-white absolute inset-0 m-auto" />
@@ -125,7 +165,7 @@ export const OverviewTab = () => {
           </div>
         </div>
 
-        {/* 🔥 Purok Textarea */}
+        {/* Purok Textarea */}
         <div>
           <div className="text-sm mb-2">Puroks (one per line)</div>
           <textarea
@@ -134,10 +174,11 @@ export const OverviewTab = () => {
             rows={6}
             className="w-full border rounded p-2 text-sm"
             placeholder="Enter one purok per line..."
+            disabled={isDisabled}
           />
         </div>
 
-        {/* 🔥 SPS Textarea */}
+        {/* SPS Textarea */}
         {location?.address !== 'OZAMIZ CITY' && (
           <div>
             <div className="text-sm mb-2">Service Providers (one per line)</div>
@@ -147,14 +188,15 @@ export const OverviewTab = () => {
               rows={6}
               className="w-full border rounded p-2 text-sm"
               placeholder="Enter one service provider per line..."
+              disabled={isDisabled}
             />
           </div>
         )}
 
         {showSave && (
           <div className="space-x-2 mt-4">
-            <Button onClick={handleSave} disabled={loading}>
-              {loading ? 'Saving...' : 'Save'}
+            <Button onClick={handleSave} disabled={isDisabled || loading}>
+              {loading ? 'Saving...' : isDisabled ? 'Editing Disabled' : 'Save'}
             </Button>
           </div>
         )}
@@ -181,7 +223,6 @@ export const OverviewTab = () => {
           <h1 className="text-lg font-semibold">Users</h1>
           <LocationUsers location={location} />
         </div>
-        {/* Overview */}
       </div>
     </div>
   )

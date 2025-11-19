@@ -2,24 +2,13 @@
 
 import BarangayDashboard from '@/components/BarangayDashboard'
 import BarangayDashboardList from '@/components/BarangayDashboardList'
+import DashboardProvinceStats from '@/components/DashboardProvinceStats'
 import DashboardStats from '@/components/DashboardStats'
 import Notfoundpage from '@/components/Notfoundpage'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
 import { useAppSelector } from '@/lib/redux/hook'
-import { useState } from 'react'
 
 export default function Page() {
   const user = useAppSelector((state) => state.user.user)
-  const [selectedAddress, setSelectedAddress] = useState<string>('')
-
-  // Example list of barangays / addresses (replace with dynamic source if needed)
-  const addresses = ['TUDELA', 'OZAMIZ CITY']
 
   if (user?.type === 'user') {
     return <Notfoundpage />
@@ -29,9 +18,9 @@ export default function Page() {
     return (
       <div className="w-full">
         <div className="mt-20 space-y-10 p-4">
-          <h1>{user?.address} Dashboard</h1>
           {user?.address && (
             <>
+              <h1>{user?.address} Dashboard</h1>
               <DashboardStats address={user?.address} />
               {user?.address && (
                 <div className="space-y-10">
@@ -53,35 +42,19 @@ export default function Page() {
           {/* <h1 className="text-2xl font-semibold text-gray-800 mb-4">
           Barangay Dashboard
         </h1> */}
-
-          {/* Address dropdown */}
-          <Select onValueChange={(value) => setSelectedAddress(value)}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a Address" />
-            </SelectTrigger>
-            <SelectContent>
-              {addresses.map((address) => (
-                <SelectItem key={address} value={address}>
-                  {address}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         {/* Render dashboard for selected address */}
-        <div className="mt-8">
-          {selectedAddress ? (
-            <div className="space-y-10">
-              <BarangayDashboard address={selectedAddress} />
-              <BarangayDashboardList address={selectedAddress} />
-            </div>
-          ) : (
-            <div className="text-gray-500 text-center mt-8">
-              Please select a address to view its dashboard.
+        <div className="my-8">
+          {user?.address && (
+            <div className="space-y-4">
+              <BarangayDashboard address={user?.address} />
+              <BarangayDashboardList address={user?.address} />
             </div>
           )}
         </div>
+
+        <DashboardProvinceStats />
       </div>
     )
   }

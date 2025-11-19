@@ -26,9 +26,13 @@ const userSlice = createSlice({
   reducers: {
     setUser: (state, action: PayloadAction<ExtendedUser | null>) => {
       state.user = action.payload
+    },
+    updateUser: (state, action: PayloadAction<Partial<ExtendedUser>>) => {
+      if (!state.user) return
+      state.user = { ...state.user, ...action.payload }
     }
   }
 })
 
-export const { setUser } = userSlice.actions
+export const { setUser, updateUser } = userSlice.actions
 export default userSlice.reducer

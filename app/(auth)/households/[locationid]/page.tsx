@@ -655,7 +655,7 @@ export default function HouseholdsPage() {
       setLoading(true)
 
       // Super admin
-      if (user?.admin) {
+      if (user?.type === 'super admin' || user?.type === 'province admin') {
         const { data, error } = await supabase
           .from('locations')
           .select()

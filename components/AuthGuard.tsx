@@ -46,9 +46,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       try {
         let locations = []
         let admin = false
-        if (systemUser.type === 'province admin') {
-          admin = true
-        } else if (systemUser.type === 'super admin') {
+        if (
+          systemUser.type === 'super admin' ||
+          systemUser.type === 'province admin'
+        ) {
           // Super admins
           const { data, error } = await supabase
             .from('locations')
@@ -60,6 +61,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           if (error) throw error
           locations = data
           admin = true
+
+          // Update state
+          dispatch(addList(locations))
         } else {
           // Regular user: fetch locations they have access to
           const { data: allowed, error: allowedError } = await supabase
@@ -85,11 +89,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
             if (error) throw error
             locations = data
+
+            // Update state
+            dispatch(addList(locations))
           }
         }
-
-        // Update state
-        dispatch(addList(locations))
 
         dispatch(
           setUser({

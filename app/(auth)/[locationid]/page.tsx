@@ -32,7 +32,7 @@ export default function Page() {
       setLoading(true)
 
       // Super admin
-      if (user?.type === 'super admin') {
+      if (user?.type === 'super admin' || user?.type === 'province admin') {
         const { data, error } = await supabase
           .from('locations')
           .select()
@@ -52,7 +52,7 @@ export default function Page() {
         console.log('location details fetched2')
 
         if (error) {
-          console.error('Error checking access:', error)
+          console.error('Error checking access2:', error)
         } else if (data === false) {
           console.log('User has no access')
         } else if (data) {
