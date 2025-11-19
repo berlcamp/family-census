@@ -1,6 +1,7 @@
 'use client'
 
 import BarangayDashboard from '@/components/BarangayDashboard'
+import BarangayDashboardList from '@/components/BarangayDashboardList'
 import DashboardStats from '@/components/DashboardStats'
 import Notfoundpage from '@/components/Notfoundpage'
 import {
@@ -29,8 +30,17 @@ export default function Page() {
       <div className="w-full">
         <div className="mt-20 space-y-10 p-4">
           <h1>{user?.address} Dashboard</h1>
-          <DashboardStats />
-          {user?.address && <BarangayDashboard address={user?.address} />}
+          {user?.address && (
+            <>
+              <DashboardStats address={user?.address} />
+              {user?.address && (
+                <div className="space-y-10">
+                  <BarangayDashboard address={user?.address} />
+                  <BarangayDashboardList address={user?.address} />
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     )
@@ -62,7 +72,10 @@ export default function Page() {
         {/* Render dashboard for selected address */}
         <div className="mt-8">
           {selectedAddress ? (
-            <BarangayDashboard address={selectedAddress} />
+            <div className="space-y-10">
+              <BarangayDashboard address={selectedAddress} />
+              <BarangayDashboardList address={selectedAddress} />
+            </div>
           ) : (
             <div className="text-gray-500 text-center mt-8">
               Please select a address to view its dashboard.

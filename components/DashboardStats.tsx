@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { Card, CardContent } from './ui/card'
 
-export default function DashboardStats() {
+export default function DashboardStats({ address }: { address: string }) {
   const [stats, setStats] = useState({
     totalHouseholds: 0,
     totalFamilies: 0,
@@ -16,7 +16,9 @@ export default function DashboardStats() {
 
   useEffect(() => {
     async function loadStats() {
-      const { data, error } = await supabase.rpc('dashboard_counts')
+      const { data, error } = await supabase.rpc('dashboard_counts', {
+        address_param: address
+      })
 
       if (error) {
         setError(error.message)

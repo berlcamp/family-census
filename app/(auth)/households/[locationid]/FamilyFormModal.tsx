@@ -19,6 +19,7 @@ interface Voter {
   address?: string | null
   from_rpc?: boolean | null
   is_registered?: boolean
+  is_asenso?: boolean
 }
 
 interface FamilyFormProps {
@@ -365,6 +366,21 @@ export default function FamilyModal({
                 >
                   ✕
                 </button>
+                {/* ✅ Checkbox for is_asenso */}
+                <label className="flex items-center ml-auto gap-1 text-xs ml-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedHusband.is_asenso ?? true}
+                    onChange={(e) => {
+                      if (!selectedHusband) return
+                      setSelectedHusband({
+                        ...selectedHusband,
+                        is_asenso: e.target.checked
+                      })
+                    }}
+                  />
+                  A
+                </label>
               </div>
             )}
           </div>
@@ -439,6 +455,21 @@ export default function FamilyModal({
                 >
                   ✕
                 </button>
+                {/* ✅ Checkbox for is_asenso */}
+                <label className="flex items-center ml-auto gap-1 text-xs ml-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedWife.is_asenso ?? true}
+                    onChange={(e) => {
+                      if (!selectedWife) return
+                      setSelectedWife({
+                        ...selectedWife,
+                        is_asenso: e.target.checked
+                      })
+                    }}
+                  />
+                  A
+                </label>
               </div>
             )}
           </div>
@@ -504,17 +535,34 @@ export default function FamilyModal({
                     key={idx}
                     className="flex justify-between items-center border px-2 py-1 rounded bg-yellow-100"
                   >
-                    <span>
+                    <span className="font-semibold text-sm">
                       {m.fullname} {!m.is_registered && '(NR)'}
                     </span>
                     <button
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-500 ml-2 hover:text-red-700"
                       onClick={() =>
                         setMembers(members.filter((_, i) => i !== idx))
                       }
                     >
                       ✕
                     </button>
+                    {/* ✅ Checkbox for is_asenso */}
+                    <label className="flex items-center ml-auto gap-1 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={m.is_asenso ?? true} // default checked
+                        onChange={(e) =>
+                          setMembers((prev) =>
+                            prev.map((member, i) =>
+                              i === idx
+                                ? { ...member, is_asenso: e.target.checked }
+                                : member
+                            )
+                          )
+                        }
+                      />
+                      A
+                    </label>
                   </li>
                 ))}
               </ul>

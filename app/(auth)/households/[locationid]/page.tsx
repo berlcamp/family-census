@@ -262,10 +262,13 @@ export default function HouseholdsPage() {
         .from('families')
         .update({
           household_id: currentHouseholdId,
+
           husband_id: family.husband?.voter_id ?? null,
           husband_name: family.husband?.fullname ?? null,
           wife_id: family.wife?.voter_id ?? null,
           wife_name: family.wife?.fullname ?? null,
+          asenso_husband: family.husband?.is_asenso ?? null,
+          asenso_wife: family.wife?.is_asenso ?? null,
           all_nr: isAllNonRegistered // 🔥 set column
         })
         .eq('id', family.id)
@@ -288,6 +291,8 @@ export default function HouseholdsPage() {
             husband_name: family.husband?.fullname ?? null,
             wife_id: family.wife?.voter_id ?? null,
             wife_name: family.wife?.fullname ?? null,
+            asenso_husband: family.husband?.is_asenso ?? null,
+            asenso_wife: family.wife?.is_asenso ?? null,
             barangay: location?.name,
             all_nr: isAllNonRegistered // 🔥 set column
           }
@@ -319,6 +324,7 @@ export default function HouseholdsPage() {
           fullname: member.fullname,
           relation: member.relation,
           is_registered: member.is_registered,
+          asenso: member.is_asenso,
           barangay: location?.name
         }))
 
@@ -735,7 +741,7 @@ export default function HouseholdsPage() {
         {/* Search Input */}
         <div className="flex-1 min-w-[200px]">
           <Input
-            placeholder="Search name..."
+            placeholder="Search full name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

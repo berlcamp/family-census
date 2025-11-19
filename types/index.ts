@@ -153,6 +153,7 @@ export interface VoterLite {
   voter_id: number
   fullname: string
   is_registered: boolean
+  is_asenso: boolean | null
   relation: string
 }
 
@@ -162,6 +163,8 @@ export interface Family {
   household_id: number
   husband_id?: number | null
   wife_id?: number | null
+  asenso_husband?: boolean | null
+  asenso_wife?: boolean | null
   created_at?: string
   wife_name: string
   husband_name: string
@@ -182,6 +185,7 @@ export interface FamilyMember {
   fullname: string
   relation: string
   is_registered: boolean
+  is_asenso?: boolean
   created_at?: string
 
   // Relations
