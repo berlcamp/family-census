@@ -728,14 +728,16 @@ export default function HouseholdsPage() {
     <div className="w-full">
       <div className="app__title flex">
         <h1 className="text-xl font-semibold flex-1">{location.name}</h1>
-        <Button
-          onClick={() => {
-            setEditHousehold(null)
-            setShowHouseholdModal(true)
-          }}
-        >
-          + Add Household
-        </Button>
+        {location?.address !== 'OZAMIZ CITY' && (
+          <Button
+            onClick={() => {
+              setEditHousehold(null)
+              setShowHouseholdModal(true)
+            }}
+          >
+            + Add Household
+          </Button>
+        )}
       </div>
 
       <VerticalMenu activeTab="households" />
@@ -844,16 +846,18 @@ export default function HouseholdsPage() {
             <CardHeader>
               <CardTitle className="flex justify-between">
                 <span>{h.name}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setEditHousehold(h)
-                    setShowHouseholdModal(true)
-                  }}
-                >
-                  ✎
-                </Button>
+                {location?.address !== 'OZAMIZ CITY' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setEditHousehold(h)
+                      setShowHouseholdModal(true)
+                    }}
+                  >
+                    ✎
+                  </Button>
+                )}
               </CardTitle>
               <p className="text-sm text-gray-500">Purok: {h.purok}</p>
               {location?.address !== 'OZAMIZ CITY' && (
@@ -906,31 +910,35 @@ export default function HouseholdsPage() {
                       </li>
                     ))}
                   </ul>
-                  <Button
-                    size="sm"
-                    variant="link"
-                    className="mt-1 text-blue-700"
-                    onClick={() => {
-                      setCurrentHouseholdId(h.id)
-                      setEditFamily(f)
-                      setShowFamilyModal(true)
-                    }}
-                  >
-                    Edit Family
-                  </Button>
+                  {location?.address !== 'OZAMIZ CITY' && (
+                    <Button
+                      size="sm"
+                      variant="link"
+                      className="mt-1 text-blue-700"
+                      onClick={() => {
+                        setCurrentHouseholdId(h.id)
+                        setEditFamily(f)
+                        setShowFamilyModal(true)
+                      }}
+                    >
+                      Edit Family
+                    </Button>
+                  )}
                 </div>
               ))}
-              <Button
-                size="xs"
-                className="mt-2"
-                onClick={() => {
-                  setCurrentHouseholdId(h.id)
-                  setEditFamily(null)
-                  setShowFamilyModal(true)
-                }}
-              >
-                + Add Family
-              </Button>
+              {location?.address !== 'OZAMIZ CITY' && (
+                <Button
+                  size="xs"
+                  className="mt-2"
+                  onClick={() => {
+                    setCurrentHouseholdId(h.id)
+                    setEditFamily(null)
+                    setShowFamilyModal(true)
+                  }}
+                >
+                  + Add Family
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))}
