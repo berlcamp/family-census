@@ -710,12 +710,13 @@ export default function HouseholdsPage() {
     fetchHouseholds(currentPage, search, purok)
   }, [currentPage, locationIdNum]) // 👈 removed search here
 
-  const enableEdit = [
-    'CATADMAN-MANABAY',
-    'MANINGCOL',
-    'CARMEN (MISAMIS ANNEX)',
-    'BAYBAY TRIUNFO'
-  ].includes(location?.name ?? '')
+  // const enableEdit = [
+  //   'CATADMAN-MANABAY',
+  //   'MANINGCOL',
+  //   'CARMEN (MISAMIS ANNEX)',
+  //   'BAYBAY TRIUNFO'
+  // ].includes(location?.name ?? '')
+  const enableEdit = true
 
   if (loading) {
     return <LoadingSkeleton />
