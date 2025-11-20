@@ -66,6 +66,7 @@ export const OverviewTab = () => {
   }, [location?.id])
 
   // const isDisabled =(householdCount > 200 || loadingHouseholds) && location?.address !== 'TUDELA'
+  console.log(householdCount, loadingHouseholds)
   const isDisabled = false
 
   const handleSave = async () => {

@@ -185,7 +185,7 @@ export interface FamilyMember {
   fullname: string
   relation: string
   is_registered: boolean
-  is_asenso?: boolean
+  asenso?: boolean
   created_at?: string
 
   // Relations

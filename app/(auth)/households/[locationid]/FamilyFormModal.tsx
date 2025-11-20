@@ -321,7 +321,8 @@ export default function FamilyModal({
                       setSelectedHusband({
                         ...v,
                         voter_id: v.id,
-                        is_registered: true
+                        is_registered: true,
+                        is_asenso: true
                       })
                       setHusbandOptions([])
                       setHusbandQuery('')
@@ -351,7 +352,8 @@ export default function FamilyModal({
                   onClick={() => {
                     setSelectedHusband({
                       fullname: `${husbandQuery}`,
-                      is_registered: false
+                      is_registered: false,
+                      is_asenso: true
                     })
                     setHusbandOptions([])
                     setHusbandQuery('')
@@ -376,7 +378,7 @@ export default function FamilyModal({
                 <label className="flex items-center ml-auto gap-1 text-xs ml-4">
                   <input
                     type="checkbox"
-                    checked={selectedHusband.is_asenso ?? true}
+                    checked={selectedHusband.is_asenso === true}
                     onChange={(e) => {
                       if (!selectedHusband) return
                       setSelectedHusband({
@@ -410,7 +412,8 @@ export default function FamilyModal({
                       setSelectedWife({
                         ...v,
                         voter_id: v.id,
-                        is_registered: true
+                        is_registered: true,
+                        is_asenso: true
                       })
                       setWifeOptions([])
                       setWifeQuery('')
@@ -440,7 +443,8 @@ export default function FamilyModal({
                   onClick={() => {
                     setSelectedWife({
                       fullname: `${wifeQuery}`,
-                      is_registered: false
+                      is_registered: false,
+                      is_asenso: true
                     })
                     setWifeOptions([])
                     setWifeQuery('')
@@ -462,10 +466,10 @@ export default function FamilyModal({
                   ✕
                 </button>
                 {/* ✅ Checkbox for is_asenso */}
-                <label className="flex items-center ml-auto gap-1 text-xs ml-4">
+                <label className="flex items-center ml-auto gap-1 text-xs">
                   <input
                     type="checkbox"
-                    checked={selectedWife.is_asenso ?? true}
+                    checked={selectedWife.is_asenso === true}
                     onChange={(e) => {
                       if (!selectedWife) return
                       setSelectedWife({
@@ -496,7 +500,11 @@ export default function FamilyModal({
                     key={v.id}
                     className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
                     onClick={() =>
-                      handleAddMember({ ...v, is_registered: true })
+                      handleAddMember({
+                        ...v,
+                        is_registered: true,
+                        is_asenso: true
+                      })
                     }
                   >
                     {v.fullname}
@@ -522,7 +530,8 @@ export default function FamilyModal({
                   onClick={() =>
                     handleAddMember({
                       fullname: memberQuery,
-                      is_registered: false
+                      is_registered: false,
+                      is_asenso: true
                     })
                   }
                 >
@@ -556,12 +565,12 @@ export default function FamilyModal({
                     <label className="flex items-center ml-auto gap-1 text-xs">
                       <input
                         type="checkbox"
-                        checked={m.is_asenso ?? true} // default checked
+                        checked={m.asenso === true} // default checked
                         onChange={(e) =>
                           setMembers((prev) =>
                             prev.map((member, i) =>
                               i === idx
-                                ? { ...member, is_asenso: e.target.checked }
+                                ? { ...member, asenso: e.target.checked }
                                 : member
                             )
                           )

@@ -23,6 +23,7 @@ import {
 import { clearLocation, setLocation } from '@/lib/redux/locationSlice'
 import { supabase } from '@/lib/supabase/client'
 import { Family, FamilyMember, Household } from '@/types'
+import { Check } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import FamilyFormModal from './FamilyFormModal'
@@ -255,6 +256,8 @@ export default function HouseholdsPage() {
       (family.family_members?.every((m) => !m.is_registered || !m.voter_id) ??
         true)
 
+    console.log('new', family.husband, family.wife, family.family_members)
+
     // 3. Save Family (Insert or Update)
     if (family.id) {
       // UPDATE family
@@ -324,7 +327,7 @@ export default function HouseholdsPage() {
           fullname: member.fullname,
           relation: member.relation,
           is_registered: member.is_registered,
-          asenso: member.is_asenso,
+          asenso: member.asenso,
           barangay: location?.name
         }))
 
@@ -353,6 +356,8 @@ export default function HouseholdsPage() {
       husband_name: family.husband?.fullname ?? null,
       wife_id: family.wife?.voter_id ?? null,
       wife_name: family.wife?.fullname ?? null,
+      asenso_husband: family.husband?.is_asenso || false,
+      asenso_wife: family.wife?.is_asenso || false,
       family_members: insertedMembers
     } as Family
 
@@ -544,10 +549,10 @@ export default function HouseholdsPage() {
               `
           id, name, barangay, location_id,purok,
           families (
-            id, husband_name, wife_name, household_id,all_nr,
+            id, husband_name, wife_name, household_id,all_nr,asenso_husband,asenso_wife,
             husband:voters!families_husband_id_fkey (id, fullname),
             wife:voters!families_wife_id_fkey (id, fullname),
-            family_members (id, voter_id, fullname, is_registered, relation)
+            family_members (id, voter_id, fullname, is_registered, relation,asenso)
           )
         `,
               { count: 'exact' }
@@ -572,10 +577,10 @@ export default function HouseholdsPage() {
             `
       id, name, sp, purok,barangay, location_id,
       families (
-        id, husband_name, wife_name, household_id,all_nr,
+        id, husband_name, wife_name, household_id,all_nr,asenso_husband,asenso_wife,
         husband:voters!families_husband_id_fkey (id, fullname),
         wife:voters!families_wife_id_fkey (id, fullname),
-        family_members (id, voter_id, fullname, is_registered, relation)
+        family_members (id, voter_id, fullname, is_registered,asenso, relation)
       )
     `,
             { count: 'exact' }
@@ -609,7 +614,8 @@ export default function HouseholdsPage() {
                   id: f.husband?.id ?? null,
                   voter_id: f.husband?.id ?? null, // will only exist if registered
                   fullname: f.husband?.fullname || f.husband_name, // prefer voters.fullname else stored name
-                  is_registered: !!f.husband?.id
+                  is_registered: !!f.husband?.id,
+                  is_asenso: f.asenso_husband
                 }
               : null,
 
@@ -619,7 +625,8 @@ export default function HouseholdsPage() {
                   id: f.wife?.id ?? null,
                   voter_id: f.wife?.id ?? null,
                   fullname: f.wife?.fullname || f.wife_name,
-                  is_registered: !!f.wife?.id
+                  is_registered: !!f.wife?.id,
+                  is_asenso: f.asenso_wife
                 }
               : null,
 
@@ -629,11 +636,13 @@ export default function HouseholdsPage() {
             fullname: m.fullname,
             barangay: m.barangay,
             is_registered: m.is_registered,
-            relation: m.relation
+            relation: m.relation,
+            asenso: m.asenso
           }))
         }))
       }))
 
+      console.log('mapped', mapped)
       dispatch(
         setHouseholds({
           households: mapped,
@@ -862,17 +871,38 @@ export default function HouseholdsPage() {
                     f.all_nr ? 'bg-red-100 border border-red-300' : ''
                   }`}
                 >
-                  <p className="font-semibold">
-                    {f.husband_name}{' '}
-                    {f.husband && !f.husband?.voter_id && '(NR)'}
-                  </p>
-                  <p className="font-semibold">
+                  <div className="font-semibold flex items-start justify-between">
+                    <span>
+                      {f.husband_name}{' '}
+                      {f.husband && !f.husband?.voter_id && '(NR)'}
+                    </span>
+                    {f.asenso_husband === true && (
+                      <Check className="text-xs text-orange-600 h-4 w-4" />
+                    )}
+                  </div>
+                  <div className="font-semibold flex items-start justify-between">
+                    <span>
+                      {f.wife_name} {f.wife && !f.wife?.voter_id && '(NR)'}
+                    </span>
+                    {f.asenso_wife === true && (
+                      <Check className="text-xs text-orange-600 h-4 w-4" />
+                    )}
+                  </div>
+                  {/* <p className="font-semibold">
                     {f.wife_name} {f.wife && !f.wife?.voter_id && '(NR)'}
-                  </p>
+                  </p> */}
                   <ul className="ml-4 list-disc text-sm text-gray-700">
                     {f.family_members?.map((m, i) => (
                       <li key={i}>
-                        {m.fullname} {m.is_registered ? '' : '(NR)'}
+                        {/* {m.fullname} {m.is_registered ? '' : '(NR)'} */}
+                        <div className="font-semibold flex items-start justify-between">
+                          <span>
+                            {m.fullname} {m.is_registered && '(NR)'}
+                          </span>
+                          {m.asenso === true && (
+                            <Check className="text-xs text-orange-600 h-4 w-4" />
+                          )}
+                        </div>
                       </li>
                     ))}
                   </ul>
