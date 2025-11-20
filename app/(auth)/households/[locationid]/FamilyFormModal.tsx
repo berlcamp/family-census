@@ -20,6 +20,7 @@ interface Voter {
   from_rpc?: boolean | null
   is_registered?: boolean
   is_asenso?: boolean
+  asenso?: boolean
 }
 
 interface FamilyFormProps {
@@ -208,7 +209,8 @@ export default function FamilyModal({
         fullname:
           voter.is_registered === false ? `${voter.fullname}` : voter.fullname,
         relation: '',
-        is_registered: voter.is_registered !== false
+        is_registered: voter.is_registered !== false,
+        asenso: voter.asenso
       }
     ])
     setMemberQuery('')
@@ -503,7 +505,7 @@ export default function FamilyModal({
                       handleAddMember({
                         ...v,
                         is_registered: true,
-                        is_asenso: true
+                        asenso: true
                       })
                     }
                   >
@@ -531,7 +533,7 @@ export default function FamilyModal({
                     handleAddMember({
                       fullname: memberQuery,
                       is_registered: false,
-                      is_asenso: true
+                      asenso: true
                     })
                   }
                 >
