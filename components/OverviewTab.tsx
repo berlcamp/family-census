@@ -65,7 +65,8 @@ export const OverviewTab = () => {
     fetchHouseholdCount()
   }, [location?.id])
 
-  const isDisabled = householdCount > 100000 || loadingHouseholds
+  const isDisabled =
+    (householdCount > 20 || loadingHouseholds) && location?.address !== 'TUDELA'
 
   const handleSave = async () => {
     if (!location) return
