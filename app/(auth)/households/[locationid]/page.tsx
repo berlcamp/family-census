@@ -876,7 +876,7 @@ export default function HouseholdsPage() {
                       {f.husband_name}{' '}
                       {f.husband && !f.husband?.voter_id && '(NR)'}
                     </span>
-                    {f.asenso_husband === true && (
+                    {f.husband_name && f.asenso_husband === true && (
                       <Check className="text-xs text-orange-600 h-4 w-4" />
                     )}
                   </div>
@@ -884,7 +884,7 @@ export default function HouseholdsPage() {
                     <span>
                       {f.wife_name} {f.wife && !f.wife?.voter_id && '(NR)'}
                     </span>
-                    {f.asenso_wife === true && (
+                    {f.wife_name && f.asenso_wife === true && (
                       <Check className="text-xs text-orange-600 h-4 w-4" />
                     )}
                   </div>
