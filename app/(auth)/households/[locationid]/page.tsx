@@ -868,7 +868,7 @@ export default function HouseholdsPage() {
                 )}
               </CardTitle>
               <p className="text-sm text-gray-500">Purok: {h.purok}</p>
-              {enableEdit && (
+              {location?.address !== 'OZAMIZ CITY' && (
                 <p className="text-sm text-gray-500">SP: {h.sp}</p>
               )}
               {h.sitio && (
