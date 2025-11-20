@@ -710,6 +710,13 @@ export default function HouseholdsPage() {
     fetchHouseholds(currentPage, search, purok)
   }, [currentPage, locationIdNum]) // 👈 removed search here
 
+  const enableEdit = [
+    'CATADMAN-MANABAY',
+    'MANINGCOL',
+    'CARMEN (MISAMIS ANNEX)',
+    'BAYBAY TRIUNFO'
+  ].includes(location?.name ?? '')
+
   if (loading) {
     return <LoadingSkeleton />
   }
@@ -728,7 +735,7 @@ export default function HouseholdsPage() {
     <div className="w-full">
       <div className="app__title flex">
         <h1 className="text-xl font-semibold flex-1">{location.name}</h1>
-        {location?.address !== 'OZAMIZ CITY' && (
+        {enableEdit && (
           <Button
             onClick={() => {
               setEditHousehold(null)
@@ -846,7 +853,7 @@ export default function HouseholdsPage() {
             <CardHeader>
               <CardTitle className="flex justify-between">
                 <span>{h.name}</span>
-                {location?.address !== 'OZAMIZ CITY' && (
+                {enableEdit && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -860,7 +867,7 @@ export default function HouseholdsPage() {
                 )}
               </CardTitle>
               <p className="text-sm text-gray-500">Purok: {h.purok}</p>
-              {location?.address !== 'OZAMIZ CITY' && (
+              {enableEdit && (
                 <p className="text-sm text-gray-500">SP: {h.sp}</p>
               )}
               {h.sitio && (
@@ -910,7 +917,7 @@ export default function HouseholdsPage() {
                       </li>
                     ))}
                   </ul>
-                  {location?.address !== 'OZAMIZ CITY' && (
+                  {enableEdit && (
                     <Button
                       size="sm"
                       variant="link"
@@ -926,7 +933,7 @@ export default function HouseholdsPage() {
                   )}
                 </div>
               ))}
-              {location?.address !== 'OZAMIZ CITY' && (
+              {enableEdit && (
                 <Button
                   size="xs"
                   className="mt-2"
