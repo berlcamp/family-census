@@ -909,7 +909,7 @@ export default function HouseholdsPage() {
                         {/* {m.fullname} {m.is_registered ? '' : '(NR)'} */}
                         <div className="font-semibold flex items-start justify-between">
                           <span>
-                            {m.fullname} {m.is_registered && '(NR)'}
+                            {m.fullname} {!m.is_registered && '(NR)'}
                           </span>
                           {m.asenso === true && (
                             <Check className="text-xs text-orange-600 h-4 w-4" />
