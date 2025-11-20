@@ -256,7 +256,7 @@ export default function HouseholdsPage() {
       (family.family_members?.every((m) => !m.is_registered || !m.voter_id) ??
         true)
 
-    console.log('new', family.husband, family.wife, family.family_members)
+    // console.log('new', family.husband, family.wife, family.family_members)
 
     // 3. Save Family (Insert or Update)
     if (family.id) {
@@ -642,7 +642,7 @@ export default function HouseholdsPage() {
         }))
       }))
 
-      console.log('mapped', mapped)
+      // console.log('mapped', mapped)
       dispatch(
         setHouseholds({
           households: mapped,

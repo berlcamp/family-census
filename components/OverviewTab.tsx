@@ -135,11 +135,11 @@ export const OverviewTab = () => {
             Editing purok is disabled as more than 20 households already added
           </div>
         )} */}
-        {!isDisabled && (
+        {/* {!isDisabled && (
           <div className="bg-green-100 text-green-800 p-2 rounded text-sm mb-2">
             Editing purok will be disabled once households exceeds 20
           </div>
-        )}
+        )} */}
 
         {/* Color */}
         <div>
