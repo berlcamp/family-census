@@ -735,6 +735,12 @@ export default function HouseholdsPage() {
       location?.name ?? ''
     )
 
+  const enableEdit2 =
+    user?.type === 'super admin' ||
+    user?.type === 'province admin' ||
+    userHasAccess?.is_editor === true
+  console.log('enableEdit2', enableEdit2)
+
   if (user?.type === 'user' && userHasAccess?.is_disabled) {
     return <NoAccess />
   }
@@ -757,7 +763,7 @@ export default function HouseholdsPage() {
     <div className="w-full">
       <div className="app__title flex">
         <h1 className="text-xl font-semibold flex-1">{location.name}</h1>
-        {enableEdit && (
+        {enableEdit && enableEdit2 && (
           <Button
             onClick={() => {
               setEditHousehold(null)
@@ -875,7 +881,7 @@ export default function HouseholdsPage() {
             <CardHeader>
               <CardTitle className="flex justify-between">
                 <span>{h.name}</span>
-                {enableEdit && (
+                {enableEdit && enableEdit2 && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -939,7 +945,7 @@ export default function HouseholdsPage() {
                       </li>
                     ))}
                   </ul>
-                  {enableEdit && (
+                  {enableEdit && enableEdit2 && (
                     <Button
                       size="sm"
                       variant="link"
@@ -955,7 +961,7 @@ export default function HouseholdsPage() {
                   )}
                 </div>
               ))}
-              {enableEdit && (
+              {enableEdit && enableEdit2 && (
                 <Button
                   size="xs"
                   className="mt-2"
