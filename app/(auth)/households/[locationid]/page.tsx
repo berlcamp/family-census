@@ -734,7 +734,6 @@ export default function HouseholdsPage() {
     ['CARMEN (MISAMIS ANNEX)', 'BAYBAY TRIUNFO', 'CATADMAN-MANABAY'].includes(
       location?.name ?? ''
     )
-  // const enableEdit = true
 
   if (user?.type === 'user' && userHasAccess?.is_disabled) {
     return <NoAccess />
@@ -758,7 +757,7 @@ export default function HouseholdsPage() {
     <div className="w-full">
       <div className="app__title flex">
         <h1 className="text-xl font-semibold flex-1">{location.name}</h1>
-        {enableEdit && userHasAccess?.is_editor && (
+        {enableEdit && (
           <Button
             onClick={() => {
               setEditHousehold(null)
@@ -876,7 +875,7 @@ export default function HouseholdsPage() {
             <CardHeader>
               <CardTitle className="flex justify-between">
                 <span>{h.name}</span>
-                {enableEdit && userHasAccess?.is_editor && (
+                {enableEdit && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -940,7 +939,7 @@ export default function HouseholdsPage() {
                       </li>
                     ))}
                   </ul>
-                  {enableEdit && userHasAccess?.is_editor && (
+                  {enableEdit && (
                     <Button
                       size="sm"
                       variant="link"
@@ -956,7 +955,7 @@ export default function HouseholdsPage() {
                   )}
                 </div>
               ))}
-              {enableEdit && userHasAccess?.is_editor && (
+              {enableEdit && (
                 <Button
                   size="xs"
                   className="mt-2"
