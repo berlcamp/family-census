@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 
 import LoadingSkeleton from '@/components/LoadingSkeleton'
+import NoAccess from '@/components/NoAccess'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -22,7 +23,7 @@ import {
 } from '@/lib/redux/householdsSlice'
 import { clearLocation, setLocation } from '@/lib/redux/locationSlice'
 import { supabase } from '@/lib/supabase/client'
-import { Family, FamilyMember, Household } from '@/types'
+import { Family, FamilyMember, Household, LocationUser } from '@/types'
 import { Check } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -34,6 +35,7 @@ export default function HouseholdsPage() {
   const locationIdNum = Number(locationid)
 
   const [loading, setLoading] = useState(false)
+  const [userHasAccess, setUserHasAccess] = useState<LocationUser | null>(null)
 
   const [selectedDate, setSelectedDate] = useState('')
 
@@ -703,6 +705,23 @@ export default function HouseholdsPage() {
     user?.system_user_id
   ])
 
+  useEffect(() => {
+    const checkAccess = async () => {
+      const { data: locationUser } = await supabase
+        .from('location_users')
+        .select()
+        .eq('location_id', location?.id)
+        .eq('user_id', user?.system_user_id)
+        .single()
+      if (locationUser) {
+        setUserHasAccess(locationUser)
+      }
+    }
+    if (user?.type === 'user' && location) {
+      checkAccess()
+    }
+  }, [location, user])
+
   // 🚀 Fetch households whenever page or location changes (but not directly on search)
   useEffect(() => {
     if (!locationIdNum) return
@@ -712,7 +731,14 @@ export default function HouseholdsPage() {
 
   const enableEdit =
     !['OZAMIZ CITY'].includes(location?.address ?? '') ||
-    ['BAYBAY TRIUNFO', 'CATADMAN-MANABAY'].includes(location?.name ?? '')
+    ['CARMEN (MISAMIS ANNEX)', 'BAYBAY TRIUNFO', 'CATADMAN-MANABAY'].includes(
+      location?.name ?? ''
+    )
+  // const enableEdit = true
+
+  if (user?.type === 'user' && userHasAccess?.is_disabled) {
+    return <NoAccess />
+  }
 
   if (loading) {
     return <LoadingSkeleton />
@@ -732,7 +758,7 @@ export default function HouseholdsPage() {
     <div className="w-full">
       <div className="app__title flex">
         <h1 className="text-xl font-semibold flex-1">{location.name}</h1>
-        {enableEdit && (
+        {enableEdit && userHasAccess?.is_editor && (
           <Button
             onClick={() => {
               setEditHousehold(null)
@@ -850,7 +876,7 @@ export default function HouseholdsPage() {
             <CardHeader>
               <CardTitle className="flex justify-between">
                 <span>{h.name}</span>
-                {enableEdit && (
+                {enableEdit && userHasAccess?.is_editor && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -914,7 +940,7 @@ export default function HouseholdsPage() {
                       </li>
                     ))}
                   </ul>
-                  {enableEdit && (
+                  {enableEdit && userHasAccess?.is_editor && (
                     <Button
                       size="sm"
                       variant="link"
@@ -930,7 +956,7 @@ export default function HouseholdsPage() {
                   )}
                 </div>
               ))}
-              {enableEdit && (
+              {enableEdit && userHasAccess?.is_editor && (
                 <Button
                   size="xs"
                   className="mt-2"

@@ -30,7 +30,7 @@ type User = {
   email: string
 }
 
-const roles = ['Editor', 'Importer'] as const
+const roles = ['Editor'] as const
 
 export default function AddMemberModal({
   setRefresh,
@@ -339,8 +339,8 @@ export default function AddMemberModal({
               )}
 
               {/* Role Selection */}
-              <div className="space-y-2 mt-4 hidden">
-                <div>Assign roles:</div>
+              <div className="space-y-2 mt-4">
+                <div className="text-sm">Assign roles:</div>
                 <div className="flex gap-2 flex-wrap">
                   <label className="flex items-center gap-1 text-sm cursor-pointer">
                     <CheckSquare className="size-4" />

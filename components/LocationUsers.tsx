@@ -2,7 +2,7 @@ import { useAppSelector } from '@/lib/redux/hook'
 import { supabase } from '@/lib/supabase/client'
 import { Location, LocationUser as LocationUserType } from '@/types'
 import { DropdownMenuCheckboxItemProps } from '@radix-ui/react-dropdown-menu'
-import { PlusIcon } from 'lucide-react'
+import { ChevronDown, PlusIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import AddMemberModal from './AddMemberModal'
@@ -12,6 +12,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger
@@ -20,7 +21,10 @@ import {
 type Checked = DropdownMenuCheckboxItemProps['checked']
 
 function LocationUser({ user }: { user: LocationUserType }) {
-  const [editor, setEditor] = useState<Checked>(user.is_editor)
+  const [editor, setEditor] = useState<Checked>(!!user.is_editor)
+  const [disabled, setDisabled] = useState<Checked>(!!user.is_disabled)
+
+  const systemUser = useAppSelector((state) => state.user.user)
 
   const handleRoleUpdate = async (updates: Partial<LocationUserType>) => {
     const { error } = await supabase
@@ -28,22 +32,21 @@ function LocationUser({ user }: { user: LocationUserType }) {
       .update(updates)
       .eq('id', user.id)
 
-    if (!error) {
-      toast.success('Successfully saved')
-    } else {
-      toast.error('Failed to save')
-    }
+    if (!error) toast.success('Successfully saved')
+    else toast.error('Failed to save')
   }
 
   const toggleEditor = (checked: Checked) => {
     setEditor(checked)
-    void handleRoleUpdate({ is_editor: !!checked })
+    setDisabled(false)
+    void handleRoleUpdate({ is_editor: !!checked, is_disabled: false })
   }
 
-  // const toggleImporter = (checked: Checked) => {
-  //   setImporter(checked)
-  //   void handleRoleUpdate({ is_importer: !!checked })
-  // }
+  const toggleDisable = (checked: boolean) => {
+    setEditor(false)
+    setDisabled(checked)
+    void handleRoleUpdate({ is_editor: false, is_disabled: checked })
+  }
 
   return (
     <div className="flex space-x-2 hover:bg-gray-100 py-2 border-t">
@@ -58,32 +61,63 @@ function LocationUser({ user }: { user: LocationUserType }) {
           </AvatarFallback>
         </Avatar>
       </div>
+
       <div className="flex-1">
         <div className="text-xs">{user.user.name}</div>
         <div className="text-xs font-light">{user.user.email}</div>
       </div>
-      <div className="hidden">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="text-xs">
-              Role: Viewer {editor ? '+ Editor' : ''}{' '}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            <DropdownMenuLabel>Role</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem
-              checked={editor}
-              onCheckedChange={toggleEditor}
-            >
-              Editor
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem checked={true} disabled>
-              Viewer
-            </DropdownMenuCheckboxItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      {(systemUser?.type === 'super admin' ||
+        systemUser?.type === 'province admin') && (
+        <div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={disabled ? 'destructive' : 'outline'}
+                className="text-xs"
+              >
+                {!disabled && 'Role: Viewer '} {editor ? '+ Editor' : ''}{' '}
+                {disabled ? 'Deactivated' : ''}
+                <ChevronDown />
+              </Button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent className="w-56">
+              {!disabled && (
+                <>
+                  <DropdownMenuLabel>Role</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {/* Editor */}
+                  <DropdownMenuCheckboxItem
+                    checked={editor}
+                    onCheckedChange={toggleEditor}
+                  >
+                    Editor
+                  </DropdownMenuCheckboxItem>
+
+                  {/* Viewer */}
+
+                  <DropdownMenuCheckboxItem checked disabled>
+                    Viewer
+                  </DropdownMenuCheckboxItem>
+                </>
+              )}
+
+              <DropdownMenuSeparator />
+
+              {/* Enable / Disable */}
+              {!disabled ? (
+                <DropdownMenuItem onClick={() => toggleDisable(true)}>
+                  <Button variant="destructive">Deactivate User</Button>
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={() => toggleDisable(false)}>
+                  <Button variant="green">Re-activate User</Button>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
     </div>
   )
 }
@@ -117,7 +151,7 @@ export default function LocationUsers({
 
   return (
     <>
-      {user?.type === 'super admin' && (
+      {(user?.type === 'super admin' || user?.type === 'province admin') && (
         <div className="mt-4">
           <div className="flex items-center gap-2">
             <Button

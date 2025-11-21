@@ -57,6 +57,7 @@ export interface LocationUser {
   org_id: string
   is_editor: boolean
   is_importer: boolean
+  is_disabled: boolean
   user: User
 }
 

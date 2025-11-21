@@ -2,6 +2,7 @@
 'use client'
 
 import LoadingSkeleton from '@/components/LoadingSkeleton'
+import NoAccess from '@/components/NoAccess'
 import Notfoundpage from '@/components/Notfoundpage'
 import { OverviewTab } from '@/components/OverviewTab'
 import VerticalMenu from '@/components/VerticalMenu'
@@ -18,6 +19,7 @@ export default function Page() {
   const locationId = params?.locationid as string
 
   const [loading, setLoading] = useState(false)
+  const [userHasAccess, setUserHasAccess] = useState(true)
 
   const dispatch = useAppDispatch()
   const location = useAppSelector((state) => state.location.selectedLocation)
@@ -49,7 +51,7 @@ export default function Page() {
           input_user_id: user?.system_user_id,
           input_location_id: locationId
         })
-        console.log('location details fetched2')
+        console.log('location details fetched2', data)
 
         if (error) {
           console.error('Error checking access2:', error)
@@ -66,10 +68,30 @@ export default function Page() {
     void fetchData()
   }, [locationId])
 
+  useEffect(() => {
+    const checkAccess = async () => {
+      const { data: locationUser } = await supabase
+        .from('location_users')
+        .select()
+        .eq('location_id', locationId)
+        .eq('user_id', user?.system_user_id)
+        .single()
+      if (locationUser) {
+        setUserHasAccess(!locationUser.is_disabled)
+      }
+    }
+    if (user?.type === 'user' && location) {
+      checkAccess()
+    }
+  }, [location, locationId, user])
+
   if (loading) {
     return <LoadingSkeleton />
   }
 
+  if (user?.type === 'user' && !userHasAccess) {
+    return <NoAccess />
+  }
   if (!location) {
     return <Notfoundpage />
   }
