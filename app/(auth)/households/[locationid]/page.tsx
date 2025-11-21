@@ -710,7 +710,9 @@ export default function HouseholdsPage() {
     fetchHouseholds(currentPage, search, purok)
   }, [currentPage, locationIdNum]) // 👈 removed search here
 
-  const enableEdit = !['OZAMIZ CITY'].includes(location?.address ?? '')
+  const enableEdit =
+    !['OZAMIZ CITY'].includes(location?.address ?? '') ||
+    ['BAYBAY TRIUNFO', 'CATADMAN-MANABAY'].includes(location?.name ?? '')
 
   if (loading) {
     return <LoadingSkeleton />
