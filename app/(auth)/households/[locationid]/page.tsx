@@ -729,9 +729,8 @@ export default function HouseholdsPage() {
     fetchHouseholds(currentPage, search, purok)
   }, [currentPage, locationIdNum]) // 👈 removed search here
 
-  const enableEdit =
-    !['OZAMIZ CITY'].includes(location?.address ?? '') ||
-    ['MALAUBANG'].includes(location?.name ?? '')
+  const enableEdit = !['OZAMIZ CITY'].includes(location?.address ?? '')
+  // || ['MALAUBANG'].includes(location?.name ?? '')
 
   const enableEdit2 =
     user?.type === 'super admin' ||
