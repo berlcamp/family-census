@@ -729,7 +729,11 @@ export default function HouseholdsPage() {
     fetchHouseholds(currentPage, search, purok)
   }, [currentPage, locationIdNum]) // 👈 removed search here
 
-  const enableEdit = !['OZAMIZ CITY'].includes(location?.address ?? '')
+  const enableEdit = ![
+    'CONCEPCION',
+    'DON VICTORIANO CHIONGBIAN',
+    'OZAMIZ CITY'
+  ].includes(location?.address ?? '')
   // || ['MALAUBANG'].includes(location?.name ?? '')
 
   const enableEdit2 =
