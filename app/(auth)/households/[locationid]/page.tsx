@@ -732,7 +732,7 @@ export default function HouseholdsPage() {
   const enableEdit = ![
     'CONCEPCION',
     'DON VICTORIANO CHIONGBIAN',
-    'OZAMIZ CITY'
+    'OZAsMIZ CITY'
   ].includes(location?.address ?? '')
   // || ['MALAUBANG'].includes(location?.name ?? '')
 

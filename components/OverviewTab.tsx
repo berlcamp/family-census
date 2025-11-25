@@ -26,6 +26,7 @@ const COLORS = [
 
 export const OverviewTab = () => {
   const location = useAppSelector((state) => state.location.selectedLocation)
+  const user = useAppSelector((state) => state.user.user)
 
   const [selectedColor, setSelectedColor] = useState(location?.color || 'gray')
   const [purokText, setPurokText] = useState(
@@ -208,7 +209,9 @@ export const OverviewTab = () => {
 
       {/* Users Section */}
       <div className="col-span-2">
-        <div className="hidden p-4 w-full">
+        <div
+          className={`${user?.type === 'province admin' ? 'flex' : 'hidden'} p-4 w-full`}
+        >
           {location?.id && (
             <Button
               variant="blue"
