@@ -8,6 +8,8 @@ interface BarangayStats {
   total_households: number
   total_families: number
   total_all_nr_families: number
+  total_no_ap_families: number
+  total_with_ap_families: number
 }
 
 export default function DashboardProvinceStats() {
@@ -55,6 +57,10 @@ export default function DashboardProvinceStats() {
     (sum, b) => sum + (b.total_all_nr_families ?? 0),
     0
   )
+  const totalNoAP = stats.reduce(
+    (sum, b) => sum + (b.total_no_ap_families ?? 0),
+    0
+  )
 
   return (
     <div className="overflow-x-auto">
@@ -64,7 +70,8 @@ export default function DashboardProvinceStats() {
             <th className="border px-2 py-1 text-left">Municipality/City</th>
             <th className="border px-2 py-1 text-right">Households</th>
             <th className="border px-2 py-1 text-right">Families</th>
-            <th className="border px-2 py-1 text-right">Families (ALL NR)</th>
+            <th className="border px-2 py-1 text-right">ALL NR Family</th>
+            <th className="border px-2 py-1 text-right">No AP Family</th>
           </tr>
         </thead>
         <tbody>
@@ -80,6 +87,9 @@ export default function DashboardProvinceStats() {
               <td className="border px-2 py-1 text-right">
                 {b.total_all_nr_families.toLocaleString()}
               </td>
+              <td className="border px-2 py-1 text-right">
+                {b.total_no_ap_families.toLocaleString()}
+              </td>
             </tr>
           ))}
 
@@ -94,6 +104,9 @@ export default function DashboardProvinceStats() {
             </td>
             <td className="border px-2 py-1 text-right">
               {totalAllNR.toLocaleString()}
+            </td>
+            <td className="border px-2 py-1 text-right">
+              {totalNoAP.toLocaleString()}
             </td>
           </tr>
         </tbody>

@@ -42,8 +42,8 @@ export interface Resident {
 
 export interface Location {
   id: number
-  name?: string
-  address?: string
+  name: string
+  address: string
   description?: string
   org_id?: string
   color: string

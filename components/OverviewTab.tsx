@@ -1,6 +1,5 @@
 'use client'
 
-import { DownloadHouseholdExcel } from '@/lib/functions/DownloadHouseholdExcel'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import { setLocation } from '@/lib/redux/locationSlice'
 import { updateList } from '@/lib/redux/locationsSlice'
@@ -11,6 +10,9 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import LocationUsers from './LocationUsers'
 import OverviewBarGraph from './OverviewBarGraph'
+import { downloadFamilyCompositionExcel } from './Printables/downloadFamilyCompositionExcel'
+import { generateFamilyBySP } from './Printables/generateFamilyBySP'
+import { generateFamilyCompositionPDF } from './Printables/generateFamilyCompositionPDF'
 import { Button } from './ui/button'
 
 const COLORS = [
@@ -212,14 +214,40 @@ export const OverviewTab = () => {
         <div
           className={`${user?.type === 'province admin' ? 'flex' : 'hidden'} p-4 w-full`}
         >
-          {location?.id && (
+          {location?.name && location?.address && (
             <Button
-              variant="blue"
-              size="sm"
-              className="ml-auto"
-              onClick={() => DownloadHouseholdExcel(location?.id)}
+              onClick={() =>
+                downloadFamilyCompositionExcel(
+                  location?.name,
+                  location?.address
+                )
+              }
+              variant="outline"
+              size="xs"
             >
-              Download Households Data to Excel
+              Download Excel
+            </Button>
+          )}
+          {location?.name && location?.address && (
+            <Button
+              onClick={() =>
+                generateFamilyCompositionPDF(location?.name, location?.address)
+              }
+              variant="outline"
+              size="xs"
+            >
+              Download Family Composition
+            </Button>
+          )}
+          {location?.name && location?.address && (
+            <Button
+              onClick={() =>
+                generateFamilyBySP(location?.name, location?.address)
+              }
+              variant="outline"
+              size="xs"
+            >
+              Download Family Composition (By SP)
             </Button>
           )}
         </div>

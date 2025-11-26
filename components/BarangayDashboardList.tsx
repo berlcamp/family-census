@@ -26,7 +26,9 @@ export default function BarangayDashboardList({
         households: d.households ?? 0,
         families: d.families ?? 0,
         total_registered: d.total_registered ?? 0,
-        total_non_registered: d.total_non_registered ?? 0
+        total_non_registered: d.total_non_registered ?? 0,
+        total_ap_membership_true: d.total_ap_membership_true ?? 0,
+        total_ap_membership_false: d.total_ap_membership_false ?? 0
       }))
       setData(normalized)
     }
@@ -49,6 +51,9 @@ export default function BarangayDashboardList({
                   <th className="border px-2 py-1 text-right">
                     Families (ALL NR)
                   </th>
+                  <th className="border px-2 py-1 text-right">
+                    Families (No AP)
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -63,6 +68,11 @@ export default function BarangayDashboardList({
                     </td>
                     <td className="border px-2 py-1">
                       {new Intl.NumberFormat().format(d.total_non_registered)}
+                    </td>
+                    <td className="border px-2 py-1">
+                      {new Intl.NumberFormat().format(
+                        d.total_ap_membership_false
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -82,6 +92,14 @@ export default function BarangayDashboardList({
                   <td className="border px-2 py-1">
                     {new Intl.NumberFormat().format(
                       data.reduce((sum, d) => sum + d.total_non_registered, 0)
+                    )}
+                  </td>
+                  <td className="border px-2 py-1">
+                    {new Intl.NumberFormat().format(
+                      data.reduce(
+                        (sum, d) => sum + d.total_ap_membership_false,
+                        0
+                      )
                     )}
                   </td>
                 </tr>
