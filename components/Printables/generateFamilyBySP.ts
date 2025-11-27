@@ -9,7 +9,6 @@ export const generateFamilyBySP = async (
 ) => {
   if (!locationName) return
 
-  // Fetch households + families + members
   const { data: households, error } = await supabase
     .from('households')
     .select(
@@ -42,7 +41,6 @@ export const generateFamilyBySP = async (
     format: 'letter',
     orientation: 'portrait'
   })
-
   doc.setFontSize(10)
 
   // Group households by SP
@@ -53,11 +51,12 @@ export const generateFamilyBySP = async (
     spGroups[spName].push(h)
   })
 
-  const spNames = Object.keys(spGroups)
+  // Sort SP names alphabetically
+  const spNames = Object.keys(spGroups).sort((a, b) => a.localeCompare(b))
+
   const tableRows: any[] = []
   let iterator = 1
 
-  // Build table rows for all SPs
   spNames.forEach((spName) => {
     const spHouseholds = spGroups[spName]
 
@@ -68,42 +67,50 @@ export const generateFamilyBySP = async (
       members: '',
       signature: '',
       ap: iterator,
-      isSP: true // mark this row as SP row
+      isSP: true
     })
-
     iterator++
 
-    // Add families
+    // Sort families alphabetically by head of family
+    const sortedFamilies: any[] = []
     spHouseholds.forEach((h) => {
       const families = h.families || []
-
       families.forEach((f: any) => {
-        const husband = f.husband_name?.trim() || null
-        const wife = f.wife_name?.trim() || null
-        const members = f.family_members || []
-
-        const head = husband || wife || members[0]?.fullname || 'Unknown'
-
-        const memberList: string[] = []
-        if (husband) memberList.push(husband.toUpperCase())
-        if (wife) memberList.push(wife.toUpperCase())
-        members.forEach((m: any) => memberList.push(m.fullname.toUpperCase()))
-
-        tableRows.push({
-          iterator,
-          name: head.toUpperCase(),
-          members: memberList.join('\n'),
-          signature: '',
-          ap: iterator,
-          isSP: false
-        })
-
-        iterator++
+        const husband = f.husband_name?.trim() || ''
+        const wife = f.wife_name?.trim() || ''
+        const head =
+          husband || wife || f.family_members[0]?.fullname || 'Unknown'
+        sortedFamilies.push({ ...f, head })
       })
+    })
+    sortedFamilies.sort((a, b) => a.head.localeCompare(b.head))
+
+    // Add sorted families to tableRows
+    sortedFamilies.forEach((f: any) => {
+      const husband = f.husband_name?.trim() || null
+      const wife = f.wife_name?.trim() || null
+      const members = f.family_members || []
+
+      const head = husband || wife || members[0]?.fullname || 'Unknown'
+
+      const memberList: string[] = []
+      if (husband) memberList.push(husband.toUpperCase())
+      if (wife) memberList.push(wife.toUpperCase())
+      members.forEach((m: any) => memberList.push(m.fullname.toUpperCase()))
+
+      tableRows.push({
+        iterator,
+        name: head.toUpperCase(),
+        members: memberList.join('\n'),
+        signature: '',
+        ap: iterator,
+        isSP: false
+      })
+      iterator++
     })
   })
 
-  // Render ONE big table
+  // Render table (same as your existing autoTable code)
   autoTable(doc, {
     startY: 14,
     head: [
@@ -136,22 +143,14 @@ export const generateFamilyBySP = async (
         {
           content: 'Activity: _________________________',
           colSpan: 5,
-          styles: {
-            halign: 'left',
-            lineWidth: 0,
-            fontSize: 9
-          }
+          styles: { halign: 'left', lineWidth: 0, fontSize: 9 }
         }
       ],
       [
         {
           content: 'Date: _________________________',
           colSpan: 5,
-          styles: {
-            halign: 'left',
-            lineWidth: 0,
-            fontSize: 9
-          }
+          styles: { halign: 'left', lineWidth: 0, fontSize: 9 }
         }
       ],
       ['#', 'Head of Family', 'Members', 'Signature', '#']
@@ -163,9 +162,7 @@ export const generateFamilyBySP = async (
       r.signature,
       r.ap
     ]),
-
     theme: 'plain',
-
     styles: {
       lineColor: [0, 0, 0],
       lineWidth: 0.2,
@@ -173,26 +170,15 @@ export const generateFamilyBySP = async (
       cellPadding: 1,
       fillColor: false
     },
-
-    columnStyles: {
-      2: { cellWidth: 70 }, // Members
-      3: { cellWidth: 35 } // Signature
-    },
-
+    columnStyles: { 2: { cellWidth: 70 }, 3: { cellWidth: 35 } },
     didParseCell: function (data) {
       const row = tableRows[data.row.index]
-      // Bold SP rows
       if (row.isSP && data.column.index === 1) {
         data.cell.styles.fontStyle = 'bold'
         data.cell.styles.fontSize = 10
       }
-
-      // Members column small font
-      if (!row.isSP && data.column.index === 2) {
-        data.cell.styles.fontSize = 7
-      }
+      if (!row.isSP && data.column.index === 2) data.cell.styles.fontSize = 7
     },
-
     headStyles: {
       lineColor: [0, 0, 0],
       lineWidth: 0.2,
