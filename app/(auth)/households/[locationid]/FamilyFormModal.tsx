@@ -48,6 +48,8 @@ export default function FamilyModal({
   const [wifeOptions, setWifeOptions] = useState<Voter[]>([])
   const [memberOptions, setMemberOptions] = useState<Voter[]>([])
 
+  const [sp, setSp] = useState('')
+
   const [selectedHusband, setSelectedHusband] = useState<Voter | null>(
     initialFamily?.husband ?? null
   )
@@ -224,6 +226,7 @@ export default function FamilyModal({
         id: initialFamily?.id,
         husband: selectedHusband,
         wife: selectedWife,
+        sp,
         family_members: members,
         allowNonRegistered
       })
@@ -304,6 +307,30 @@ export default function FamilyModal({
             <DialogTitle>Family</DialogTitle>
           </DialogHeader>
 
+          <div className="mb-3">
+            {/* Service Provider */}
+            {location?.address !== 'OZAMIZ CITY' && (
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Family of SP:</label>
+                <select
+                  value={sp}
+                  onChange={(e) => setSp(e.target.value)}
+                  className={`w-full border rounded p-2 text-sm`}
+                >
+                  <option value="">-- Select Service Provider --</option>
+                  {Array.isArray(location?.sps) &&
+                    location.sps.map((p, i) => (
+                      <option key={i} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                </select>
+                {/* {errors.sp && (
+                <p className="text-xs text-red-500">{errors.sp}</p>
+              )} */}
+              </div>
+            )}
+          </div>
           {/* HUSBAND */}
           <div className="mb-3">
             <label className="block text-sm font-medium">Husband</label>

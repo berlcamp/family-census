@@ -68,11 +68,11 @@ export const OverviewTab = () => {
     fetchHouseholdCount()
   }, [location?.id])
 
-  const isDisabled = householdCount > 20 || loadingHouseholds
+  // const isDisabled = householdCount > 20 || loadingHouseholds
   console.log(householdCount, loadingHouseholds)
   // const isDisabled = false
 
-  // const isDisabled = location?.address !== 'OZAMIZ CITY'
+  const isDisabled = location?.address !== 'BALIANGAO'
 
   const handleSave = async () => {
     if (!location) return
