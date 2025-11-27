@@ -68,11 +68,11 @@ export const OverviewTab = () => {
     fetchHouseholdCount()
   }, [location?.id])
 
-  // const isDisabled =(householdCount > 200 || loadingHouseholds) && location?.address !== 'TUDELA'
+  const isDisabled = householdCount > 20 || loadingHouseholds
   console.log(householdCount, loadingHouseholds)
   // const isDisabled = false
 
-  const isDisabled = location?.address === 'OZAMIZ CITY'
+  // const isDisabled = location?.address !== 'OZAMIZ CITY'
 
   const handleSave = async () => {
     if (!location) return
@@ -175,28 +175,54 @@ export const OverviewTab = () => {
         {/* Purok Textarea */}
         <div>
           <div className="text-sm mb-2">Puroks (one per line)</div>
-          <textarea
-            value={purokText}
-            onChange={(e) => setPurokText(e.target.value)}
-            rows={6}
-            className="w-full border rounded p-2 text-sm"
-            placeholder="Enter one purok per line..."
-            disabled={isDisabled}
-          />
+          {isDisabled ? (
+            <div>
+              <ul className="list-disc pl-4 text-sm">
+                {purokText
+                  .split('\n')
+                  .filter((p) => p.trim() !== '')
+                  .map((p, i) => (
+                    <li key={i}>{p}</li>
+                  ))}
+              </ul>
+            </div>
+          ) : (
+            <textarea
+              value={purokText}
+              onChange={(e) => setPurokText(e.target.value)}
+              rows={6}
+              className="w-full border rounded p-2 text-sm"
+              placeholder="Enter one purok per line..."
+              disabled={isDisabled}
+            />
+          )}
         </div>
 
         {/* SPS Textarea */}
         {location?.address !== 'OZAMIZ CITY' && (
           <div>
             <div className="text-sm mb-2">Service Providers (one per line)</div>
-            <textarea
-              value={spsText}
-              onChange={(e) => setSpsText(e.target.value)}
-              rows={6}
-              className="w-full border rounded p-2 text-sm"
-              placeholder="Enter one service provider per line..."
-              disabled={isDisabled}
-            />
+            {isDisabled ? (
+              <div>
+                <ul className="list-disc pl-4 text-sm">
+                  {spsText
+                    .split('\n')
+                    .filter((p) => p.trim() !== '')
+                    .map((p, i) => (
+                      <li key={i}>{p}</li>
+                    ))}
+                </ul>
+              </div>
+            ) : (
+              <textarea
+                value={spsText}
+                onChange={(e) => setSpsText(e.target.value)}
+                rows={6}
+                className="w-full border rounded p-2 text-sm"
+                placeholder="Enter one service provider per line..."
+                disabled={isDisabled}
+              />
+            )}
           </div>
         )}
 
