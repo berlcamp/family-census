@@ -189,7 +189,7 @@ export const generateFamilyBySP = async (
 
       // Members column small font
       if (!row.isSP && data.column.index === 2) {
-        data.cell.styles.fontSize = 8
+        data.cell.styles.fontSize = 7
       }
     },
 
