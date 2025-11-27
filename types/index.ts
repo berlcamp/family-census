@@ -167,6 +167,7 @@ export interface Family {
   asenso_husband?: boolean | null
   asenso_wife?: boolean | null
   created_at?: string
+  sp: string
   wife_name: string
   husband_name: string
   all_nr?: boolean

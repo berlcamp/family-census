@@ -268,7 +268,7 @@ export default function HouseholdsPage() {
         .from('families')
         .update({
           household_id: currentHouseholdId,
-
+          sp: family.sp,
           husband_id: family.husband?.voter_id ?? null,
           husband_name: family.husband?.fullname ?? null,
           wife_id: family.wife?.voter_id ?? null,
@@ -293,6 +293,7 @@ export default function HouseholdsPage() {
         .insert([
           {
             household_id: currentHouseholdId,
+            sp: family.sp,
             husband_id: family.husband?.voter_id ?? null,
             husband_name: family.husband?.fullname ?? null,
             wife_id: family.wife?.voter_id ?? null,
