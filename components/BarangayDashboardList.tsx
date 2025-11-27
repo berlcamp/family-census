@@ -21,12 +21,15 @@ export default function BarangayDashboardList({
         console.error('Error fetching stats:', error)
         return
       }
+
       const normalized = (data || []).map((d: any) => ({
         barangay: d.barangay,
         households: d.households ?? 0,
         families: d.families ?? 0,
         total_registered: d.total_registered ?? 0,
         total_non_registered: d.total_non_registered ?? 0,
+        all_c: d.all_c ?? 0,
+        all_c_ap: d.all_c_ap ?? 0,
         total_ap_membership_true: d.total_ap_membership_true ?? 0,
         total_ap_membership_false: d.total_ap_membership_false ?? 0
       }))
@@ -51,9 +54,15 @@ export default function BarangayDashboardList({
                   <th className="border px-2 py-1 text-right">
                     Families (ALL NR)
                   </th>
-                  <th className="border px-2 py-1 text-right">
-                    Families (No AP)
-                  </th>
+                  {address === 'OZAMIZ CITY' && (
+                    <>
+                      <th className="border px-2 py-1 text-right">No AP</th>
+                      <th className="border px-2 py-1 text-right">All C</th>
+                      <th className="border px-2 py-1 text-right">
+                        All C w/ AP
+                      </th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -69,11 +78,21 @@ export default function BarangayDashboardList({
                     <td className="border px-2 py-1">
                       {new Intl.NumberFormat().format(d.total_non_registered)}
                     </td>
-                    <td className="border px-2 py-1">
-                      {new Intl.NumberFormat().format(
-                        d.total_ap_membership_false
-                      )}
-                    </td>
+                    {address === 'OZAMIZ CITY' && (
+                      <>
+                        <td className="border px-2 py-1">
+                          {new Intl.NumberFormat().format(
+                            d.total_ap_membership_false
+                          )}
+                        </td>
+                        <td className="border px-2 py-1">
+                          {new Intl.NumberFormat().format(d.all_c)}
+                        </td>
+                        <td className="border px-2 py-1">
+                          {new Intl.NumberFormat().format(d.all_c_ap)}
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
                 {/* TOTAL ROW */}
@@ -94,14 +113,28 @@ export default function BarangayDashboardList({
                       data.reduce((sum, d) => sum + d.total_non_registered, 0)
                     )}
                   </td>
-                  <td className="border px-2 py-1">
-                    {new Intl.NumberFormat().format(
-                      data.reduce(
-                        (sum, d) => sum + d.total_ap_membership_false,
-                        0
-                      )
-                    )}
-                  </td>
+                  {address === 'OZAMIZ CITY' && (
+                    <>
+                      <td className="border px-2 py-1">
+                        {new Intl.NumberFormat().format(
+                          data.reduce(
+                            (sum, d) => sum + d.total_ap_membership_false,
+                            0
+                          )
+                        )}
+                      </td>
+                      <td className="border px-2 py-1">
+                        {new Intl.NumberFormat().format(
+                          data.reduce((sum, d) => sum + d.all_c, 0)
+                        )}
+                      </td>
+                      <td className="border px-2 py-1">
+                        {new Intl.NumberFormat().format(
+                          data.reduce((sum, d) => sum + d.all_c_ap, 0)
+                        )}
+                      </td>
+                    </>
+                  )}
                 </tr>
               </tbody>
             </table>

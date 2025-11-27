@@ -57,7 +57,7 @@ export default function Page() {
         </div>
 
         <div className="lg:w-2/3">
-          <DashboardProvinceStats />
+          {user?.address && <DashboardProvinceStats address={user?.address} />}
         </div>
       </div>
     )

@@ -12,7 +12,11 @@ interface BarangayStats {
   total_with_ap_families: number
 }
 
-export default function DashboardProvinceStats() {
+export default function DashboardProvinceStats({
+  address
+}: {
+  address: string
+}) {
   const [stats, setStats] = useState<BarangayStats[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -71,7 +75,9 @@ export default function DashboardProvinceStats() {
             <th className="border px-2 py-1 text-right">Households</th>
             <th className="border px-2 py-1 text-right">Families</th>
             <th className="border px-2 py-1 text-right">ALL NR Family</th>
-            <th className="border px-2 py-1 text-right">No AP Family</th>
+            {address === 'OZAMIZ CITY' && (
+              <th className="border px-2 py-1 text-right">No AP Family</th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -87,9 +93,11 @@ export default function DashboardProvinceStats() {
               <td className="border px-2 py-1 text-right">
                 {b.total_all_nr_families.toLocaleString()}
               </td>
-              <td className="border px-2 py-1 text-right">
-                {b.total_no_ap_families.toLocaleString()}
-              </td>
+              {address === 'OZAMIZ CITY' && (
+                <td className="border px-2 py-1 text-right">
+                  {b.total_no_ap_families.toLocaleString()}
+                </td>
+              )}
             </tr>
           ))}
 
@@ -105,9 +113,11 @@ export default function DashboardProvinceStats() {
             <td className="border px-2 py-1 text-right">
               {totalAllNR.toLocaleString()}
             </td>
-            <td className="border px-2 py-1 text-right">
-              {totalNoAP.toLocaleString()}
-            </td>
+            {address === 'OZAMIZ CITY' && (
+              <td className="border px-2 py-1 text-right">
+                {totalNoAP.toLocaleString()}
+              </td>
+            )}
           </tr>
         </tbody>
       </table>

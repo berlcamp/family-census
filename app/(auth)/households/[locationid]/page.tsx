@@ -67,6 +67,7 @@ export default function HouseholdsPage() {
     if (!location) return
 
     if (household.id) {
+      console.log('household.sp', household.sp)
       // UPDATE existing household
       const { data, error } = await supabase
         .from('households')
@@ -549,7 +550,7 @@ export default function HouseholdsPage() {
             .from('households')
             .select(
               `
-          id, name, barangay, location_id,purok,
+          id, name, sp, barangay, location_id,purok,
           families (
             id, husband_name, wife_name, household_id,all_nr,asenso_husband,asenso_wife,
             husband:voters!families_husband_id_fkey (id, fullname),

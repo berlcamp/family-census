@@ -55,31 +55,22 @@ export const generateFamilyBySP = async (
 
   const spNames = Object.keys(spGroups)
 
+  let iterator = 1
+
   for (let spIndex = 0; spIndex < spNames.length; spIndex++) {
     const spName = spNames[spIndex]
     const spHouseholds = spGroups[spName]
 
-    let index = 1 // reset numbering per SP
-
     // Flatten all families under this SP
     const tableRows: any[] = []
 
-    // --- SP row, will appear just above the header row ---
     tableRows.push([
-      {
-        content: `SP: ${spName.toUpperCase()}`,
-        colSpan: 4,
-        styles: {
-          halign: 'left',
-          cellPadding: 4,
-          fontStyle: 'bold',
-          fontSize: 11,
-          fillColor: false,
-          lineWidth: 0
-        }
-      }
+      iterator,
+      spName.toUpperCase(),
+      '',
+      '', // blank signature
+      iterator
     ])
-    tableRows.push(['#', 'HEAD OF FAMILY', 'MEMBERS', 'SIGNATURE'])
 
     // Add families
     spHouseholds.forEach((h) => {
@@ -98,13 +89,14 @@ export const generateFamilyBySP = async (
         members.forEach((m: any) => memberList.push(m.fullname.toUpperCase()))
 
         tableRows.push([
-          index,
+          iterator,
           head.toUpperCase(),
           memberList.join('\n'),
-          '' // blank signature
+          '', // blank signature
+          iterator
         ])
 
-        index++
+        iterator++
       })
     })
 
@@ -115,7 +107,7 @@ export const generateFamilyBySP = async (
         [
           {
             content: 'ACKNOWLEDGEMENT RECEIPT',
-            colSpan: 4,
+            colSpan: 5,
             styles: {
               halign: 'center',
               cellPadding: 0,
@@ -128,7 +120,7 @@ export const generateFamilyBySP = async (
         [
           {
             content: `${locationName}, ${locationAddress}, MISAMIS OCCIDENTAL`,
-            colSpan: 4,
+            colSpan: 5,
             styles: {
               halign: 'center',
               cellPadding: 0,
@@ -140,7 +132,7 @@ export const generateFamilyBySP = async (
         [
           {
             content: 'Activity: _________________________',
-            colSpan: 4,
+            colSpan: 5,
             styles: {
               halign: 'left',
               lineWidth: 0,
@@ -151,14 +143,16 @@ export const generateFamilyBySP = async (
         [
           {
             content: 'Date: _________________________',
-            colSpan: 4,
+            colSpan: 5,
             styles: {
               halign: 'left',
               lineWidth: 0,
               fontSize: 9
             }
           }
-        ]
+        ],
+        // Normal table header
+        ['#', 'Head of Family', 'Members', 'Signature', '#']
       ],
 
       body: tableRows,
@@ -171,6 +165,17 @@ export const generateFamilyBySP = async (
         fontSize: 9,
         cellPadding: 1,
         fillColor: false
+      },
+      didParseCell: function (data) {
+        // The "Members" column — adjust as needed
+        const membersColumnIndex = 2
+
+        if (
+          data.section === 'body' &&
+          data.column.index === membersColumnIndex
+        ) {
+          data.cell.styles.fontSize = 8 // <-- set small font size here
+        }
       },
 
       headStyles: {
