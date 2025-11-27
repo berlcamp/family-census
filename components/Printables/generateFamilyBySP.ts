@@ -9,7 +9,7 @@ export const generateFamilyBySP = async (
 ) => {
   if (!locationName) return
 
-  // Fetch ALL households + families + members
+  // Fetch households + families + members
   const { data: households, error } = await supabase
     .from('households')
     .select(
@@ -54,23 +54,24 @@ export const generateFamilyBySP = async (
   })
 
   const spNames = Object.keys(spGroups)
-
+  const tableRows: any[] = []
   let iterator = 1
 
-  for (let spIndex = 0; spIndex < spNames.length; spIndex++) {
-    const spName = spNames[spIndex]
+  // Build table rows for all SPs
+  spNames.forEach((spName) => {
     const spHouseholds = spGroups[spName]
 
-    // Flatten all families under this SP
-    const tableRows: any[] = []
-
-    tableRows.push([
+    // SP row
+    tableRows.push({
       iterator,
-      spName.toUpperCase(),
-      '',
-      '', // blank signature
-      iterator
-    ])
+      name: `${spName.toUpperCase()}`,
+      members: '',
+      signature: '',
+      ap: iterator,
+      isSP: true // mark this row as SP row
+    })
+
+    iterator++
 
     // Add families
     spHouseholds.forEach((h) => {
@@ -88,110 +89,118 @@ export const generateFamilyBySP = async (
         if (wife) memberList.push(wife.toUpperCase())
         members.forEach((m: any) => memberList.push(m.fullname.toUpperCase()))
 
-        tableRows.push([
+        tableRows.push({
           iterator,
-          head.toUpperCase(),
-          memberList.join('\n'),
-          '', // blank signature
-          iterator
-        ])
+          name: head.toUpperCase(),
+          members: memberList.join('\n'),
+          signature: '',
+          ap: iterator,
+          isSP: false
+        })
 
         iterator++
       })
     })
+  })
 
-    // Render table
-    autoTable(doc, {
-      startY: 14,
-      head: [
-        [
-          {
-            content: 'ACKNOWLEDGEMENT RECEIPT',
-            colSpan: 5,
-            styles: {
-              halign: 'center',
-              cellPadding: 0,
-              lineWidth: 0,
-              fontStyle: 'bold',
-              fontSize: 10
-            }
+  // Render ONE big table
+  autoTable(doc, {
+    startY: 14,
+    head: [
+      [
+        {
+          content: 'ACKNOWLEDGEMENT RECEIPT',
+          colSpan: 5,
+          styles: {
+            halign: 'center',
+            cellPadding: 0,
+            lineWidth: 0,
+            fontStyle: 'bold',
+            fontSize: 10
           }
-        ],
-        [
-          {
-            content: `${locationName}, ${locationAddress}, MISAMIS OCCIDENTAL`,
-            colSpan: 5,
-            styles: {
-              halign: 'center',
-              cellPadding: 0,
-              lineWidth: 0,
-              fontSize: 9
-            }
-          }
-        ],
-        [
-          {
-            content: 'Activity: _________________________',
-            colSpan: 5,
-            styles: {
-              halign: 'left',
-              lineWidth: 0,
-              fontSize: 9
-            }
-          }
-        ],
-        [
-          {
-            content: 'Date: _________________________',
-            colSpan: 5,
-            styles: {
-              halign: 'left',
-              lineWidth: 0,
-              fontSize: 9
-            }
-          }
-        ],
-        // Normal table header
-        ['#', 'Head of Family', 'Members', 'Signature', '#']
-      ],
-
-      body: tableRows,
-
-      theme: 'plain',
-
-      styles: {
-        lineColor: [0, 0, 0],
-        lineWidth: 0.2,
-        fontSize: 9,
-        cellPadding: 1,
-        fillColor: false
-      },
-      didParseCell: function (data) {
-        // The "Members" column — adjust as needed
-        const membersColumnIndex = 2
-
-        if (
-          data.section === 'body' &&
-          data.column.index === membersColumnIndex
-        ) {
-          data.cell.styles.fontSize = 8 // <-- set small font size here
         }
-      },
+      ],
+      [
+        {
+          content: `${locationName}, ${locationAddress}, MISAMIS OCCIDENTAL`,
+          colSpan: 5,
+          styles: {
+            halign: 'center',
+            cellPadding: 0,
+            lineWidth: 0,
+            fontSize: 9
+          }
+        }
+      ],
+      [
+        {
+          content: 'Activity: _________________________',
+          colSpan: 5,
+          styles: {
+            halign: 'left',
+            lineWidth: 0,
+            fontSize: 9
+          }
+        }
+      ],
+      [
+        {
+          content: 'Date: _________________________',
+          colSpan: 5,
+          styles: {
+            halign: 'left',
+            lineWidth: 0,
+            fontSize: 9
+          }
+        }
+      ],
+      ['#', 'Head of Family', 'Members', 'Signature', '#']
+    ],
+    body: tableRows.map((r) => [
+      r.iterator,
+      r.name,
+      r.members,
+      r.signature,
+      r.ap
+    ]),
 
-      headStyles: {
-        lineColor: [0, 0, 0],
-        lineWidth: 0.2,
-        fillColor: false,
-        cellPadding: 1,
-        fontStyle: 'bold'
+    theme: 'plain',
+
+    styles: {
+      lineColor: [0, 0, 0],
+      lineWidth: 0.2,
+      fontSize: 9,
+      cellPadding: 1,
+      fillColor: false
+    },
+
+    columnStyles: {
+      2: { cellWidth: 70 }, // Members
+      3: { cellWidth: 35 } // Signature
+    },
+
+    didParseCell: function (data) {
+      const row = tableRows[data.row.index]
+      // Bold SP rows
+      if (row.isSP && data.column.index === 1) {
+        data.cell.styles.fontStyle = 'bold'
+        data.cell.styles.fontSize = 10
       }
-    })
 
-    // Page break if not last SP
-    if (spIndex < spNames.length - 1) {
-      doc.addPage()
+      // Members column small font
+      if (!row.isSP && data.column.index === 2) {
+        data.cell.styles.fontSize = 8
+      }
+    },
+
+    headStyles: {
+      lineColor: [0, 0, 0],
+      lineWidth: 0.2,
+      fillColor: false,
+      cellPadding: 1,
+      fontStyle: 'bold'
     }
-  }
+  })
 
   doc.save(`${locationName}_FamilyComposition.pdf`)
 }
