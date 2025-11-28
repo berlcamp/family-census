@@ -528,6 +528,7 @@ export default function HouseholdsPage() {
           'search_households',
           {
             sp_text: spText,
+            sps: location?.sps ?? [],
             purok_text: purokText,
             search_text: searchText,
             location_id_param: locationIdNum
@@ -826,6 +827,7 @@ export default function HouseholdsPage() {
             className="w-full border rounded p-2 text-sm"
           >
             <option value="">-- All SP --</option>
+            <option value="none">No SP</option>
             {Array.isArray(location?.sps) &&
               location.sps.map((p: string, i: number) => (
                 <option key={i} value={p}>
