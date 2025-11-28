@@ -52,27 +52,13 @@ export const generateFamilyBySP = async (
     spGroups[spName].push(h)
   })
 
-  // Sort SP names alphabetically
   const spNames = Object.keys(spGroups).sort((a, b) => a.localeCompare(b))
-
   const tableRows: any[] = []
   let iterator = 1
 
   spNames.forEach((spName) => {
     const spHouseholds = spGroups[spName]
 
-    // SP row
-    // tableRows.push({
-    //   iterator,
-    //   name: `${spName.toUpperCase()}`,
-    //   members: '',
-    //   signature: '',
-    //   ap: iterator,
-    //   isSP: true
-    // })
-    // iterator++
-
-    // Sort families alphabetically by head of family
     const sortedFamilies: any[] = []
     spHouseholds.forEach((h) => {
       const families = h.families || []
@@ -86,18 +72,13 @@ export const generateFamilyBySP = async (
     })
     sortedFamilies.sort((a, b) => a.head.localeCompare(b.head))
 
-    // Add sorted families to tableRows
     sortedFamilies.forEach((f: any) => {
       const husband = f.husband_name?.trim() || null
       const wife = f.wife_name?.trim() || null
       const members = f.family_members || []
 
       const head = husband || wife || members[0]?.fullname || 'Unknown'
-
-      // ❌ Skip if head is null/empty/Unknown
-      if (!head || head.trim().toUpperCase() === 'UNKNOWN') {
-        return
-      }
+      if (!head || head.trim().toUpperCase() === 'UNKNOWN') return
 
       const memberList: string[] = []
       if (husband) memberList.push(husband.toUpperCase())
@@ -116,7 +97,7 @@ export const generateFamilyBySP = async (
     })
   })
 
-  // Render table (same as your existing autoTable code)
+  // AutoTable with footer
   autoTable(doc, {
     startY: 14,
     head: [
@@ -161,6 +142,7 @@ export const generateFamilyBySP = async (
       ],
       ['#', 'Head of Family', 'Members', 'Signature', '#']
     ],
+    margin: { top: 14, bottom: 30 }, // reserve 30mm at bottom for footer
     body: tableRows.map((r) => [
       r.iterator,
       r.name,
@@ -179,10 +161,6 @@ export const generateFamilyBySP = async (
     columnStyles: { 2: { cellWidth: 70 }, 3: { cellWidth: 35 } },
     didParseCell: function (data) {
       const row = tableRows[data.row.index]
-      // if (row.isSP && data.column.index === 1) {
-      //   data.cell.styles.fontStyle = 'bold'
-      //   data.cell.styles.fontSize = 10
-      // }
       if (!row.isSP && data.column.index === 2) data.cell.styles.fontSize = 7
     },
     headStyles: {
@@ -191,6 +169,23 @@ export const generateFamilyBySP = async (
       fillColor: false,
       cellPadding: 1,
       fontStyle: 'bold'
+    },
+    didDrawPage: function () {
+      const pageHeight = doc.internal.pageSize.getHeight()
+      const margin = 14
+      const footerY = pageHeight - 14 // use margin.bottom instead of fixed 20
+
+      doc.setFontSize(9)
+      // Left footer
+      doc.text('Certified True and Correct:', margin, footerY - 10)
+      doc.text('PGMO PH FOCAL PERSON', margin + 10, footerY)
+      doc.line(margin, footerY - 3, 80, footerY - 3)
+
+      // Right footer
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const rightX = pageWidth - 80
+      doc.text('BARANGAY CAPT.', rightX + 10, footerY)
+      doc.line(rightX, footerY - 3, pageWidth - margin, footerY - 3)
     }
   })
 
