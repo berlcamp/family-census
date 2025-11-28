@@ -48,7 +48,9 @@ export default function FamilyModal({
   const [wifeOptions, setWifeOptions] = useState<Voter[]>([])
   const [memberOptions, setMemberOptions] = useState<Voter[]>([])
 
-  // const [sp, setSp] = useState('')
+  const [sp, setSp] = useState(initialFamily?.sp ?? '')
+
+  const user = useAppSelector((state) => state.user.user)
 
   const [selectedHusband, setSelectedHusband] = useState<Voter | null>(
     initialFamily?.husband ?? null
@@ -224,6 +226,7 @@ export default function FamilyModal({
     try {
       await onSave({
         id: initialFamily?.id,
+        sp,
         husband: selectedHusband,
         wife: selectedWife,
         family_members: members,
@@ -284,10 +287,12 @@ export default function FamilyModal({
       setSelectedHusband(initialFamily.husband ?? null)
       setSelectedWife(initialFamily.wife ?? null)
       setMembers(initialFamily.family_members ?? [])
+      setSp(initialFamily.sp ?? '')
     } else {
       setSelectedHusband(null)
       setSelectedWife(null)
       setMembers([])
+      setSp('')
     }
     setHusbandOptions([])
     setWifeOptions([])
@@ -306,26 +311,27 @@ export default function FamilyModal({
             <DialogTitle>Family</DialogTitle>
           </DialogHeader>
 
-          {/* <div className="mb-3">
-            {location?.address !== 'OZAMIZ CITY' && (
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Family of SP:</label>
-                <select
-                  value={sp}
-                  onChange={(e) => setSp(e.target.value)}
-                  className={`w-full border rounded p-2 text-sm`}
-                >
-                  <option value="">-- Select Service Provider --</option>
-                  {Array.isArray(location?.sps) &&
-                    location.sps.map((p, i) => (
-                      <option key={i} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            )}
-          </div> */}
+          <div className="mb-3">
+            {user?.type === 'province admin' &&
+              location?.address !== 'OZAMIZ CITY' && (
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Family of SP:</label>
+                  <select
+                    value={sp}
+                    onChange={(e) => setSp(e.target.value)}
+                    className={`w-full border rounded p-2 text-sm`}
+                  >
+                    <option value="">-- Select SP --</option>
+                    {Array.isArray(location?.sps) &&
+                      location.sps.map((p, i) => (
+                        <option key={i} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+          </div>
           {/* HUSBAND */}
           <div className="mb-3">
             <label className="block text-sm font-medium">Husband</label>

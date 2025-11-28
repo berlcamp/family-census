@@ -268,7 +268,7 @@ export default function HouseholdsPage() {
         .from('families')
         .update({
           household_id: currentHouseholdId,
-          // sp: family.sp,
+          sp: family.sp,
           husband_id: family.husband?.voter_id ?? null,
           husband_name: family.husband?.fullname ?? null,
           wife_id: family.wife?.voter_id ?? null,
@@ -293,7 +293,7 @@ export default function HouseholdsPage() {
         .insert([
           {
             household_id: currentHouseholdId,
-            // sp: family.sp,
+            sp: family.sp,
             husband_id: family.husband?.voter_id ?? null,
             husband_name: family.husband?.fullname ?? null,
             wife_id: family.wife?.voter_id ?? null,
@@ -553,7 +553,7 @@ export default function HouseholdsPage() {
               `
           id, name, sp, barangay, location_id,purok,
           families (
-            id, husband_name, wife_name, household_id,all_nr,asenso_husband,asenso_wife,
+            id, sp, husband_name, wife_name, household_id,all_nr,asenso_husband,asenso_wife,
             husband:voters!families_husband_id_fkey (id, fullname),
             wife:voters!families_wife_id_fkey (id, fullname),
             family_members (id, voter_id, fullname, is_registered, relation,asenso)
@@ -581,7 +581,7 @@ export default function HouseholdsPage() {
             `
       id, name, sp, purok,barangay, location_id,
       families (
-        id, husband_name, wife_name, household_id,all_nr,asenso_husband,asenso_wife,
+        id, sp, husband_name, wife_name, household_id,all_nr,asenso_husband,asenso_wife,
         husband:voters!families_husband_id_fkey (id, fullname),
         wife:voters!families_wife_id_fkey (id, fullname),
         family_members (id, voter_id, fullname, is_registered,asenso, relation)
@@ -611,6 +611,7 @@ export default function HouseholdsPage() {
           id: f.id,
           barangay: h.barangay,
           all_nr: f.all_nr,
+          sp: f.sp,
           household_id: f.household_id,
           husband:
             f.husband || f.husband_name
