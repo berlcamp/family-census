@@ -74,6 +74,7 @@ export const OverviewTab = () => {
 
   const isDisabled =
     location?.address !== 'BONIFACIO' &&
+    location?.address !== 'BALIANGAO' &&
     location?.address !== 'PLARIDEL' &&
     location?.address !== 'PANAON'
 
