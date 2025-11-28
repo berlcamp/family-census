@@ -155,10 +155,10 @@ export const generateFamilyBySP = async (
       lineColor: [0, 0, 0],
       lineWidth: 0.2,
       fontSize: 9,
-      cellPadding: 1,
+      cellPadding: 2,
       fillColor: false
     },
-    columnStyles: { 2: { cellWidth: 70 }, 3: { cellWidth: 35 } },
+    columnStyles: { 2: { cellWidth: 70 }, 3: { cellWidth: 50 } },
     didParseCell: function (data) {
       const row = tableRows[data.row.index]
       if (!row.isSP && data.column.index === 2) data.cell.styles.fontSize = 7
