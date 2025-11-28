@@ -11,6 +11,7 @@ import toast from 'react-hot-toast'
 import LocationUsers from './LocationUsers'
 import OverviewBarGraph from './OverviewBarGraph'
 import { generateFamilyBySP } from './Printables/generateFamilyBySP'
+import { generateFamilyBySPGuide } from './Printables/generateFamilyBySPGuide'
 import { generateFamilyCompositionPDF } from './Printables/generateFamilyCompositionPDF'
 import { Button } from './ui/button'
 
@@ -276,9 +277,19 @@ export const OverviewTab = () => {
               }
               variant="outline"
               size="xs"
-              className="ml-auto"
             >
-              Download Family Composition (By SP)
+              AR
+            </Button>
+          )}
+          {location?.name && location?.address && (
+            <Button
+              onClick={() =>
+                generateFamilyBySPGuide(location?.name, location?.address)
+              }
+              variant="outline"
+              size="xs"
+            >
+              SP Guide
             </Button>
           )}
         </div>

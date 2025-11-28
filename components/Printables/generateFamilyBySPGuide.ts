@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase/client'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
-export const generateFamilyBySP = async (
+export const generateFamilyBySPGuide = async (
   locationName: string,
   locationAddress: string
 ) => {
@@ -62,15 +62,14 @@ export const generateFamilyBySP = async (
     const spHouseholds = spGroups[spName]
 
     // SP row
-    // tableRows.push({
-    //   iterator,
-    //   name: `${spName.toUpperCase()}`,
-    //   members: '',
-    //   signature: '',
-    //   ap: iterator,
-    //   isSP: true
-    // })
-    // iterator++
+    tableRows.push({
+      iterator: '',
+      name: `${spName.toUpperCase()}`,
+      members: '',
+      signature: '',
+      ap: iterator,
+      isSP: true
+    })
 
     // Sort families alphabetically by head of family
     const sortedFamilies: any[] = []
@@ -114,55 +113,8 @@ export const generateFamilyBySP = async (
   // Render table (same as your existing autoTable code)
   autoTable(doc, {
     startY: 14,
-    head: [
-      [
-        {
-          content: 'ACKNOWLEDGEMENT RECEIPT',
-          colSpan: 5,
-          styles: {
-            halign: 'center',
-            cellPadding: 0,
-            lineWidth: 0,
-            fontStyle: 'bold',
-            fontSize: 10
-          }
-        }
-      ],
-      [
-        {
-          content: `${locationName}, ${locationAddress}, MISAMIS OCCIDENTAL`,
-          colSpan: 5,
-          styles: {
-            halign: 'center',
-            cellPadding: 0,
-            lineWidth: 0,
-            fontSize: 9
-          }
-        }
-      ],
-      [
-        {
-          content: 'Activity: _________________________',
-          colSpan: 5,
-          styles: { halign: 'left', lineWidth: 0, fontSize: 9 }
-        }
-      ],
-      [
-        {
-          content: 'Date: _________________________',
-          colSpan: 5,
-          styles: { halign: 'left', lineWidth: 0, fontSize: 9 }
-        }
-      ],
-      ['#', 'Head of Family', 'Members', 'Signature', '#']
-    ],
-    body: tableRows.map((r) => [
-      r.iterator,
-      r.name,
-      r.members,
-      r.signature,
-      r.ap
-    ]),
+    head: [['#', 'Head of Family', 'Members']],
+    body: tableRows.map((r) => [r.iterator, r.name, r.members]),
     theme: 'plain',
     styles: {
       lineColor: [0, 0, 0],
@@ -179,6 +131,8 @@ export const generateFamilyBySP = async (
       //   data.cell.styles.fontSize = 10
       // }
       if (!row.isSP && data.column.index === 2) data.cell.styles.fontSize = 7
+      if (row.isSP && data.column.index === 1)
+        data.cell.styles.fontStyle = 'bold'
     },
     headStyles: {
       lineColor: [0, 0, 0],
