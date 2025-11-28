@@ -209,7 +209,8 @@ export const generateFamilyBySP = async (
       //   data.cell.styles.fontSize = 10
       // }
       // if (!row.isSP && data.column.index === 2) data.cell.styles.fontSize = 7
-      if (row.isSP && data.column.index === 1) data.cell.styles.fontSize = 10
+      if (row.isSP && data.column.index === 1)
+        data.cell.styles.fontStyle = 'bold'
       if (data.column.index === 2) data.cell.styles.fontSize = 7
     },
     headStyles: {
