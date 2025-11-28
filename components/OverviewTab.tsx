@@ -73,7 +73,9 @@ export const OverviewTab = () => {
   // const isDisabled = false
 
   const isDisabled =
-    location?.address !== 'BONIFACIO' && location?.address !== 'PLARIDEL'
+    location?.address !== 'BONIFACIO' &&
+    location?.address !== 'PLARIDEL' &&
+    location?.address !== 'PANAON'
 
   const handleSave = async () => {
     if (!location) return
