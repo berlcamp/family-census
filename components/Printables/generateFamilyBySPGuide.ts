@@ -93,6 +93,11 @@ export const generateFamilyBySPGuide = async (
 
       const head = husband || wife || members[0]?.fullname || 'Unknown'
 
+      // ❌ Skip if head is null/empty/Unknown
+      if (!head || head.trim().toUpperCase() === 'UNKNOWN') {
+        return
+      }
+
       const memberList: string[] = []
       if (husband) memberList.push(husband.toUpperCase())
       if (wife) memberList.push(wife.toUpperCase())

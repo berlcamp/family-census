@@ -48,6 +48,7 @@ export default function HouseholdsPage() {
 
   const [search, setSearch] = useState('')
   const [purok, setPurok] = useState('')
+  const [sp, setSp] = useState('')
 
   const [showHouseholdModal, setShowHouseholdModal] = useState(false)
   const [editHousehold, setEditHousehold] = useState<Household | null>(null)
@@ -512,7 +513,8 @@ export default function HouseholdsPage() {
   const fetchHouseholds = async (
     page: number,
     searchText = '',
-    purokText = ''
+    purokText = '',
+    spText = ''
   ) => {
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
@@ -520,11 +522,12 @@ export default function HouseholdsPage() {
     try {
       let householdIds: number[] = []
 
-      if (searchText.trim() || purokText.trim()) {
+      if (searchText.trim() || purokText.trim() || spText.trim()) {
         // ✅ Call RPC with both search and purok
         const { data: rpcData, error: rpcError } = await supabase.rpc(
           'search_households',
           {
+            sp_text: spText,
             purok_text: purokText,
             search_text: searchText,
             location_id_param: locationIdNum
@@ -538,7 +541,7 @@ export default function HouseholdsPage() {
       // 2️⃣ Fetch full household data
       let data: any, count
 
-      if (searchText.trim() || purokText.trim()) {
+      if (searchText.trim() || purokText.trim() || spText.trim()) {
         if (householdIds.length === 0) {
           data = []
           count = 0
@@ -729,7 +732,7 @@ export default function HouseholdsPage() {
   useEffect(() => {
     if (!locationIdNum) return
 
-    fetchHouseholds(currentPage, search, purok)
+    fetchHouseholds(currentPage, search, purok, sp)
   }, [currentPage, locationIdNum]) // 👈 removed search here
 
   const enableEdit = ![
@@ -784,7 +787,7 @@ export default function HouseholdsPage() {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          fetchHouseholds(1, search, purok)
+          fetchHouseholds(1, search, purok, sp)
         }}
         className="flex items-end gap-2 my-4 p-4 xl:w-2/3"
       >
@@ -814,6 +817,23 @@ export default function HouseholdsPage() {
               ))}
           </select>
         </div>
+        {/* SP Dropdown */}
+        <div className="min-w-[150px]">
+          <label className="text-xs font-medium text-gray-600">SP</label>
+          <select
+            value={sp}
+            onChange={(e) => setSp(e.target.value)}
+            className="w-full border rounded p-2 text-sm"
+          >
+            <option value="">-- All SP --</option>
+            {Array.isArray(location?.sps) &&
+              location.sps.map((p: string, i: number) => (
+                <option key={i} value={p}>
+                  {p}
+                </option>
+              ))}
+          </select>
+        </div>
 
         {/* Search & Reset Buttons */}
         <div className="flex gap-2 ml-auto">
@@ -826,7 +846,7 @@ export default function HouseholdsPage() {
             onClick={() => {
               setSearch('')
               setPurok('')
-              fetchHouseholds(1, '', '') // reset
+              fetchHouseholds(1, '', '', '') // reset
             }}
           >
             Reset
