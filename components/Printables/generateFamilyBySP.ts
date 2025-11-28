@@ -17,6 +17,7 @@ export const generateFamilyBySP = async (
       sp,
       families (
         id,
+        sp,
         husband_name,
         wife_name,
         family_members (
@@ -60,32 +61,62 @@ export const generateFamilyBySP = async (
   spNames.forEach((spName) => {
     const spHouseholds = spGroups[spName]
 
-    // SP row
+    let spFamily: any = null
+    const otherFamilies: any[] = []
+
+    // Separate SP family and other families
+    spHouseholds.forEach((h) => {
+      const families = h.families || []
+
+      families.forEach((f: any) => {
+        if (f.sp?.trim() === spName) {
+          spFamily = f // this is the SP-assigned family
+        } else {
+          // Only include families that do NOT have an SP
+          // or their SP does not match this SP row
+          if (!f.sp || f.sp.trim() !== spName) {
+            otherFamilies.push(f)
+          }
+        }
+      })
+    })
+
+    // Build composition of SP family's MEMBERS column
+    const spMemberList: string[] = []
+    if (spFamily) {
+      const husband = spFamily.husband_name?.trim() || null
+      const wife = spFamily.wife_name?.trim() || null
+      const members = spFamily.family_members || []
+
+      if (husband) spMemberList.push(husband.toUpperCase())
+      if (wife) spMemberList.push(wife.toUpperCase())
+      members.forEach((m: any) => spMemberList.push(m.fullname.toUpperCase()))
+    }
+
+    // SP ROW
     tableRows.push({
       iterator,
-      name: `${spName.toUpperCase()}`,
-      members: '',
+      name: spName.toUpperCase(),
+      members: spMemberList.join('\n'),
       signature: '',
       ap: iterator,
       isSP: true
     })
     iterator++
 
-    // Sort families alphabetically by head of family
-    const sortedFamilies: any[] = []
-    spHouseholds.forEach((h) => {
-      const families = h.families || []
-      families.forEach((f: any) => {
+    // Sort remaining families (excluding SP family)
+    const sortedFamilies = otherFamilies
+      .map((f) => {
         const husband = f.husband_name?.trim() || ''
         const wife = f.wife_name?.trim() || ''
-        const head =
-          husband || wife || f.family_members[0]?.fullname || 'Unknown'
-        sortedFamilies.push({ ...f, head })
-      })
-    })
-    sortedFamilies.sort((a, b) => a.head.localeCompare(b.head))
+        const members = f.family_members || []
+        const head = husband || wife || members[0]?.fullname || 'Unknown'
 
-    // Add sorted families to tableRows
+        return { ...f, head }
+      })
+      .sort((a, b) => a.head.localeCompare(b.head))
+
+    // Display remaining families
     sortedFamilies.forEach((f: any) => {
       const husband = f.husband_name?.trim() || null
       const wife = f.wife_name?.trim() || null
@@ -177,7 +208,9 @@ export const generateFamilyBySP = async (
       //   data.cell.styles.fontStyle = 'bold'
       //   data.cell.styles.fontSize = 10
       // }
-      if (!row.isSP && data.column.index === 2) data.cell.styles.fontSize = 7
+      // if (!row.isSP && data.column.index === 2) data.cell.styles.fontSize = 7
+      if (row.isSP && data.column.index === 1) data.cell.styles.fontSize = 10
+      if (data.column.index === 2) data.cell.styles.fontSize = 7
     },
     headStyles: {
       lineColor: [0, 0, 0],

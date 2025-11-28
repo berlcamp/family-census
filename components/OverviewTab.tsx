@@ -10,7 +10,6 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import LocationUsers from './LocationUsers'
 import OverviewBarGraph from './OverviewBarGraph'
-import { downloadFamilyCompositionExcel } from './Printables/downloadFamilyCompositionExcel'
 import { generateFamilyBySP } from './Printables/generateFamilyBySP'
 import { generateFamilyCompositionPDF } from './Printables/generateFamilyCompositionPDF'
 import { Button } from './ui/button'
@@ -68,11 +67,11 @@ export const OverviewTab = () => {
     fetchHouseholdCount()
   }, [location?.id])
 
-  // const isDisabled = householdCount > 20 || loadingHouseholds
+  const isDisabled = householdCount > 20 || loadingHouseholds
   console.log(householdCount, loadingHouseholds)
   // const isDisabled = false
 
-  const isDisabled = location?.address !== 'BALIANGAO'
+  // const isDisabled = location?.address !== 'BALIANGAO'
 
   const handleSave = async () => {
     if (!location) return
@@ -238,9 +237,9 @@ export const OverviewTab = () => {
       {/* Users Section */}
       <div className="col-span-2">
         <div
-          className={`${user?.type === 'province admin' ? 'flex' : 'hidden'} p-4 w-full`}
+          className={`${user?.type === 'province admin' ? 'flex' : 'hidden'} p-4 w-full space-x-2`}
         >
-          {location?.name && location?.address && (
+          {/* {location?.name && location?.address && (
             <Button
               onClick={() =>
                 downloadFamilyCompositionExcel(
@@ -253,18 +252,23 @@ export const OverviewTab = () => {
             >
               Download Excel
             </Button>
-          )}
-          {location?.name && location?.address && (
-            <Button
-              onClick={() =>
-                generateFamilyCompositionPDF(location?.name, location?.address)
-              }
-              variant="outline"
-              size="xs"
-            >
-              Download Family Composition
-            </Button>
-          )}
+          )} */}
+          {location?.name &&
+            location?.address &&
+            location?.address === 'OZAMIZ CITY' && (
+              <Button
+                onClick={() =>
+                  generateFamilyCompositionPDF(
+                    location?.name,
+                    location?.address
+                  )
+                }
+                variant="outline"
+                size="xs"
+              >
+                Download Family Composition
+              </Button>
+            )}
           {location?.name && location?.address && (
             <Button
               onClick={() =>
@@ -272,6 +276,7 @@ export const OverviewTab = () => {
               }
               variant="outline"
               size="xs"
+              className="ml-auto"
             >
               Download Family Composition (By SP)
             </Button>
