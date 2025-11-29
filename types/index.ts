@@ -40,6 +40,16 @@ export interface Resident {
   resident_remarks?: ResidentRemarks[]
 }
 
+export interface ServiceProvider {
+  id: number
+  name: string
+  barangay: string
+  address: string
+  location_id: number
+  households: Household[]
+  totalMembers?: number
+}
+
 export interface Location {
   id: number
   name: string
@@ -49,6 +59,7 @@ export interface Location {
   color: string
   purok?: string[]
   sps?: string[]
+  service_providers?: ServiceProvider[]
 }
 export interface LocationUser {
   id: number
@@ -138,6 +149,8 @@ export interface Household {
   name: string
   purok: string
   sp?: string
+  service_provider?: ServiceProvider
+  sp_id: number
   sitio: string
   barangay?: string | null
   address?: string | null

@@ -76,13 +76,13 @@ export default function HouseholdsPage() {
           name: household.name,
           purok: household.purok,
           sitio: household.sitio,
-          sp: household.sp,
+          sp_id: household.sp === '' ? null : Number(household.sp),
           barangay: location.name,
           address: location.address,
           location_id: locationIdNum
         })
         .eq('id', household.id)
-        .select()
+        .select('*,service_provider:sp_id(*)')
         .single()
 
       if (error) {
@@ -109,13 +109,13 @@ export default function HouseholdsPage() {
             name: household.name,
             purok: household.purok,
             sitio: household.sitio,
-            sp: household.sp,
+            sp_id: household.sp === '' ? null : Number(household.sp),
             barangay: location.name,
             address: location.address,
             location_id: locationIdNum
           }
         ])
-        .select()
+        .select('*,service_provider:sp_id(*)')
         .single()
 
       if (error) {
@@ -524,14 +524,27 @@ export default function HouseholdsPage() {
 
       if (searchText.trim() || purokText.trim() || spText.trim()) {
         // ✅ Call RPC with both search and purok
+        let sp_id_param: number | null
+
+        if (sp === '') {
+          // All SP selected
+          sp_id_param = null
+        } else if (sp === 'none') {
+          // No SP selected
+          sp_id_param = -1 // special marker in RPC
+        } else {
+          // Specific SP selected
+          sp_id_param = Number(sp)
+        }
+
         const { data: rpcData, error: rpcError } = await supabase.rpc(
           'search_households',
           {
-            sp_text: spText,
-            sps: location?.sps ?? [],
+            location_id_param: locationIdNum,
+            sp_id_param,
             purok_text: purokText,
             search_text: searchText,
-            location_id_param: locationIdNum
+            min_threshold: 0.3
           }
         )
 
@@ -555,7 +568,8 @@ export default function HouseholdsPage() {
             .from('households')
             .select(
               `
-          id, name, sp, barangay, location_id,purok,
+          id, name, sp, barangay, sp_id, location_id,purok,
+          service_provider:sp_id(*),
           families (
             id, sp, husband_name, wife_name, household_id,all_nr,asenso_husband,asenso_wife,
             husband:voters!families_husband_id_fkey (id, fullname),
@@ -583,7 +597,8 @@ export default function HouseholdsPage() {
           .from('households')
           .select(
             `
-      id, name, sp, purok,barangay, location_id,
+      id, name, sp, sp_id, purok,barangay, location_id,
+      service_provider:sp_id(*),
       families (
         id, sp, husband_name, wife_name, household_id,all_nr,asenso_husband,asenso_wife,
         husband:voters!families_husband_id_fkey (id, fullname),
@@ -608,6 +623,8 @@ export default function HouseholdsPage() {
         purok: h.purok,
         sitio: h.sitio,
         sp: h.sp,
+        service_provider: h.service_provider,
+        sp_id: h.sp_id,
         barangay: h.barangay,
         location_id: h.location_id,
         families: (h.families ?? []).map((f: any) => ({
@@ -651,7 +668,7 @@ export default function HouseholdsPage() {
         }))
       }))
 
-      // console.log('mapped', mapped)
+      console.log('mapped', mapped)
       dispatch(
         setHouseholds({
           households: mapped,
@@ -676,7 +693,7 @@ export default function HouseholdsPage() {
       if (user?.type === 'super admin' || user?.type === 'province admin') {
         const { data, error } = await supabase
           .from('locations')
-          .select()
+          .select('*,service_providers(*)')
           .eq('address', user?.address)
           .eq('id', locationIdNum)
           .single()
@@ -747,7 +764,8 @@ export default function HouseholdsPage() {
     user?.type === 'super admin' ||
     user?.type === 'province admin' ||
     userHasAccess?.is_editor === true
-  console.log('enableEdit2', enableEdit2)
+
+  console.log('location?.service_providers', location?.service_providers)
 
   if (user?.type === 'user' && userHasAccess?.is_disabled) {
     return <NoAccess />
@@ -828,12 +846,11 @@ export default function HouseholdsPage() {
           >
             <option value="">-- All SP --</option>
             <option value="none">No SP</option>
-            {Array.isArray(location?.sps) &&
-              location.sps.map((p: string, i: number) => (
-                <option key={i} value={p}>
-                  {p}
-                </option>
-              ))}
+            {location?.service_providers?.map((sp) => (
+              <option key={sp.id} value={sp.id}>
+                {sp.name}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -848,6 +865,7 @@ export default function HouseholdsPage() {
             onClick={() => {
               setSearch('')
               setPurok('')
+              setSp('')
               fetchHouseholds(1, '', '', '') // reset
             }}
           >
@@ -922,7 +940,9 @@ export default function HouseholdsPage() {
               </CardTitle>
               <p className="text-sm text-gray-500">Purok: {h.purok}</p>
               {location?.address !== 'OZAMIZ CITY' && (
-                <p className="text-sm text-gray-500">SP: {h.sp}</p>
+                <p className="text-sm text-gray-500">
+                  SP: {h.service_provider?.name ?? 'None'}
+                </p>
               )}
               {h.sitio && (
                 <p className="text-sm text-gray-500">Sitio: {h.sitio}</p>

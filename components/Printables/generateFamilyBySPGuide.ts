@@ -9,12 +9,17 @@ export const generateFamilyBySPGuide = async (
 ) => {
   if (!locationName) return
 
+  // Fetch all households
   const { data: households, error } = await supabase
     .from('households')
     .select(
       `
       id,
-      sp,
+      sp_id,
+      service_providers (
+        id,
+        name
+      ),
       families (
         id,
         husband_name,
@@ -29,7 +34,7 @@ export const generateFamilyBySPGuide = async (
     )
     .eq('barangay', locationName)
     .eq('address', locationAddress)
-    .order('sp', { ascending: true })
+    .order('sp_id', { ascending: true })
     .order('id', { ascending: true })
 
   if (error || !households) {
@@ -44,59 +49,60 @@ export const generateFamilyBySPGuide = async (
   })
   doc.setFontSize(10)
 
-  // Group households by SP
+  // Separate households with SP and without SP
+  const assignedHouseholds = households.filter((h) => h.sp_id)
+  const unassignedHouseholds = households.filter((h) => !h.sp_id)
+
+  // Group assigned households by SP name
   const spGroups: Record<string, any[]> = {}
-  households.forEach((h: any) => {
-    const spName = h.sp?.trim() || 'UNASSIGNED'
+  assignedHouseholds.forEach((h: any) => {
+    const spName = h.service_providers?.name?.trim() || 'UNKNOWN'
     if (!spGroups[spName]) spGroups[spName] = []
     spGroups[spName].push(h)
   })
 
-  // Sort SP names alphabetically
   const spNames = Object.keys(spGroups).sort((a, b) => a.localeCompare(b))
-
   const tableRows: any[] = []
   let iterator = 1
 
-  spNames.forEach((spName) => {
-    const spHouseholds = spGroups[spName]
+  // Function to process households and add to tableRows
+  const processHouseholds = (householdList: any[], spLabel?: string) => {
+    if (householdList.length === 0) return
+    if (spLabel) {
+      // SP header row (bold, no number)
+      tableRows.push({
+        iterator: '',
+        name: spLabel.toUpperCase(),
+        members: '',
+        signature: '',
+        ap: iterator,
+        isSP: true
+      })
+    }
 
-    // SP row
-    tableRows.push({
-      iterator: '',
-      name: `${spName.toUpperCase()}`,
-      members: '',
-      signature: '',
-      ap: iterator,
-      isSP: true
-    })
-
-    // Sort families alphabetically by head of family
     const sortedFamilies: any[] = []
-    spHouseholds.forEach((h) => {
+    householdList.forEach((h) => {
       const families = h.families || []
       families.forEach((f: any) => {
         const husband = f.husband_name?.trim() || ''
         const wife = f.wife_name?.trim() || ''
-        const head =
-          husband || wife || f.family_members[0]?.fullname || 'Unknown'
+        const head = husband || wife || f.family_members[0]?.fullname || null
+        if (!head || head.trim().toUpperCase() === 'UNKNOWN') return
         sortedFamilies.push({ ...f, head })
       })
     })
+
+    // Skip SP if it has no families
+    if (sortedFamilies.length === 0) return
+
     sortedFamilies.sort((a, b) => a.head.localeCompare(b.head))
 
-    // Add sorted families to tableRows
     sortedFamilies.forEach((f: any) => {
       const husband = f.husband_name?.trim() || null
       const wife = f.wife_name?.trim() || null
       const members = f.family_members || []
-
-      const head = husband || wife || members[0]?.fullname || 'Unknown'
-
-      // ❌ Skip if head is null/empty/Unknown
-      if (!head || head.trim().toUpperCase() === 'UNKNOWN') {
-        return
-      }
+      const head = husband || wife || members[0]?.fullname || null
+      if (!head || head.trim().toUpperCase() === 'UNKNOWN') return
 
       const memberList: string[] = []
       if (husband) memberList.push(husband.toUpperCase())
@@ -113,9 +119,14 @@ export const generateFamilyBySPGuide = async (
       })
       iterator++
     })
-  })
+  }
 
-  // Render table (same as your existing autoTable code)
+  // Process households with SP first
+  spNames.forEach((spName) => processHouseholds(spGroups[spName], spName))
+
+  // Process UNASSIGNED households at the bottom
+  processHouseholds(unassignedHouseholds, 'UNASSIGNED')
+
   autoTable(doc, {
     startY: 14,
     head: [['#', 'Head of Family', 'Members']],
@@ -131,10 +142,6 @@ export const generateFamilyBySPGuide = async (
     columnStyles: { 2: { cellWidth: 70 }, 3: { cellWidth: 35 } },
     didParseCell: function (data) {
       const row = tableRows[data.row.index]
-      // if (row.isSP && data.column.index === 1) {
-      //   data.cell.styles.fontStyle = 'bold'
-      //   data.cell.styles.fontSize = 10
-      // }
       if (!row.isSP && data.column.index === 2) data.cell.styles.fontSize = 7
       if (row.isSP && data.column.index === 1)
         data.cell.styles.fontStyle = 'bold'

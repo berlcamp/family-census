@@ -43,7 +43,11 @@ export default function HouseholdModal({
       setName(initialData.name ?? '')
       setPurok(initialData.purok ?? '')
       setSitio(initialData.sitio ?? '')
-      setSp(initialData.sp ?? '')
+      setSp(
+        initialData.sp_id !== null && initialData.sp_id !== undefined
+          ? String(initialData.sp_id)
+          : ''
+      )
     } else {
       setName('')
       setSp('')
@@ -141,13 +145,12 @@ export default function HouseholdModal({
                   onChange={(e) => setSp(e.target.value)}
                   className={`w-full border rounded p-2 text-sm`}
                 >
-                  <option value="">-- Select Service Provider --</option>
-                  {Array.isArray(location?.sps) &&
-                    location.sps.map((p, i) => (
-                      <option key={i} value={p}>
-                        {p}
-                      </option>
-                    ))}
+                  <option value="">No SP</option>
+                  {location?.service_providers?.map((sp) => (
+                    <option key={sp.id} value={sp.id}>
+                      {sp.name}
+                    </option>
+                  ))}
                 </select>
                 {/* {errors.sp && (
                 <p className="text-xs text-red-500">{errors.sp}</p>

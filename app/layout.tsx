@@ -12,7 +12,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const isMaintenance = true
+  const isMaintenance = false
 
   if (isMaintenance) {
     return (

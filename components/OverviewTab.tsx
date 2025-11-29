@@ -34,9 +34,7 @@ export const OverviewTab = () => {
   const [purokText, setPurokText] = useState(
     Array.isArray(location?.purok) ? location.purok.join('\n') : ''
   )
-  const [spsText, setSpsText] = useState(
-    Array.isArray(location?.sps) ? location.sps.join('\n') : ''
-  )
+
   const [loading, setLoading] = useState(false)
   const [showSave, setShowSave] = useState(false)
   const [householdCount, setHouseholdCount] = useState<number>(0)
@@ -88,16 +86,11 @@ export const OverviewTab = () => {
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)
-    const spsArray = spsText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
 
     const { data, error } = await supabase
       .from('locations')
       .update({
         color: selectedColor,
-        sps: spsArray,
         purok: purokArray
       })
       .eq('id', location.id)
@@ -121,7 +114,6 @@ export const OverviewTab = () => {
     setPurokText(
       Array.isArray(location?.purok) ? location.purok.join('\n') : ''
     )
-    setSpsText(Array.isArray(location?.sps) ? location.sps.join('\n') : '')
   }, [location])
 
   // Detect unsaved changes
@@ -129,11 +121,10 @@ export const OverviewTab = () => {
     const hasChanges =
       selectedColor !== (location?.color || 'gray') ||
       purokText !==
-        (Array.isArray(location?.purok) ? location.purok.join('\n') : '') ||
-      spsText !== (Array.isArray(location?.sps) ? location.sps.join('\n') : '')
+        (Array.isArray(location?.purok) ? location.purok.join('\n') : '')
 
     setShowSave(hasChanges)
-  }, [selectedColor, spsText, purokText, location])
+  }, [selectedColor, purokText, location])
 
   return (
     <div className="lg:grid grid-cols-3 min-h-screen">
@@ -201,34 +192,6 @@ export const OverviewTab = () => {
             />
           )}
         </div>
-
-        {/* SPS Textarea */}
-        {location?.address !== 'OZAMIZ CITY' && (
-          <div>
-            <div className="text-sm mb-2">Service Providers (one per line)</div>
-            {isDisabled ? (
-              <div>
-                <ul className="list-disc pl-4 text-sm">
-                  {spsText
-                    .split('\n')
-                    .filter((p) => p.trim() !== '')
-                    .map((p, i) => (
-                      <li key={i}>{p}</li>
-                    ))}
-                </ul>
-              </div>
-            ) : (
-              <textarea
-                value={spsText}
-                onChange={(e) => setSpsText(e.target.value)}
-                rows={6}
-                className="w-full border rounded p-2 text-sm"
-                placeholder="Enter one service provider per line..."
-                disabled={isDisabled}
-              />
-            )}
-          </div>
-        )}
 
         {showSave && (
           <div className="space-x-2 mt-4">

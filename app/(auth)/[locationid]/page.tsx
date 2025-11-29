@@ -37,7 +37,7 @@ export default function Page() {
       if (user?.type === 'super admin' || user?.type === 'province admin') {
         const { data, error } = await supabase
           .from('locations')
-          .select()
+          .select('*,service_providers(*)')
           .eq('address', user?.address)
           .eq('id', locationId)
           .single()
@@ -45,6 +45,7 @@ export default function Page() {
         if (error) {
           console.error('Error checking access:', error)
         }
+        console.log('setLocation 1', data)
         dispatch(setLocation(data))
       } else {
         const { data, error } = await supabase.rpc('check_location_access', {
@@ -58,7 +59,7 @@ export default function Page() {
         } else if (data === false) {
           console.log('User has no access')
         } else if (data) {
-          console.log('location details fetched2', data)
+          console.log('setLocation 2', data)
           dispatch(setLocation(data))
         }
       }

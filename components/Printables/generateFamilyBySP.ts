@@ -9,12 +9,17 @@ export const generateFamilyBySP = async (
 ) => {
   if (!locationName) return
 
+  // Fetch households with SP info
   const { data: households, error } = await supabase
     .from('households')
     .select(
       `
       id,
-      sp,
+      sp_id,
+      service_providers (
+        id,
+        name
+      ),
       families (
         id,
         husband_name,
@@ -29,7 +34,8 @@ export const generateFamilyBySP = async (
     )
     .eq('barangay', locationName)
     .eq('address', locationAddress)
-    .order('sp', { ascending: true })
+    .not('sp_id', 'is', null) // <-- exclude households with no SP
+    .order('sp_id', { ascending: true })
     .order('id', { ascending: true })
 
   if (error || !households) {
@@ -44,10 +50,10 @@ export const generateFamilyBySP = async (
   })
   doc.setFontSize(10)
 
-  // Group households by SP
+  // Group households by SP name
   const spGroups: Record<string, any[]> = {}
   households.forEach((h: any) => {
-    const spName = h.sp?.trim() || 'UNASSIGNED'
+    const spName = h.service_providers?.name?.trim() || 'UNASSIGNED'
     if (!spGroups[spName]) spGroups[spName] = []
     spGroups[spName].push(h)
   })
@@ -65,11 +71,17 @@ export const generateFamilyBySP = async (
       families.forEach((f: any) => {
         const husband = f.husband_name?.trim() || ''
         const wife = f.wife_name?.trim() || ''
-        const head =
-          husband || wife || f.family_members[0]?.fullname || 'Unknown'
+        const head = husband || wife || f.family_members[0]?.fullname || null
+
+        if (!head || head.trim().toUpperCase() === 'UNKNOWN') return // exclude unknown heads
+
         sortedFamilies.push({ ...f, head })
       })
     })
+
+    // Skip SP if it has no families
+    if (sortedFamilies.length === 0) return
+
     sortedFamilies.sort((a, b) => a.head.localeCompare(b.head))
 
     sortedFamilies.forEach((f: any) => {
@@ -77,7 +89,7 @@ export const generateFamilyBySP = async (
       const wife = f.wife_name?.trim() || null
       const members = f.family_members || []
 
-      const head = husband || wife || members[0]?.fullname || 'Unknown'
+      const head = husband || wife || members[0]?.fullname || null
       if (!head || head.trim().toUpperCase() === 'UNKNOWN') return
 
       const memberList: string[] = []
@@ -97,7 +109,7 @@ export const generateFamilyBySP = async (
     })
   })
 
-  // AutoTable with footer
+  // AutoTable with footer (same as before)
   autoTable(doc, {
     startY: 14,
     head: [
@@ -142,7 +154,7 @@ export const generateFamilyBySP = async (
       ],
       ['#', 'Head of Family', 'Members', 'Signature', '#']
     ],
-    margin: { top: 14, bottom: 30 }, // reserve 30mm at bottom for footer
+    margin: { top: 14, bottom: 30 },
     body: tableRows.map((r) => [
       r.iterator,
       r.name,
@@ -173,18 +185,16 @@ export const generateFamilyBySP = async (
     didDrawPage: function () {
       const pageHeight = doc.internal.pageSize.getHeight()
       const margin = 14
-      const footerY = pageHeight - 14 // use margin.bottom instead of fixed 20
+      const footerY = pageHeight - 14
 
       doc.setFontSize(9)
-      // Left footer
-      doc.text('Certified True and Correct:', margin, footerY - 10)
+      doc.text('Certified True and Correct:', margin, footerY - 11)
       doc.text('PGMO PH FOCAL PERSON', margin + 10, footerY)
       doc.line(margin, footerY - 3, 80, footerY - 3)
 
-      // Right footer
       const pageWidth = doc.internal.pageSize.getWidth()
       const rightX = pageWidth - 80
-      doc.text('BARANGAY CAPT.', rightX + 10, footerY)
+      doc.text('BARANGAY CAPTAIN', rightX + 10, footerY)
       doc.line(rightX, footerY - 3, pageWidth - margin, footerY - 3)
     }
   })
