@@ -219,7 +219,7 @@ export default function ServiceProvidersPage() {
   return (
     <div className="w-full">
       <div className="app__title flex">
-        <h1 className="text-xl font-semibold flex-1">Service Providers</h1>
+        <h1 className="text-xl font-semibold flex-1">{location?.name}</h1>
       </div>
 
       <VerticalMenu activeTab="serviceproviders" />
