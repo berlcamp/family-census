@@ -846,11 +846,14 @@ export default function HouseholdsPage() {
           >
             <option value="">-- All SP --</option>
             <option value="none">No SP</option>
-            {location?.service_providers?.map((sp) => (
-              <option key={sp.id} value={sp.id}>
-                {sp.name}
-              </option>
-            ))}
+            {location?.service_providers
+              ?.slice() // avoid mutating original array
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((sp) => (
+                <option key={sp.id} value={sp.id}>
+                  {sp.name}
+                </option>
+              ))}
           </select>
         </div>
 
