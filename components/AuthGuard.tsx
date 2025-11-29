@@ -56,7 +56,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             .select('*')
             .eq('address', systemUser.address)
             .eq('org_id', process.env.NEXT_PUBLIC_ORG_ID)
-            .order('id', { ascending: true })
+            .order('name', { ascending: true })
 
           if (error) throw error
           locations = data
@@ -85,7 +85,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
               // .eq('address', systemUser.address)
               .eq('org_id', process.env.NEXT_PUBLIC_ORG_ID)
               .filter('id', 'in', idList)
-              .order('id', { ascending: true })
+              .order('name', { ascending: true })
 
             if (error) throw error
             locations = data
