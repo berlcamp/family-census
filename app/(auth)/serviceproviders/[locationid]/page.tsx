@@ -250,7 +250,7 @@ export default function ServiceProvidersPage() {
               <tr className="bg-gray-100">
                 <th className="border p-2 text-left">ID</th>
                 <th className="border p-2 text-left">Name</th>
-                <th className="border p-2 text-left">Total Members</th>
+                <th className="border p-2 text-left">Total Households</th>
                 <th className="border p-2">Actions</th>
               </tr>
             </thead>
