@@ -1,3 +1,4 @@
+import Maintenance from '@/components/Maintenance'
 import type { Metadata } from 'next'
 import './globals.css'
 
@@ -11,6 +12,18 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const isMaintenance = true
+
+  if (isMaintenance) {
+    return (
+      <html lang="en">
+        <body className="dark:bg-[#191919]" suppressHydrationWarning>
+          <Maintenance />
+        </body>
+      </html>
+    )
+  }
+
   return (
     <html lang="en">
       <body className="dark:bg-[#191919]" suppressHydrationWarning>
