@@ -231,7 +231,7 @@ export default function ServiceProvidersPage() {
             type="text"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="New service provider"
+            placeholder="New service provider - LASTNAME, FIRSTNAME MIDDLENAME"
             className="border p-2 rounded flex-1"
           />
           <button
