@@ -148,6 +148,7 @@ export interface Household {
   id: number
   name: string
   purok: string
+  series_number: string
   sp?: string
   service_provider?: ServiceProvider
   sp_id: number

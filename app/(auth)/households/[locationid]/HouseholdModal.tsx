@@ -101,7 +101,9 @@ export default function HouseholdModal({
           <div className="space-y-6">
             {/* Household Name */}
             <div className="space-y-1">
-              <label className="text-sm font-medium">Household Name *</label>
+              <label className="text-sm font-medium">
+                Household Description *
+              </label>
               <Input
                 placeholder="Ex. Dela Cruz Household"
                 value={name}
@@ -146,11 +148,14 @@ export default function HouseholdModal({
                   className={`w-full border rounded p-2 text-sm`}
                 >
                   <option value="">No SP</option>
-                  {location?.service_providers?.map((sp) => (
-                    <option key={sp.id} value={sp.id}>
-                      {sp.name}
-                    </option>
-                  ))}
+                  {location?.service_providers
+                    ?.slice() // make a copy to avoid mutating state
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((sp) => (
+                      <option key={sp.id} value={sp.id}>
+                        {sp.name}
+                      </option>
+                    ))}
                 </select>
                 {/* {errors.sp && (
                 <p className="text-xs text-red-500">{errors.sp}</p>
@@ -158,7 +163,7 @@ export default function HouseholdModal({
               </div>
             )}
             {/* Sitio */}
-            <div className="space-y-1">
+            <div className="space-y-1 hidden">
               <label className="text-sm font-medium">Sitio (optional)</label>
               <Input
                 placeholder="Sitio"

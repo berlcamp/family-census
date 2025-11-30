@@ -568,7 +568,7 @@ export default function HouseholdsPage() {
             .from('households')
             .select(
               `
-          id, name, sp, barangay, sp_id, location_id,purok,
+          id, name, series_number, barangay, sp_id, location_id,purok,
           service_provider:sp_id(*),
           families (
             id, sp, husband_name, wife_name, household_id,all_nr,asenso_husband,asenso_wife,
@@ -597,7 +597,7 @@ export default function HouseholdsPage() {
           .from('households')
           .select(
             `
-      id, name, sp, sp_id, purok,barangay, location_id,
+      id, name, series_number, sp_id, purok,barangay, location_id,
       service_provider:sp_id(*),
       families (
         id, sp, husband_name, wife_name, household_id,all_nr,asenso_husband,asenso_wife,
@@ -623,6 +623,7 @@ export default function HouseholdsPage() {
         purok: h.purok,
         sitio: h.sitio,
         sp: h.sp,
+        series_number: h.series_number,
         service_provider: h.service_provider,
         sp_id: h.sp_id,
         barangay: h.barangay,
@@ -927,7 +928,9 @@ export default function HouseholdsPage() {
           >
             <CardHeader>
               <CardTitle className="flex justify-between">
-                <span>{h.name}</span>
+                <span className="text-blue-800 font-bold">
+                  HH-{h.series_number}
+                </span>
                 {enableEdit && enableEdit2 && (
                   <Button
                     variant="ghost"
@@ -941,6 +944,7 @@ export default function HouseholdsPage() {
                   </Button>
                 )}
               </CardTitle>
+              <p className="text-sm text-gray-500">Description: {h.name}</p>
               <p className="text-sm text-gray-500">Purok: {h.purok}</p>
               {location?.address !== 'OZAMIZ CITY' && (
                 <p className="text-sm text-gray-500">
