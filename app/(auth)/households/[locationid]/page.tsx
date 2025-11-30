@@ -928,9 +928,7 @@ export default function HouseholdsPage() {
           >
             <CardHeader>
               <CardTitle className="flex justify-between">
-                <span className="text-blue-800 font-bold">
-                  HH-{h.series_number}
-                </span>
+                <span className="text-blue-800 font-bold">{h.name}</span>
                 {enableEdit && enableEdit2 && (
                   <Button
                     variant="ghost"
@@ -944,7 +942,9 @@ export default function HouseholdsPage() {
                   </Button>
                 )}
               </CardTitle>
-              <p className="text-sm text-gray-500">Description: {h.name}</p>
+              <p className="text-sm text-gray-500">
+                HH No.: HH-{h.series_number}
+              </p>
               <p className="text-sm text-gray-500">Purok: {h.purok}</p>
               {location?.address !== 'OZAMIZ CITY' && (
                 <p className="text-sm text-gray-500">
