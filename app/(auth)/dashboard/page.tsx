@@ -3,7 +3,6 @@
 import BarangayDashboard from '@/components/BarangayDashboard'
 import BarangayDashboardList from '@/components/BarangayDashboardList'
 import DashboardProvinceStats from '@/components/DashboardProvinceStats'
-import DashboardStats from '@/components/DashboardStats'
 import Notfoundpage from '@/components/Notfoundpage'
 import { useAppSelector } from '@/lib/redux/hook'
 
@@ -21,7 +20,7 @@ export default function Page() {
           {user?.address && (
             <>
               <h1>{user?.address} Dashboard</h1>
-              <DashboardStats address={user?.address} />
+              {/* <DashboardStats address={user?.address} /> */}
               {user?.address && (
                 <div className="space-y-10">
                   <BarangayDashboard address={user?.address} />
@@ -48,7 +47,7 @@ export default function Page() {
         <div className="my-8">
           {user?.address && (
             <div className="space-y-4">
-              <DashboardStats address={user?.address} />
+              {/* <DashboardStats address={user?.address} /> */}
               <BarangayDashboard address={user?.address} />
               <div className="lg:w-2/3">
                 <BarangayDashboardList address={user?.address} />
