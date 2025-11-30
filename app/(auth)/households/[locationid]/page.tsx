@@ -943,7 +943,7 @@ export default function HouseholdsPage() {
                 )}
               </CardTitle>
               <p className="text-sm text-gray-500">
-                HH No.: HH-{h.series_number}
+                Household No: HH-{h.series_number}
               </p>
               <p className="text-sm text-gray-500">Purok: {h.purok}</p>
               {location?.address !== 'OZAMIZ CITY' && (
