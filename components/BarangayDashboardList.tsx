@@ -25,6 +25,7 @@ export default function BarangayDashboardList({
       const normalized = (data || []).map((d: any) => ({
         barangay: d.barangay,
         households: d.households ?? 0,
+        sps: d.sps ?? 0,
         families: d.families ?? 0,
         total_registered: d.total_registered ?? 0,
         total_non_registered: d.total_non_registered ?? 0,
@@ -54,6 +55,9 @@ export default function BarangayDashboardList({
                   <th className="border px-2 py-1 text-right">
                     Families (ALL NR)
                   </th>
+                  {address !== 'OZAMIZ CITY' && (
+                    <th className="border px-2 py-1 text-right">SPs</th>
+                  )}
                   {address === 'OZAMIZ CITY' && (
                     <>
                       <th className="border px-2 py-1 text-right">No AP</th>
@@ -78,6 +82,11 @@ export default function BarangayDashboardList({
                     <td className="border px-2 py-1">
                       {new Intl.NumberFormat().format(d.total_non_registered)}
                     </td>
+                    {address !== 'OZAMIZ CITY' && (
+                      <td className="border px-2 py-1">
+                        {new Intl.NumberFormat().format(d.sps)}
+                      </td>
+                    )}
                     {address === 'OZAMIZ CITY' && (
                       <>
                         <td className="border px-2 py-1">
@@ -113,6 +122,13 @@ export default function BarangayDashboardList({
                       data.reduce((sum, d) => sum + d.total_non_registered, 0)
                     )}
                   </td>
+                  {address !== 'OZAMIZ CITY' && (
+                    <td className="border px-2 py-1">
+                      {new Intl.NumberFormat().format(
+                        data.reduce((sum, d) => sum + d.sps, 0)
+                      )}
+                    </td>
+                  )}
                   {address === 'OZAMIZ CITY' && (
                     <>
                       <td className="border px-2 py-1">

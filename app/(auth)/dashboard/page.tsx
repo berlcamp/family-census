@@ -48,6 +48,7 @@ export default function Page() {
         <div className="my-8">
           {user?.address && (
             <div className="space-y-4">
+              <DashboardStats address={user?.address} />
               <BarangayDashboard address={user?.address} />
               <div className="lg:w-2/3">
                 <BarangayDashboardList address={user?.address} />
