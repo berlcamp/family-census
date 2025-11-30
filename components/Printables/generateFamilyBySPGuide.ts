@@ -24,8 +24,11 @@ export const generateFamilyBySPGuide = async (
         id,
         husband_name,
         wife_name,
+        asenso_husband,
+        asenso_wife,
         family_members (
           fullname,
+           asenso,
           relation,
           is_registered
         )
@@ -84,6 +87,16 @@ export const generateFamilyBySPGuide = async (
     householdList.forEach((h) => {
       const families = h.families || []
       families.forEach((f: any) => {
+        const hasAsensoHusband = !!f.asenso_husband
+        const hasAsensoWife = !!f.asenso_wife
+        const hasAsensoMember = !!f.family_members?.[0]?.asenso
+
+        // Only push if ANY of the conditions is true
+        const isValidFamily =
+          hasAsensoHusband || hasAsensoWife || hasAsensoMember
+
+        if (!isValidFamily) return // skip completely
+
         const husband = f.husband_name?.trim() || ''
         const wife = f.wife_name?.trim() || ''
         const head = husband || wife || f.family_members[0]?.fullname || null
