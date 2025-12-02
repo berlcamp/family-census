@@ -61,10 +61,10 @@ export default function BarangayDashboardList({
                   {address === 'OZAMIZ CITY' && (
                     <>
                       <th className="border px-2 py-1 text-right">No AP</th>
-                      <th className="border px-2 py-1 text-right">All C</th>
+                      {/* <th className="border px-2 py-1 text-right">All C</th>
                       <th className="border px-2 py-1 text-right">
                         All C w/ AP
-                      </th>
+                      </th> */}
                     </>
                   )}
                 </tr>
@@ -94,12 +94,12 @@ export default function BarangayDashboardList({
                             d.total_ap_membership_false
                           )}
                         </td>
-                        <td className="border px-2 py-1">
+                        {/* <td className="border px-2 py-1">
                           {new Intl.NumberFormat().format(d.all_c)}
                         </td>
                         <td className="border px-2 py-1">
                           {new Intl.NumberFormat().format(d.all_c_ap)}
-                        </td>
+                        </td> */}
                       </>
                     )}
                   </tr>
@@ -139,7 +139,7 @@ export default function BarangayDashboardList({
                           )
                         )}
                       </td>
-                      <td className="border px-2 py-1">
+                      {/* <td className="border px-2 py-1">
                         {new Intl.NumberFormat().format(
                           data.reduce((sum, d) => sum + d.all_c, 0)
                         )}
@@ -148,7 +148,7 @@ export default function BarangayDashboardList({
                         {new Intl.NumberFormat().format(
                           data.reduce((sum, d) => sum + d.all_c_ap, 0)
                         )}
-                      </td>
+                      </td> */}
                     </>
                   )}
                 </tr>
