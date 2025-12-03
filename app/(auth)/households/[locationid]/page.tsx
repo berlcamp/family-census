@@ -755,6 +755,7 @@ export default function HouseholdsPage() {
   }, [currentPage, locationIdNum]) // 👈 removed search here
 
   const enableEdit = ![
+    'CALAMBA',
     'CONCEPCION',
     'DON VICTORIANO CHIONGBIAN',
     'ALORAN',
