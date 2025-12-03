@@ -773,7 +773,7 @@ export default function HouseholdsPage() {
     return <LoadingSkeleton />
   }
 
-  if (!enableEdit) {
+  if (!enableEdit && user?.type === 'user') {
     return <NoAccess />
   }
 

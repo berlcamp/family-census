@@ -93,7 +93,7 @@ export default function Page() {
     return <LoadingSkeleton />
   }
 
-  if (!enableEdit) {
+  if (!enableEdit && user?.type === 'user') {
     return <NoAccess />
   }
 
