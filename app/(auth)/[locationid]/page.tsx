@@ -6,6 +6,7 @@ import NoAccess from '@/components/NoAccess'
 import Notfoundpage from '@/components/Notfoundpage'
 import { OverviewTab } from '@/components/OverviewTab'
 import VerticalMenu from '@/components/VerticalMenu'
+import { disabledAddresses } from '@/lib/constants'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import { clearLocation, setLocation } from '@/lib/redux/locationSlice'
 import { supabase } from '@/lib/supabase/client'
@@ -86,8 +87,14 @@ export default function Page() {
     }
   }, [location, locationId, user])
 
+  const enableEdit = !disabledAddresses.includes(location?.address ?? '')
+
   if (loading) {
     return <LoadingSkeleton />
+  }
+
+  if (!enableEdit) {
+    return <NoAccess />
   }
 
   if (user?.type === 'user' && !userHasAccess) {

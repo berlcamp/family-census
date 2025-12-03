@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import VerticalMenu from '@/components/VerticalMenu'
+import { disabledAddresses } from '@/lib/constants'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import {
   addFamily,
@@ -754,13 +755,7 @@ export default function HouseholdsPage() {
     fetchHouseholds(currentPage, search, purok, sp)
   }, [currentPage, locationIdNum]) // 👈 removed search here
 
-  const enableEdit = ![
-    'CALAMBA',
-    'CONCEPCION',
-    'DON VICTORIANO CHIONGBIAN',
-    'ALORAN',
-    'OZAsMIZ CITY'
-  ].includes(location?.address ?? '')
+  const enableEdit = !disabledAddresses.includes(location?.address ?? '')
   // || ['MALAUBANG'].includes(location?.name ?? '')
 
   const enableEdit2 =
@@ -776,6 +771,10 @@ export default function HouseholdsPage() {
 
   if (loading) {
     return <LoadingSkeleton />
+  }
+
+  if (!enableEdit) {
+    return <NoAccess />
   }
 
   if (!location) {
