@@ -1,7 +1,7 @@
 export const PER_PAGE = 20
 
 export const disabledAddresses = [
-  'CALAMBA',
+  // 'CALAMBA',
   'CONCEPCION',
   'DON VICTORIANO CHIONGBIAN',
   'ALORAN',
