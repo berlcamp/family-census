@@ -173,5 +173,5 @@ export const generateFamilyBySPGuideD2 = async (
     }
   })
 
-  doc.save(`${locationName}_FamilyComposition.pdf`)
+  doc.save(`${locationName}.pdf`)
 }

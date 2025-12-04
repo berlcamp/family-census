@@ -212,5 +212,5 @@ export const generateFamilyBySP = async (
     }
   })
 
-  doc.save(`${locationName}_FamilyComposition.pdf`)
+  doc.save(`${locationName}_Guide.pdf`)
 }

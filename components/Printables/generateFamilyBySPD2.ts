@@ -218,5 +218,5 @@ export const generateFamilyBySPD2 = async (
     }
   })
 
-  doc.save(`${locationName}_FamilyComposition.pdf`)
+  doc.save(`${locationName}.pdf`)
 }

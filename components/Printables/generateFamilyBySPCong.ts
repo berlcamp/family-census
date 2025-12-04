@@ -283,5 +283,5 @@ export const generateFamilyBySPCong = async (
     }
   })
 
-  doc.save(`${locationName}_FamilyComposition.pdf`)
+  doc.save(`${locationName}.pdf`)
 }
