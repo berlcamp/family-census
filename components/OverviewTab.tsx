@@ -71,6 +71,7 @@ export const OverviewTab = () => {
   // const isDisabled = false
 
   const isDisabled =
+    location?.address !== 'CITY OF OROQUIETA' &&
     location?.address !== 'BONIFACIO' &&
     location?.address !== 'BALIANGAO' &&
     location?.address !== 'PLARIDEL' &&

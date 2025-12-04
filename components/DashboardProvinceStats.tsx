@@ -10,6 +10,7 @@ interface BarangayStats {
   total_all_nr_families: number
   total_no_ap_families: number
   total_with_ap_families: number
+  total_households_all_nr: number
 }
 
 export default function DashboardProvinceStats({
@@ -65,6 +66,10 @@ export default function DashboardProvinceStats({
     (sum, b) => sum + (b.total_no_ap_families ?? 0),
     0
   )
+  const totalAllNRHH = stats.reduce(
+    (sum, b) => sum + (b.total_households_all_nr ?? 0),
+    0
+  )
 
   return (
     <div className="overflow-x-auto">
@@ -74,6 +79,7 @@ export default function DashboardProvinceStats({
             <th className="border px-2 py-1 text-left">Municipality/City</th>
             <th className="border px-2 py-1 text-right">Households</th>
             <th className="border px-2 py-1 text-right">Families</th>
+            <th className="border px-2 py-1 text-right">ALL NR HH</th>
             <th className="border px-2 py-1 text-right">ALL NR Family</th>
             {address === 'OZAMIZ CITY' && (
               <th className="border px-2 py-1 text-right">No AP Family</th>
@@ -89,6 +95,9 @@ export default function DashboardProvinceStats({
               </td>
               <td className="border px-2 py-1 text-right">
                 {b.total_families.toLocaleString()}
+              </td>
+              <td className="border px-2 py-1 text-right">
+                {b.total_households_all_nr.toLocaleString()}
               </td>
               <td className="border px-2 py-1 text-right">
                 {b.total_all_nr_families.toLocaleString()}
@@ -109,6 +118,9 @@ export default function DashboardProvinceStats({
             </td>
             <td className="border px-2 py-1 text-right">
               {totalFamilies.toLocaleString()}
+            </td>
+            <td className="border px-2 py-1 text-right">
+              {totalAllNRHH.toLocaleString()}
             </td>
             <td className="border px-2 py-1 text-right">
               {totalAllNR.toLocaleString()}
