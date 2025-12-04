@@ -129,7 +129,7 @@ export const generateFamilyBySPD2 = async (
     })
   })
 
-  // AutoTable with footer (same as before)
+  // AutoTable with footer (same as before).
   autoTable(doc, {
     startY: 14,
     head: [
