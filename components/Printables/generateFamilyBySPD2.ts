@@ -49,7 +49,8 @@ export const generateFamilyBySPD2 = async (
 
   const doc = new jsPDF({
     unit: 'mm',
-    format: 'letter',
+    // format: 'letter',
+    format: [215.9, 330.2], // 8.5" x 13" in mm
     orientation: 'portrait'
   })
   doc.setFontSize(10)
@@ -217,6 +218,21 @@ export const generateFamilyBySPD2 = async (
       doc.line(rightX, footerY - 3, pageWidth - margin, footerY - 3)
     }
   })
+
+  // Add page numbers AFTER table generation
+  const pageCount = doc.internal.getNumberOfPages()
+
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i)
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const footerY = pageHeight - 10
+    const text = `Page ${i} of ${pageCount}`
+    const textWidth = doc.getTextWidth(text)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.text(text, pageWidth / 2 - textWidth / 2, footerY)
+  }
 
   doc.save(`${locationName}.pdf`)
 }
