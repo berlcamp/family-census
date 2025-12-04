@@ -19,3 +19,25 @@ export const disabledAddresses = [
   'CONCEPCION'
   // 'CITY OF TANGUB'
 ]
+
+export const district1 = [
+  'SAPANG DALAGA',
+  'LOPEZ JAENA',
+  'ALORAN',
+  'CALAMBA',
+  'PLARIDEL',
+  'JIMENEZ',
+  'PANAON',
+  'BALIANGAO',
+  'CITY OF OROQUIETA',
+  'CONCEPCION'
+]
+export const district2 = [
+  'BONIFACIO',
+  'CLARIN',
+  'DON VICTORIANO CHIONGBIAN',
+  'TUDELA',
+  'SINACABAN',
+  'OZAMIZ CITY',
+  'CITY OF TANGUB'
+]

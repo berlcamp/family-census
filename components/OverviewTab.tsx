@@ -1,5 +1,6 @@
 'use client'
 
+import { district1, district2 } from '@/lib/constants'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import { setLocation } from '@/lib/redux/locationSlice'
 import { updateList } from '@/lib/redux/locationsSlice'
@@ -15,7 +16,6 @@ import { generateFamilyBySPCong } from './Printables/generateFamilyBySPCong'
 import { generateFamilyBySPD2 } from './Printables/generateFamilyBySPD2'
 import { generateFamilyBySPGuide } from './Printables/generateFamilyBySPGuide'
 import { generateFamilyBySPGuideD2 } from './Printables/generateFamilyBySPGuideD2'
-import { generateFamilyCompositionPDF } from './Printables/generateFamilyCompositionPDF'
 import { Button } from './ui/button'
 
 const COLORS = [
@@ -225,7 +225,7 @@ export const OverviewTab = () => {
               Download Excel
             </Button>
           )} */}
-          {location?.name &&
+          {/* {location?.name &&
             location?.address &&
             location?.address === 'OZAMIZ CITY' && (
               <Button
@@ -240,61 +240,67 @@ export const OverviewTab = () => {
               >
                 Download Family Composition
               </Button>
-            )}
+            )} */}
           {location?.name && location?.address && (
-            <Button
-              onClick={() =>
-                generateFamilyBySP(location?.name, location?.address)
-              }
-              variant="outline"
-              size="xs"
-            >
-              AR (D1)
-            </Button>
-          )}
-          {location?.name && location?.address && (
-            <Button
-              onClick={() =>
-                generateFamilyBySPD2(location?.name, location?.address)
-              }
-              variant="outline"
-              size="xs"
-            >
-              AR (D2 Province)
-            </Button>
-          )}
-          {location?.name && location?.address && (
-            <Button
-              onClick={() =>
-                generateFamilyBySPCong(location?.name, location?.address)
-              }
-              variant="outline"
-              size="xs"
-            >
-              AR (D2 Cong)
-            </Button>
-          )}
-          {location?.name && location?.address && (
-            <Button
-              onClick={() =>
-                generateFamilyBySPGuide(location?.name, location?.address)
-              }
-              variant="outline"
-              size="xs"
-            >
-              SP Guide (D1)
-            </Button>
-          )}
-          {location?.name && location?.address && (
-            <Button
-              onClick={() =>
-                generateFamilyBySPGuideD2(location?.name, location?.address)
-              }
-              variant="outline"
-              size="xs"
-            >
-              SP Guide (D2)
-            </Button>
+            <>
+              {district1.includes(location.address) && (
+                <>
+                  <Button
+                    onClick={() =>
+                      generateFamilyBySP(location?.name, location?.address)
+                    }
+                    variant="outline"
+                    size="xs"
+                  >
+                    AR (D1)
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      generateFamilyBySPGuide(location?.name, location?.address)
+                    }
+                    variant="outline"
+                    size="xs"
+                  >
+                    SP Guide (D1)
+                  </Button>
+                </>
+              )}
+              {district2.includes(location.address) && (
+                <>
+                  <Button
+                    onClick={() =>
+                      generateFamilyBySPD2(location?.name, location?.address)
+                    }
+                    variant="outline"
+                    size="xs"
+                  >
+                    AR (D2 Province)
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      generateFamilyBySPCong(location?.name, location?.address)
+                    }
+                    variant="outline"
+                    size="xs"
+                  >
+                    AR (D2 Cong)
+                  </Button>
+
+                  <Button
+                    onClick={() =>
+                      generateFamilyBySPGuideD2(
+                        location?.name,
+                        location?.address
+                      )
+                    }
+                    variant="outline"
+                    size="xs"
+                  >
+                    SP Guide (D2)
+                  </Button>
+                </>
+              )}
+            </>
           )}
         </div>
         <div className="border-t lg:border-t-0">
