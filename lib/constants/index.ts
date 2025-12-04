@@ -1,9 +1,21 @@
 export const PER_PAGE = 20
 
 export const disabledAddresses = [
-  // 'CALAMBA',
-  'CONCEPCION',
-  'DON VICTORIANO CHIONGBIAN',
+  // 'SAPANG DALAGA',
+  // 'LOPEZ JAENA',
+  // 'BONIFACIO',
   'ALORAN',
-  'OZAMIZ CITY'
+  // 'CALAMBA',
+  // 'PLARIDEL',
+  // 'JIMENEZ',
+  // 'CLARIN',
+  'DON VICTORIANO CHIONGBIAN',
+  // 'PANAON',
+  // 'TUDELA',
+  // 'BALIANGAO',
+  // 'SINACABAN',
+  // 'CITY OF OROQUIETA',
+  'OZAMIZ CITY',
+  'CONCEPCION'
+  // 'CITY OF TANGUB'
 ]
