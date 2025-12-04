@@ -11,7 +11,10 @@ import toast from 'react-hot-toast'
 import LocationUsers from './LocationUsers'
 import OverviewBarGraph from './OverviewBarGraph'
 import { generateFamilyBySP } from './Printables/generateFamilyBySP'
+import { generateFamilyBySPCong } from './Printables/generateFamilyBySPCong'
+import { generateFamilyBySPD2 } from './Printables/generateFamilyBySPD2'
 import { generateFamilyBySPGuide } from './Printables/generateFamilyBySPGuide'
+import { generateFamilyBySPGuideD2 } from './Printables/generateFamilyBySPGuideD2'
 import { generateFamilyCompositionPDF } from './Printables/generateFamilyCompositionPDF'
 import { Button } from './ui/button'
 
@@ -246,7 +249,29 @@ export const OverviewTab = () => {
               variant="outline"
               size="xs"
             >
-              AR
+              AR (D1)
+            </Button>
+          )}
+          {location?.name && location?.address && (
+            <Button
+              onClick={() =>
+                generateFamilyBySPD2(location?.name, location?.address)
+              }
+              variant="outline"
+              size="xs"
+            >
+              AR (D2 Province)
+            </Button>
+          )}
+          {location?.name && location?.address && (
+            <Button
+              onClick={() =>
+                generateFamilyBySPCong(location?.name, location?.address)
+              }
+              variant="outline"
+              size="xs"
+            >
+              AR (D2 Cong)
             </Button>
           )}
           {location?.name && location?.address && (
@@ -257,7 +282,18 @@ export const OverviewTab = () => {
               variant="outline"
               size="xs"
             >
-              SP Guide
+              SP Guide (D1)
+            </Button>
+          )}
+          {location?.name && location?.address && (
+            <Button
+              onClick={() =>
+                generateFamilyBySPGuideD2(location?.name, location?.address)
+              }
+              variant="outline"
+              size="xs"
+            >
+              SP Guide (D2)
             </Button>
           )}
         </div>
