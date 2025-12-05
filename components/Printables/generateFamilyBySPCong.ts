@@ -154,7 +154,7 @@ export const generateFamilyBySPCong = async (
       ],
       [
         {
-          content: `BARANGAY ${locationName} HOUSEHOLDS`,
+          content: `BARANGAY ${locationName} FAMILIES`,
           colSpan: 5,
           styles: {
             halign: 'center',
