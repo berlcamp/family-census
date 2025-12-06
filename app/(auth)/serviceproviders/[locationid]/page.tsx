@@ -275,47 +275,47 @@ export default function ServiceProvidersPage() {
                   <td className="border p-2">{sp.totalMembers || 0}</td>
 
                   <td className="border p-2 flex gap-2 justify-center">
-                    {user?.system_user_id === 2 && (
-                      <>
-                        {editId === sp.id ? (
-                          <>
-                            <button
-                              onClick={() => updateSP(sp.id)}
-                              className="bg-green-600 text-white px-2 rounded hover:bg-green-700"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditId(null)
-                                setEditName('')
-                              }}
-                              className="bg-gray-400 text-white px-2 rounded hover:bg-gray-500"
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => {
-                                setEditId(sp.id)
-                                setEditName(sp.name)
-                              }}
-                              className="bg-yellow-500 text-white px-2 rounded hover:bg-yellow-600"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => confirmDeleteSP(sp)}
-                              className="bg-red-600 text-white px-2 rounded hover:bg-red-700"
-                            >
-                              Delete
-                            </button>
-                          </>
-                        )}
-                      </>
-                    )}
+                    {/* {user?.system_user_id === 2 && ( */}
+                    <>
+                      {editId === sp.id ? (
+                        <>
+                          <button
+                            onClick={() => updateSP(sp.id)}
+                            className="bg-green-600 text-white px-2 rounded hover:bg-green-700"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditId(null)
+                              setEditName('')
+                            }}
+                            className="bg-gray-400 text-white px-2 rounded hover:bg-gray-500"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => {
+                              setEditId(sp.id)
+                              setEditName(sp.name)
+                            }}
+                            className="bg-yellow-500 text-white px-2 rounded hover:bg-yellow-600"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => confirmDeleteSP(sp)}
+                            className="bg-red-600 text-white px-2 rounded hover:bg-red-700"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </>
+                    {/* )} */}
                   </td>
                 </tr>
               ))}
