@@ -139,29 +139,27 @@ export default function HouseholdModal({
             </div>
 
             {/* Service Provider */}
-            {location?.address !== 'OZAMIZ CITY' && (
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Service Provider</label>
-                <select
-                  value={sp}
-                  onChange={(e) => setSp(e.target.value)}
-                  className={`w-full border rounded p-2 text-sm`}
-                >
-                  <option value="">No SP</option>
-                  {location?.service_providers
-                    ?.slice() // make a copy to avoid mutating state
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((sp) => (
-                      <option key={sp.id} value={sp.id}>
-                        {sp.name}
-                      </option>
-                    ))}
-                </select>
-                {/* {errors.sp && (
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Service Provider</label>
+              <select
+                value={sp}
+                onChange={(e) => setSp(e.target.value)}
+                className={`w-full border rounded p-2 text-sm`}
+              >
+                <option value="">No SP</option>
+                {location?.service_providers
+                  ?.slice() // make a copy to avoid mutating state
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((sp) => (
+                    <option key={sp.id} value={sp.id}>
+                      {sp.name}
+                    </option>
+                  ))}
+              </select>
+              {/* {errors.sp && (
                 <p className="text-xs text-red-500">{errors.sp}</p>
               )} */}
-              </div>
-            )}
+            </div>
             {/* Sitio */}
             <div className="space-y-1 hidden">
               <label className="text-sm font-medium">Sitio (optional)</label>
