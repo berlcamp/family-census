@@ -5,7 +5,7 @@ export const disabledAddresses = [
   // 'LOPEZ JAENA',
   // 'BONIFACIO',
   'ALORAN',
-  // 'CALAMBA',
+  'CALAMBA',
   // 'PLARIDEL',
   'JIMENEZ',
   // 'CLARIN',

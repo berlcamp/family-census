@@ -47,7 +47,7 @@ export default function ServiceProvidersPage() {
       .select(
         `
       *,
-      households (
+      households!households_sp_id_fkey (
         families (
           family_members (
             id
