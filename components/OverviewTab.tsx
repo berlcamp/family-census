@@ -16,6 +16,9 @@ import { generateFamilyBySPCong } from './Printables/generateFamilyBySPCong'
 import { generateFamilyBySPD2 } from './Printables/generateFamilyBySPD2'
 import { generateFamilyBySPGuide } from './Printables/generateFamilyBySPGuide'
 import { generateFamilyBySPGuideD2 } from './Printables/generateFamilyBySPGuideD2'
+import { generateFamilyBySPGuideOzamiz } from './Printables/generateFamilyBySPGuideOzamiz'
+import { generateFamilyBySPOzamiz } from './Printables/generateFamilyBySPOzamiz'
+import { generateFamilyBySPOzamizCong } from './Printables/generateFamilyBySPOzamizCong'
 import { Button } from './ui/button'
 
 const COLORS = [
@@ -276,6 +279,46 @@ export const OverviewTab = () => {
                   >
                     AR (D2 Province)
                   </Button>
+                  {user?.system_user_id === 2 && (
+                    <>
+                      <Button
+                        onClick={() =>
+                          generateFamilyBySPOzamiz(
+                            location?.name,
+                            location?.address
+                          )
+                        }
+                        variant="outline"
+                        size="xs"
+                      >
+                        AR (Ozamiz)
+                      </Button>
+                      <Button
+                        onClick={() =>
+                          generateFamilyBySPOzamizCong(
+                            location?.name,
+                            location?.address
+                          )
+                        }
+                        variant="outline"
+                        size="xs"
+                      >
+                        AR (Ozamiz Cong)
+                      </Button>
+                      <Button
+                        onClick={() =>
+                          generateFamilyBySPGuideOzamiz(
+                            location?.name,
+                            location?.address
+                          )
+                        }
+                        variant="outline"
+                        size="xs"
+                      >
+                        AR (Ozamiz SP Guide)
+                      </Button>
+                    </>
+                  )}
                   <Button
                     onClick={() =>
                       generateFamilyBySPCong(location?.name, location?.address)

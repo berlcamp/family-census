@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase/client'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
-export const generateFamilyBySPCong = async (
+export const generateFamilyBySPOzamizCong = async (
   locationName: string,
   locationAddress: string
 ) => {
@@ -25,10 +25,13 @@ export const generateFamilyBySPCong = async (
         all_nr,
         husband_name,
         wife_name,
+        is_husband_ap_member,
+        is_wife_ap_member,
         asenso_husband,
         asenso_wife,
         family_members (
           fullname,
+          is_ap_member,
           asenso,
           relation,
           is_registered
@@ -74,25 +77,33 @@ export const generateFamilyBySPCong = async (
     spHouseholds.forEach((h) => {
       const families = h.families || []
       families.forEach((f: any) => {
-        const hasAsensoHusband = !!f.asenso_husband
-        const hasAsensoWife = !!f.asenso_wife
-        const hasAsensoMember = !!f.family_members?.[0]?.asenso
-        const allNr = f.all_nr === true
+        // 1. Skip if all_nr is true
+        if (f.all_nr === true) return
 
-        // EXCLUDE if all_nr = true
-        if (allNr) return
+        // 2. Determine AP-membership using SQL-equivalent logic
+        const hasApHusband = f.is_husband_ap_member === true
+        const hasApWife = f.is_wife_ap_member === true
+        const hasApMember =
+          Array.isArray(f.family_members) &&
+          f.family_members.some((m: any) => m.is_ap_member === true)
 
-        // Only push if ANY of the conditions is true
-        const isValidFamily =
-          hasAsensoHusband || hasAsensoWife || hasAsensoMember
+        const isApFamily = hasApHusband || hasApWife || hasApMember
 
-        if (!isValidFamily) return // skip completely
+        //  Only push families that have at least one AP member
+        if (!isApFamily) return
 
+        // 3. Determine family head
         const husband = f.husband_name?.trim() || ''
         const wife = f.wife_name?.trim() || ''
-        const head = husband || wife || f.family_members[0]?.fullname || null
 
-        if (!head || head.trim().toUpperCase() === 'UNKNOWN') return // exclude unknown heads
+        const head =
+          husband ||
+          wife ||
+          f.family_members?.find((m: any) => m.fullname)?.fullname ||
+          null
+
+        // 4. Skip unknown heads
+        if (!head || head.trim().toUpperCase() === 'UNKNOWN') return
 
         sortedFamilies.push({ ...f, head })
       })
@@ -197,10 +208,10 @@ export const generateFamilyBySPCong = async (
       fillColor: false
     },
     columnStyles: { 2: { cellWidth: 70 }, 3: { cellWidth: 50 } },
-    didParseCell: function (data) {
-      const row = tableRows[data.row.index]
-      if (!row.isSP && data.column.index === 2) data.cell.styles.fontSize = 7
-    },
+    // didParseCell: function (data) {
+    //   const row = tableRows[data.row.index]
+    //   if (!row.isSP && data.column.index === 2) data.cell.styles.fontSize = 7
+    // },
     headStyles: {
       lineColor: [0, 0, 0],
       lineWidth: 0.2,
