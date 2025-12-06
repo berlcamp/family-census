@@ -6,7 +6,7 @@ export const disabledAddresses = [
   // 'BONIFACIO',
   'ALORAN',
   'CALAMBA',
-  // 'PLARIDEL',
+  'PLARIDEL',
   'JIMENEZ',
   // 'CLARIN',
   'DON VICTORIANO CHIONGBIAN',
