@@ -226,21 +226,23 @@ export default function ServiceProvidersPage() {
 
       <div className="my-4 p-4 text-sm">
         {/* Add new SP */}
-        <div className="flex gap-2 mb-4">
-          <input
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="New service provider - LASTNAME, FIRSTNAME MIDDLENAME"
-            className="border p-2 rounded flex-1"
-          />
-          <button
-            onClick={addSP}
-            className="bg-blue-600 text-white px-4 rounded hover:bg-blue-700"
-          >
-            Add
-          </button>
-        </div>
+        {location?.address !== 'OZAMIZ CITY' && (
+          <div className="flex gap-2 mb-4">
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="New service provider - LASTNAME, FIRSTNAME MIDDLENAME"
+              className="border p-2 rounded flex-1"
+            />
+            <button
+              onClick={addSP}
+              className="bg-blue-600 text-white px-4 rounded hover:bg-blue-700"
+            >
+              Add
+            </button>
+          </div>
+        )}
 
         {loading ? (
           <p>Loading...</p>
@@ -273,41 +275,45 @@ export default function ServiceProvidersPage() {
                   <td className="border p-2">{sp.totalMembers || 0}</td>
 
                   <td className="border p-2 flex gap-2 justify-center">
-                    {editId === sp.id ? (
+                    {user?.system_user_id === 2 && (
                       <>
-                        <button
-                          onClick={() => updateSP(sp.id)}
-                          className="bg-green-600 text-white px-2 rounded hover:bg-green-700"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditId(null)
-                            setEditName('')
-                          }}
-                          className="bg-gray-400 text-white px-2 rounded hover:bg-gray-500"
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => {
-                            setEditId(sp.id)
-                            setEditName(sp.name)
-                          }}
-                          className="bg-yellow-500 text-white px-2 rounded hover:bg-yellow-600"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => confirmDeleteSP(sp)}
-                          className="bg-red-600 text-white px-2 rounded hover:bg-red-700"
-                        >
-                          Delete
-                        </button>
+                        {editId === sp.id ? (
+                          <>
+                            <button
+                              onClick={() => updateSP(sp.id)}
+                              className="bg-green-600 text-white px-2 rounded hover:bg-green-700"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditId(null)
+                                setEditName('')
+                              }}
+                              className="bg-gray-400 text-white px-2 rounded hover:bg-gray-500"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => {
+                                setEditId(sp.id)
+                                setEditName(sp.name)
+                              }}
+                              className="bg-yellow-500 text-white px-2 rounded hover:bg-yellow-600"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => confirmDeleteSP(sp)}
+                              className="bg-red-600 text-white px-2 rounded hover:bg-red-700"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
                       </>
                     )}
                   </td>

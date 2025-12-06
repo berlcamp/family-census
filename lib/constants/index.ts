@@ -2,7 +2,7 @@ export const PER_PAGE = 20
 
 export const disabledAddresses = [
   // 'SAPANG DALAGA',
-  // 'LOPEZ JAENA',
+  'LOPEZ JAENA',
   // 'BONIFACIO',
   'ALORAN',
   'CALAMBA',
@@ -15,7 +15,7 @@ export const disabledAddresses = [
   'BALIANGAO',
   // 'SINACABAN',
   // 'CITY OF OROQUIETA',
-  // 'OZAMIZ CITY',
+  'OZAMIZ CITY',
   'CONCEPCION'
   // 'CITY OF TANGUB'
 ]

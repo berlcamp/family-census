@@ -30,19 +30,18 @@ export default function VerticalMenu({ activeTab }: { activeTab: string }) {
           Households
         </button>
       </Link>
-      {location?.address !== 'OZAMIZ CITY' && (
-        <Link href={`/serviceproviders/${location?.id}`}>
-          <button
-            className={`py-2 px-2 text-sm -mb-px cursor-pointer ${
-              activeTab === 'serviceproviders'
-                ? 'border-b-2 font-bold border-gray-500 text-gray-700 dark:text-gray-400'
-                : 'text-gray-400 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-            }`}
-          >
-            Service Providers
-          </button>
-        </Link>
-      )}
+
+      <Link href={`/serviceproviders/${location?.id}`}>
+        <button
+          className={`py-2 px-2 text-sm -mb-px cursor-pointer ${
+            activeTab === 'serviceproviders'
+              ? 'border-b-2 font-bold border-gray-500 text-gray-700 dark:text-gray-400'
+              : 'text-gray-400 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+          }`}
+        >
+          Service Providers
+        </button>
+      </Link>
     </div>
   )
 }

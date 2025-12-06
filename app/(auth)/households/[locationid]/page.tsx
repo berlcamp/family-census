@@ -947,11 +947,11 @@ export default function HouseholdsPage() {
                 Household No: HH-{h.series_number}
               </p>
               <p className="text-sm text-gray-500">Purok: {h.purok}</p>
-              {location?.address !== 'OZAMIZ CITY' && (
-                <p className="text-sm text-gray-500">
-                  SP: {h.service_provider?.name ?? 'None'}
-                </p>
-              )}
+
+              <p className="text-sm text-gray-500">
+                SP: {h.service_provider?.name ?? 'None'}
+              </p>
+
               {h.sitio && (
                 <p className="text-sm text-gray-500">Sitio: {h.sitio}</p>
               )}
