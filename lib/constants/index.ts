@@ -15,7 +15,7 @@ export const disabledAddresses = [
   'BALIANGAO',
   // 'SINACABAN',
   // 'CITY OF OROQUIETA',
-  'OZAMIZ CITY',
+  // 'OZAMIZ CITY',
   'CONCEPCION'
   // 'CITY OF TANGUB'
 ]
