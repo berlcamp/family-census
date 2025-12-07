@@ -19,6 +19,7 @@ import { generateFamilyBySPGuideD2 } from './Printables/generateFamilyBySPGuideD
 import { generateFamilyBySPGuideOzamiz } from './Printables/generateFamilyBySPGuideOzamiz'
 import { generateFamilyBySPOzamiz } from './Printables/generateFamilyBySPOzamiz'
 import { generateFamilyBySPOzamizCong } from './Printables/generateFamilyBySPOzamizCong'
+import { generateFamilyBySPOzamizProv } from './Printables/generateFamilyBySPOzamizProv'
 import { Button } from './ui/button'
 
 const COLORS = [
@@ -212,7 +213,7 @@ export const OverviewTab = () => {
       {/* Users Section */}
       <div className="col-span-2">
         <div
-          className={`${user?.type === 'province admin' ? 'flex' : 'hidden'} p-4 w-full space-x-2`}
+          className={`${user?.type === 'province admin' ? '' : 'hidden'} p-4 w-full space-x-2 space-y-2`}
         >
           {/* {location?.name && location?.address && (
             <Button
@@ -292,6 +293,18 @@ export const OverviewTab = () => {
                         size="xs"
                       >
                         AR (Ozamiz)
+                      </Button>
+                      <Button
+                        onClick={() =>
+                          generateFamilyBySPOzamizProv(
+                            location?.name,
+                            location?.address
+                          )
+                        }
+                        variant="outline"
+                        size="xs"
+                      >
+                        AR (Ozamiz Prov)
                       </Button>
                       <Button
                         onClick={() =>
