@@ -2,7 +2,7 @@ export const PER_PAGE = 20
 
 export const disabledAddresses = [
   // 'SAPANG DALAGA',
-  'LOPEZ JAENA',
+  // 'LOPEZ JAENA',
   // 'BONIFACIO',
   'ALORAN',
   'CALAMBA',

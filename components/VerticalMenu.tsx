@@ -5,6 +5,7 @@ import Link from 'next/link'
 
 export default function VerticalMenu({ activeTab }: { activeTab: string }) {
   const location = useAppSelector((state) => state.location.selectedLocation)
+  const user = useAppSelector((state) => state.user.user)
 
   return (
     <div className="border-b flex gap-2 px-4 mt-4">
@@ -30,7 +31,7 @@ export default function VerticalMenu({ activeTab }: { activeTab: string }) {
           Households
         </button>
       </Link>
-      {location?.address !== 'OZAMIZ CITY' && (
+      {(location?.address !== 'OZAMIZ CITY' || user?.system_user_id == 2) && (
         <Link href={`/serviceproviders/${location?.id}`}>
           <button
             className={`py-2 px-2 text-sm -mb-px cursor-pointer ${
