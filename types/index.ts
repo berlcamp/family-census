@@ -54,6 +54,7 @@ export interface Location {
   id: number
   name: string
   address: string
+  enable_edit: boolean
   description?: string
   org_id?: string
   color: string
