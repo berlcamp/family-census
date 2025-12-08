@@ -70,21 +70,35 @@ export default function SettingsPage() {
   if (loading) return <div className="p-4">Loading...</div>
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-xl font-semibold">Location Edit Settings</h1>
+    <div className="p-6 space-y-4">
+      <h1 className="text-lg font-semibold">Edit Settings</h1>
 
-      <div className="space-y-3">
+      <div className="space-y-2 lg:w-1/2">
         {settings.map((s) => (
           <div
             key={s.id}
-            className="flex items-center justify-between border p-3 rounded-lg"
+            className="flex items-center justify-between border p-2 rounded-md"
           >
-            <div className="font-medium">{s.address}</div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-sm">{s.address}</span>
+
+              {s.enable_edit ? (
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                  Editing Enabled
+                </span>
+              ) : (
+                <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
+                  Editing Disabled
+                </span>
+              )}
+            </div>
 
             <Button
               onClick={() => handleToggle(s)}
-              variant={s.enable_edit ? 'destructive' : 'default'}
+              variant={s.enable_edit ? 'blue' : 'default'}
               disabled={savingId === s.id}
+              size="sm"
+              className="text-xs px-3 py-1"
             >
               {savingId === s.id
                 ? 'Saving...'
