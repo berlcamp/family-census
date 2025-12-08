@@ -12,7 +12,7 @@ export const disabledAddresses = [
   'DON VICTORIANO CHIONGBIAN',
   // 'PANAON',
   // 'TUDELA',
-  // 'BALIANGAO',
+  'BALIANGAO',
   // 'SINACABAN',
   // 'CITY OF OROQUIETA',
   'OZAMIZ CITY',
