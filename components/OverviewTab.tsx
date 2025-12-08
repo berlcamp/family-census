@@ -1,6 +1,6 @@
 'use client'
 
-import { district1, district2 } from '@/lib/constants'
+import { disabledAddresses, district1, district2 } from '@/lib/constants'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import { setLocation } from '@/lib/redux/locationSlice'
 import { updateList } from '@/lib/redux/locationsSlice'
@@ -77,12 +77,13 @@ export const OverviewTab = () => {
   console.log(householdCount, loadingHouseholds)
   // const isDisabled = false
 
-  const isDisabled =
-    location?.address !== 'CITY OF OROQUIETA' &&
-    location?.address !== 'BONIFACIO' &&
-    location?.address !== 'BALIANGAO' &&
-    location?.address !== 'PLARIDEL' &&
-    location?.address !== 'PANAON'
+  const isDisabled = disabledAddresses.includes(location?.address ?? '')
+  // const isDisabled =
+  //   location?.address !== 'CITY OF OROQUIETA' &&
+  //   location?.address !== 'BONIFACIO' &&
+  //   location?.address !== 'BALIANGAO' &&
+  //   location?.address !== 'PLARIDEL' &&
+  //   location?.address !== 'PANAON'
 
   const handleSave = async () => {
     if (!location) return
