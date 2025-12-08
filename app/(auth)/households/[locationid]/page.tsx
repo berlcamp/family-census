@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import VerticalMenu from '@/components/VerticalMenu'
-import { disabledAddresses } from '@/lib/constants'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import {
   addFamily,
@@ -50,6 +49,8 @@ export default function HouseholdsPage() {
   const [search, setSearch] = useState('')
   const [purok, setPurok] = useState('')
   const [sp, setSp] = useState('')
+
+  const [enableEdit, setEnableEdit] = useState(false)
 
   const [showHouseholdModal, setShowHouseholdModal] = useState(false)
   const [editHousehold, setEditHousehold] = useState<Household | null>(null)
@@ -755,10 +756,31 @@ export default function HouseholdsPage() {
     fetchHouseholds(currentPage, search, purok, sp)
   }, [currentPage, locationIdNum]) // 👈 removed search here
 
-  const enableEdit =
-    !disabledAddresses.includes(location?.address ?? '') ||
-    (user?.type === 'province admin' && location?.address !== 'OZAMIZ CITY')
+  // const enableEdit =
+  //   !disabledAddresses.includes(location?.address ?? '') ||
+  //   (user?.type === 'province admin' && location?.address !== 'OZAMIZ CITY')
   // || ['MALAUBANG'].includes(location?.name ?? '')
+
+  useEffect(() => {
+    const loadSetting = async () => {
+      if (!location?.address) return
+
+      const { data, error } = await supabase
+        .from('location_settings')
+        .select('enable_edit')
+        .eq('address', location.address)
+        .single()
+
+      if (!error && data) {
+        setEnableEdit(data.enable_edit)
+      } else {
+        // Default: editing disabled unless explicitly enabled
+        setEnableEdit(false)
+      }
+    }
+
+    loadSetting()
+  }, [location?.address])
 
   const enableEdit2 =
     user?.type === 'super admin' ||

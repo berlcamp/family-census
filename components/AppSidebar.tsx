@@ -1,4 +1,4 @@
-import { BarChart, Home } from 'lucide-react'
+import { BarChart, CogIcon, Home } from 'lucide-react'
 
 import {
   Sidebar,
@@ -33,6 +33,15 @@ export function AppSidebar() {
             title: 'Dashboard',
             url: '/dashboard',
             icon: BarChart
+          }
+        ]
+      : []),
+    ...(user?.type === 'province admin'
+      ? [
+          {
+            title: 'Settings',
+            url: '/settings',
+            icon: CogIcon
           }
         ]
       : [])

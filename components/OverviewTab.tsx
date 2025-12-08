@@ -1,6 +1,6 @@
 'use client'
 
-import { disabledAddresses, district1, district2 } from '@/lib/constants'
+import { district1, district2 } from '@/lib/constants'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import { setLocation } from '@/lib/redux/locationSlice'
 import { updateList } from '@/lib/redux/locationsSlice'
@@ -36,6 +36,8 @@ const COLORS = [
 export const OverviewTab = () => {
   const location = useAppSelector((state) => state.location.selectedLocation)
   const user = useAppSelector((state) => state.user.user)
+
+  const [enableEdit, setEnableEdit] = useState(false)
 
   const [selectedColor, setSelectedColor] = useState(location?.color || 'gray')
   const [purokText, setPurokText] = useState(
@@ -73,17 +75,26 @@ export const OverviewTab = () => {
     fetchHouseholdCount()
   }, [location?.id])
 
-  // const isDisabled = householdCount > 20 || loadingHouseholds
-  console.log(householdCount, loadingHouseholds)
-  // const isDisabled = false
+  useEffect(() => {
+    const loadSetting = async () => {
+      if (!location?.address) return
 
-  const isDisabled = disabledAddresses.includes(location?.address ?? '')
-  // const isDisabled =
-  //   location?.address !== 'CITY OF OROQUIETA' &&
-  //   location?.address !== 'BONIFACIO' &&
-  //   location?.address !== 'BALIANGAO' &&
-  //   location?.address !== 'PLARIDEL' &&
-  //   location?.address !== 'PANAON'
+      const { data, error } = await supabase
+        .from('location_settings')
+        .select('enable_edit')
+        .eq('address', location.address)
+        .single()
+
+      if (!error && data) {
+        setEnableEdit(data.enable_edit)
+      } else {
+        // Default: editing disabled unless explicitly enabled
+        setEnableEdit(false)
+      }
+    }
+
+    loadSetting()
+  }, [location?.address])
 
   const handleSave = async () => {
     if (!location) return
@@ -166,7 +177,7 @@ export const OverviewTab = () => {
                 )}
                 style={{ backgroundColor: color }}
                 onClick={() => setSelectedColor(color)}
-                disabled={isDisabled}
+                disabled={!enableEdit}
               >
                 {selectedColor === color && (
                   <Check className="w-5 h-5 text-white absolute inset-0 m-auto" />
@@ -179,7 +190,7 @@ export const OverviewTab = () => {
         {/* Purok Textarea */}
         <div>
           <div className="text-sm mb-2">Puroks (one per line)</div>
-          {isDisabled ? (
+          {!enableEdit ? (
             <div>
               <ul className="list-disc pl-4 text-sm">
                 {purokText
@@ -197,15 +208,14 @@ export const OverviewTab = () => {
               rows={6}
               className="w-full border rounded p-2 text-sm"
               placeholder="Enter one purok per line..."
-              disabled={isDisabled}
             />
           )}
         </div>
 
-        {showSave && (
+        {showSave && enableEdit && (
           <div className="space-x-2 mt-4">
-            <Button onClick={handleSave} disabled={isDisabled || loading}>
-              {loading ? 'Saving...' : isDisabled ? 'Editing Disabled' : 'Save'}
+            <Button onClick={handleSave} disabled={loading}>
+              {loading ? 'Saving...' : 'Save'}
             </Button>
           </div>
         )}
