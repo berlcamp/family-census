@@ -73,8 +73,13 @@ export const generateFamilyBySP = async (
     spHouseholds.forEach((h) => {
       const families = h.families || []
       families.forEach((f: any) => {
-        const hasAsensoHusband = !!f.asenso_husband
-        const hasAsensoWife = !!f.asenso_wife
+        // const hasAsensoHusband = !!f.asenso_husband
+        // const hasAsensoWife = !!f.asenso_wife
+
+        const hasAsensoHusband = f.husband_name ? !!f.asenso_husband : false
+
+        const hasAsensoWife = f.wife_name ? !!f.asenso_wife : false
+
         const hasAsensoMember = !!f.family_members?.[0]?.asenso
 
         // Only push if ANY of the conditions is true
