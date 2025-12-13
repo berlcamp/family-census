@@ -343,16 +343,20 @@ export const OverviewTab = () => {
                       </Button>
                     </>
                   )}
-                  <Button
-                    onClick={() =>
-                      generateFamilyBySPCong(location?.name, location?.address)
-                    }
-                    variant="outline"
-                    size="xs"
-                  >
-                    AR (D2 Cong)
-                  </Button>
-
+                  {user?.system_user_id === 2 && (
+                    <Button
+                      onClick={() =>
+                        generateFamilyBySPCong(
+                          location?.name,
+                          location?.address
+                        )
+                      }
+                      variant="outline"
+                      size="xs"
+                    >
+                      AR (D2 Cong)
+                    </Button>
+                  )}
                   <Button
                     onClick={() =>
                       generateFamilyBySPGuideD2(
