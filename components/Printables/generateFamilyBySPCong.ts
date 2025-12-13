@@ -74,8 +74,8 @@ export const generateFamilyBySPCong = async (
     spHouseholds.forEach((h) => {
       const families = h.families || []
       families.forEach((f: any) => {
-        const hasAsensoHusband = !!f.asenso_husband
-        const hasAsensoWife = !!f.asenso_wife
+        const hasAsensoHusband = !!f.husband_name && !!f.asenso_husband
+        const hasAsensoWife = !!f.wife_name && !!f.asenso_wife
         const hasAsensoMember = !!f.family_members?.[0]?.asenso
         const allNr = f.all_nr === true
 
