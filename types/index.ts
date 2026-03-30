@@ -20,6 +20,7 @@ export interface User {
   password: string
   email?: string
   type?: string
+  address?: string
   is_active: boolean
   created_at?: string
 }

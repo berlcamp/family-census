@@ -102,7 +102,7 @@ export default function StickyHeader() {
       </div>
 
       {/* Search Input */}
-      {(user?.type === 'super admin' || user?.type === 'province admin') && (
+      {(user?.type === 'super admin' || user?.type === 'province admin' || user?.type === 'viewer') && (
         <form
           onSubmit={(e) => {
             e.preventDefault()

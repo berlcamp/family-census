@@ -1,4 +1,4 @@
-import { BarChart, CogIcon, Home } from 'lucide-react'
+import { BarChart, CogIcon, Home, Users } from 'lucide-react'
 
 import {
   Sidebar,
@@ -44,6 +44,15 @@ export function AppSidebar() {
             icon: CogIcon
           }
         ]
+      : []),
+    ...(user?.type === 'super admin'
+      ? [
+          {
+            title: 'Manage Users',
+            url: '/manage-users',
+            icon: Users
+          }
+        ]
       : [])
     // {
     //   title: 'Data Processing Agreement',
@@ -82,6 +91,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {user?.type !== 'viewer' && (
         <SidebarGroup>
           <SidebarGroupLabel className="border-t rounded-none border-gray-600">
             {locations.length > 0 && 'Locations'}
@@ -115,6 +125,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   )
