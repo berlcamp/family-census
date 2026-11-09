@@ -45,6 +45,37 @@ const emptyForm = (type: string): FormState => ({
   is_active: true
 })
 
+type ManagedUser = User & { last_signin_at?: string | null }
+
+const SORTS = {
+  last_signin: { label: 'Last sign-in: latest first', column: 'last_signin_at' },
+  created: { label: 'Date added: newest first', column: 'created_at' }
+} as const
+type SortKey = keyof typeof SORTS
+
+/** "Nov 9, 2026, 3:04 PM" plus a relative hint like "2 days ago". */
+function formatSignin(value?: string | null) {
+  if (!value) return null
+  const date = new Date(value)
+  const absolute = date.toLocaleString('en-PH', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  })
+  const minutes = Math.round((Date.now() - date.getTime()) / 60000)
+  const relative =
+    minutes < 1
+      ? 'just now'
+      : minutes < 60
+        ? `${minutes} min ago`
+        : minutes < 1440
+          ? `${Math.round(minutes / 60)} hr ago`
+          : `${Math.round(minutes / 1440)} days ago`
+  return { absolute, relative }
+}
+
 const typeLabel = (type?: string) =>
   USER_TYPES.find((t) => t.value === type)?.label ?? type ?? '—'
 
@@ -56,7 +87,7 @@ export default function ManageUsersPage() {
   const owner = isOwner(me?.email)
   const allowed = me?.type === 'super admin' || owner
 
-  const [users, setUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<ManagedUser[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -66,6 +97,7 @@ export default function ManageUsersPage() {
   const [typeFilter, setTypeFilter] = useState(owner ? ALL : 'viewer')
   const [addressFilter, setAddressFilter] = useState(ALL)
   const [statusFilter, setStatusFilter] = useState(ALL)
+  const [sort, setSort] = useState<SortKey>('last_signin')
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [form, setForm] = useState<FormState>(emptyForm('viewer'))
@@ -78,15 +110,18 @@ export default function ManageUsersPage() {
   // Reset to the first page whenever a filter changes.
   useEffect(() => {
     setPage(0)
-  }, [debouncedSearch, typeFilter, addressFilter, statusFilter])
+  }, [debouncedSearch, typeFilter, addressFilter, statusFilter, sort])
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
     let query = supabase
       .from('users')
-      .select('id, name, email, type, address, is_active, created_at', {
-        count: 'exact'
-      })
+      .select(
+        'id, name, email, type, address, is_active, created_at, last_signin_at',
+        {
+          count: 'exact'
+        }
+      )
       .eq('org_id', process.env.NEXT_PUBLIC_ORG_ID)
 
     const type = owner ? typeFilter : 'viewer'
@@ -99,18 +134,19 @@ export default function ManageUsersPage() {
     if (term) query = query.or(`name.ilike.*${term}*,email.ilike.*${term}*`)
 
     const { data, error, count } = await query
-      .order('created_at', { ascending: false })
+      .order(SORTS[sort].column, { ascending: false, nullsFirst: false })
+      .order('id', { ascending: false })
       .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
 
     if (error) {
       console.error(error)
       toast.error('Failed to load users')
     } else {
-      setUsers((data ?? []) as User[])
+      setUsers((data ?? []) as unknown as ManagedUser[])
       setTotal(count ?? 0)
     }
     setLoading(false)
-  }, [owner, typeFilter, addressFilter, statusFilter, debouncedSearch, page])
+  }, [owner, typeFilter, addressFilter, statusFilter, debouncedSearch, sort, page])
 
   useEffect(() => {
     if (allowed) fetchUsers()
@@ -225,7 +261,7 @@ export default function ManageUsersPage() {
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 mb-4">
         <Input
           placeholder="Search name or email…"
           value={search}
@@ -269,6 +305,18 @@ export default function ManageUsersPage() {
             <SelectItem value="inactive">Inactive only</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(SORTS) as SortKey[]).map((key) => (
+              <SelectItem key={key} value={key}>
+                {SORTS[key].label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="overflow-x-auto">
@@ -278,6 +326,16 @@ export default function ManageUsersPage() {
               <th className="border px-3 py-2 text-left text-sm">Name / Email</th>
               <th className="border px-3 py-2 text-left text-sm">Type</th>
               <th className="border px-3 py-2 text-left text-sm">Municipality</th>
+              <th className="border px-3 py-2 text-left text-sm">
+                <button
+                  type="button"
+                  onClick={() => setSort('last_signin')}
+                  className="font-semibold hover:underline"
+                  title="Sort by last sign-in, latest first"
+                >
+                  Last sign-in{sort === 'last_signin' ? ' ↓' : ''}
+                </button>
+              </th>
               <th className="border px-3 py-2 text-center text-sm">Status</th>
               <th className="border px-3 py-2 text-center text-sm">Actions</th>
             </tr>
@@ -285,7 +343,7 @@ export default function ManageUsersPage() {
           <tbody className={loading ? 'opacity-50' : ''}>
             {!loading && users.length === 0 && (
               <tr>
-                <td colSpan={5} className="border px-3 py-6 text-center text-gray-500">
+                <td colSpan={6} className="border px-3 py-6 text-center text-gray-500">
                   No users found.
                 </td>
               </tr>
@@ -300,6 +358,21 @@ export default function ManageUsersPage() {
                 </td>
                 <td className="border px-3 py-2 text-sm">{typeLabel(u.type)}</td>
                 <td className="border px-3 py-2 text-sm">{u.address ?? '—'}</td>
+                <td className="border px-3 py-2 text-sm whitespace-nowrap">
+                  {(() => {
+                    const signin = formatSignin(u.last_signin_at)
+                    return signin ? (
+                      <>
+                        <div>{signin.absolute}</div>
+                        <div className="text-xs text-gray-500">
+                          {signin.relative}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-gray-400">Never</span>
+                    )
+                  })()}
+                </td>
                 <td className="border px-3 py-2 text-center text-sm">
                   <span
                     className={`px-2 py-0.5 rounded text-xs font-medium ${

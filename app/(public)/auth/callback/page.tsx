@@ -41,6 +41,14 @@ export default function AuthCallback() {
         await supabase.auth.signOut()
         window.location.href = '/auth/unverified'
       } else {
+        // Record the sign-in for Manage Users. Never block login on it.
+        await supabase
+          .from('users')
+          .update({ last_signin_at: new Date().toISOString() })
+          .eq('id', existingUser.id)
+          .then(({ error }) => {
+            if (error) console.warn('Could not record sign-in:', error.message)
+          })
         window.location.href = '/'
       }
     }
