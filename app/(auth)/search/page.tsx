@@ -61,9 +61,14 @@ function SearchScreen() {
 
   const tokens = useMemo(() => tokenize(debounced), [debounced])
 
+  // Viewers are municipality-scoped: they only ever search their own address.
+  const isViewer = user?.type === 'viewer'
+  const scope = isViewer ? user?.address ?? null : null
+  const blocked = !user || user.type === 'user' || (isViewer && !scope)
+
   useEffect(() => {
     setFilter(null)
-    if (tokens.length === 0) {
+    if (blocked || tokens.length === 0) {
       setResults([])
       setSearched(false)
       setLoading(false)
@@ -74,7 +79,7 @@ function SearchScreen() {
     const controller = new AbortController()
     setLoading(true)
     setError('')
-    searchHouseholds(debounced, controller.signal)
+    searchHouseholds(debounced, { address: scope, signal: controller.signal })
       .then((data) => {
         if (controller.signal.aborted) return
         setResults(data)
@@ -90,7 +95,7 @@ function SearchScreen() {
       })
 
     return () => controller.abort()
-  }, [debounced, tokens])
+  }, [debounced, tokens, scope, blocked])
 
   // Filter chips: by municipality when results span several, else by barangay.
   const groupBy: 'address' | 'barangay' = useMemo(() => {
@@ -108,12 +113,20 @@ function SearchScreen() {
     ? results.filter((h) => h[groupBy] === filter)
     : results
 
-  if (user?.type === 'user') {
+  if (!user) return null
+
+  if (user.type === 'user' || (isViewer && !scope)) {
     return (
       <div className="p-4">
-        <h1 className="text-2xl font-semibold mb-4 text-gray-800">
+        <h1 className="text-2xl font-semibold mb-2 text-gray-800">
           Search access denied
         </h1>
+        {isViewer && (
+          <p className="text-gray-500">
+            Your account has no municipality assigned. Ask the administrator
+            to set one.
+          </p>
+        )}
       </div>
     )
   }
@@ -148,6 +161,12 @@ function SearchScreen() {
             </button>
           )}
         </div>
+
+        {scope && (
+          <p className="mt-2 text-xs text-gray-500">
+            Searching households in <b>{scope}</b> only
+          </p>
+        )}
 
         {groups.length > 1 && (
           <div className="mt-2.5 flex gap-2 overflow-x-auto pb-1">

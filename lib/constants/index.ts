@@ -41,3 +41,52 @@ export const district2 = [
   'OZAMIZ CITY',
   'CITY OF TANGUB'
 ]
+
+/** Accounts that can manage every user of every type and municipality. */
+export const OWNER_EMAILS = ['berlcamp@gmail.com']
+
+export const isOwner = (email?: string | null) =>
+  !!email && OWNER_EMAILS.includes(email.trim().toLowerCase())
+
+export const MUNICIPALITIES = [
+  'ALORAN',
+  'BALIANGAO',
+  'BONIFACIO',
+  'CALAMBA',
+  'CITY OF OROQUIETA',
+  'CITY OF TANGUB',
+  'CLARIN',
+  'CONCEPCION',
+  'DON VICTORIANO CHIONGBIAN',
+  'JIMENEZ',
+  'LOPEZ JAENA',
+  'OZAMIZ CITY',
+  'PANAON',
+  'PLARIDEL',
+  'SAPANG DALAGA',
+  'SINACABAN',
+  'TUDELA'
+]
+
+export const USER_TYPES = [
+  {
+    value: 'viewer',
+    label: 'Viewer',
+    help: 'Search only, limited to their municipality.'
+  },
+  {
+    value: 'user',
+    label: 'User',
+    help: 'Encoder. Sees only the barangays assigned to them on each location page.'
+  },
+  {
+    value: 'super admin',
+    label: 'Super Admin',
+    help: 'Manages every barangay of their municipality.'
+  },
+  {
+    value: 'province admin',
+    label: 'Province Admin',
+    help: 'Can switch between municipalities.'
+  }
+] as const

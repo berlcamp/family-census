@@ -50,28 +50,44 @@ const HOUSEHOLD_SELECT = `
  */
 export async function searchHouseholds(
   rawQuery: string,
-  signal?: AbortSignal
+  {
+    address,
+    signal
+  }: {
+    /** Restrict results to one municipality (households.address). */
+    address?: string | null
+    signal?: AbortSignal
+  } = {}
 ): Promise<HouseholdSearchResult[]> {
   const tokens = tokenize(rawQuery)
   if (tokens.length === 0) return []
 
   // 1. Parents — stored on the family row.
-  const parentSearch = supabase
+  let parentSearch = supabase
     .from('families')
-    .select('household_id')
+    .select(address ? 'household_id, households!inner(address)' : 'household_id')
     .or(`${andGroup('husband_name', tokens)},${andGroup('wife_name', tokens)}`)
-    .limit(SEARCH_LIMIT * 3)
+  if (address) parentSearch = parentSearch.eq('households.address', address)
 
   // 2. Children / other members.
   let memberSearch = supabase
     .from('family_members')
-    .select('families!inner(household_id)')
+    .select(
+      address
+        ? 'families!inner(household_id, households!inner(address))'
+        : 'families!inner(household_id)'
+    )
+  if (address) {
+    memberSearch = memberSearch.eq('families.households.address', address)
+  }
   for (const token of tokens) {
     memberSearch = memberSearch.ilike('fullname', `%${token}%`)
   }
 
   const [parents, members] = await Promise.all([
-    signal ? parentSearch.abortSignal(signal) : parentSearch,
+    signal
+      ? parentSearch.limit(SEARCH_LIMIT * 3).abortSignal(signal)
+      : parentSearch.limit(SEARCH_LIMIT * 3),
     signal
       ? memberSearch.limit(SEARCH_LIMIT * 3).abortSignal(signal)
       : memberSearch.limit(SEARCH_LIMIT * 3)
@@ -88,24 +104,28 @@ export async function searchHouseholds(
       ids.push(id)
     }
   }
-  parents.data?.forEach((row) => push(row.household_id as number))
-  members.data?.forEach((row) => {
-    const family = row.families as unknown as { household_id: number } | null
+  ;(parents.data as unknown as { household_id: number }[] | null)?.forEach(
+    (row) => push(row.household_id)
+  )
+  ;(members.data as unknown as { families: unknown }[] | null)?.forEach((row) => {
+    const family = row.families as { household_id: number } | null
     push(family?.household_id)
   })
 
   if (ids.length === 0) return []
 
-  return hydrateHouseholds(ids.slice(0, SEARCH_LIMIT), tokens, signal)
+  return hydrateHouseholds(ids.slice(0, SEARCH_LIMIT), tokens, address, signal)
 }
 
 /** Fetch full households for the matched ids, keeping the search order. */
 async function hydrateHouseholds(
   ids: number[],
   tokens: string[],
+  address?: string | null,
   signal?: AbortSignal
 ): Promise<HouseholdSearchResult[]> {
   let query = supabase.from('households').select(HOUSEHOLD_SELECT).in('id', ids)
+  if (address) query = query.eq('address', address)
   if (signal) query = query.abortSignal(signal)
 
   const { data, error } = await query
