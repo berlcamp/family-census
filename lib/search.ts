@@ -8,7 +8,14 @@ export type HouseholdSearchResult = Household & {
   families: Family[]
   /** Names inside this household that matched every search word. */
   matched: string[]
+  /** Found only by spelling similarity, e.g. "shiela" -> "SHELLA". */
+  similar?: boolean
+  /** For similar results: the name that resembled the search. */
+  similarTo?: string
 }
+
+/** Max extra "similar spelling" households shown after the exact ones. */
+export const SIMILAR_LIMIT = 20
 
 /**
  * Strip characters that would break PostgREST's or()/and() filter grammar,
@@ -84,13 +91,34 @@ export async function searchHouseholds(
     memberSearch = memberSearch.ilike('fullname', `%${token}%`)
   }
 
-  const [parents, members] = await Promise.all([
+  // 3. Similar spellings (asenso.search_households_fuzzy, see
+  //    supabase/fuzzy_search.sql). Optional: if the function is missing or
+  //    fails, exact results are still returned.
+  let fuzzySearch = supabase.rpc('search_households_fuzzy', {
+    p_query: tokens.join(' '),
+    p_address: address ?? null,
+    p_limit: SIMILAR_LIMIT + SEARCH_LIMIT
+  })
+  if (signal) fuzzySearch = fuzzySearch.abortSignal(signal)
+  const fuzzy = Promise.resolve(fuzzySearch).then(
+    ({ data, error }) => {
+      if (error) {
+        console.warn('[search] similar-name search unavailable:', error.message)
+        return []
+      }
+      return (data ?? []) as { household_id: number; matched_name: string }[]
+    },
+    () => [] as { household_id: number; matched_name: string }[]
+  )
+
+  const [parents, members, similarRows] = await Promise.all([
     signal
       ? parentSearch.limit(SEARCH_LIMIT * 3).abortSignal(signal)
       : parentSearch.limit(SEARCH_LIMIT * 3),
     signal
       ? memberSearch.limit(SEARCH_LIMIT * 3).abortSignal(signal)
-      : memberSearch.limit(SEARCH_LIMIT * 3)
+      : memberSearch.limit(SEARCH_LIMIT * 3),
+    fuzzy
   ])
 
   if (parents.error) throw parents.error
@@ -112,9 +140,25 @@ export async function searchHouseholds(
     push(family?.household_id)
   })
 
-  if (ids.length === 0) return []
+  const exactIds = ids.slice(0, SEARCH_LIMIT)
+  const exactSet = new Set(exactIds)
+  const similarTo = new Map<number, string>()
+  for (const row of similarRows) {
+    if (similarTo.size >= SIMILAR_LIMIT) break
+    if (!exactSet.has(row.household_id)) {
+      similarTo.set(row.household_id, row.matched_name)
+    }
+  }
 
-  return hydrateHouseholds(ids.slice(0, SEARCH_LIMIT), tokens, address, signal)
+  const allIds = [...exactIds, ...similarTo.keys()]
+  if (allIds.length === 0) return []
+
+  const households = await hydrateHouseholds(allIds, tokens, address, signal)
+  return households.map((household) =>
+    similarTo.has(household.id)
+      ? { ...household, similar: true, similarTo: similarTo.get(household.id) }
+      : household
+  )
 }
 
 /** Fetch full households for the matched ids, keeping the search order. */

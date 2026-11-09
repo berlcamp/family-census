@@ -112,6 +112,9 @@ function SearchScreen() {
   const visible = filter
     ? results.filter((h) => h[groupBy] === filter)
     : results
+  const exact = visible.filter((h) => !h.similar)
+  const similar = visible.filter((h) => h.similar)
+  const exactTotal = results.filter((h) => !h.similar).length
 
   if (!user) return null
 
@@ -206,23 +209,35 @@ function SearchScreen() {
         </p>
       )}
 
-      {visible.length > 0 && (
+      {searched && exact.length === 0 && similar.length > 0 && !loading && (
+        <p className="text-gray-600">
+          No exact match for “{debounced}”.
+        </p>
+      )}
+
+      {exact.length > 0 && (
         <>
           <p className="text-sm text-gray-500">
-            {visible.length} household{visible.length === 1 ? '' : 's'} found
-            {results.length >= SEARCH_LIMIT &&
+            {exact.length} household{exact.length === 1 ? '' : 's'} found
+            {exactTotal >= SEARCH_LIMIT &&
               ` — showing the first ${SEARCH_LIMIT}, add more words to narrow down`}
           </p>
+          <ResultGrid households={exact} tokens={tokens} dim={loading} />
+        </>
+      )}
 
-          <div
-            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${
-              loading ? 'opacity-60' : ''
-            }`}
-          >
-            {visible.map((h) => (
-              <ResultCard key={`household-${h.id}`} household={h} tokens={tokens} />
-            ))}
+      {similar.length > 0 && (
+        <>
+          <div className="pt-2">
+            <h2 className="text-base font-semibold text-gray-800">
+              Similar spelling
+            </h2>
+            <p className="text-sm text-gray-500">
+              {similar.length} household{similar.length === 1 ? '' : 's'} with
+              a name that sounds or is spelled like “{debounced}”
+            </p>
           </div>
+          <ResultGrid households={similar} tokens={tokens} dim={loading} />
         </>
       )}
     </div>
@@ -253,6 +268,48 @@ function Chip({
   )
 }
 
+function ResultGrid({
+  households,
+  tokens,
+  dim
+}: {
+  households: HouseholdSearchResult[]
+  tokens: string[]
+  dim: boolean
+}) {
+  return (
+    <div
+      className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${
+        dim ? 'opacity-60' : ''
+      }`}
+    >
+      {households.map((h) => (
+        <ResultCard key={`household-${h.id}`} household={h} tokens={tokens} />
+      ))}
+    </div>
+  )
+}
+
+/** Exact results highlight the typed words; similar results the whole name. */
+function Name({
+  text,
+  tokens,
+  similarTo
+}: {
+  text: string
+  tokens: string[]
+  similarTo?: string
+}) {
+  if (similarTo) {
+    return text === similarTo ? (
+      <mark className="rounded bg-orange-200 px-0.5">{text}</mark>
+    ) : (
+      <>{text}</>
+    )
+  }
+  return <Highlight text={text} tokens={tokens} />
+}
+
 function ResultCard({
   household: h,
   tokens
@@ -261,8 +318,19 @@ function ResultCard({
   tokens: string[]
 }) {
   return (
-    <Card className="rounded-none border-gray-300 bg-yellow-100 gap-3">
+    <Card
+      className={`rounded-none gap-3 ${
+        h.similar
+          ? 'border-orange-300 bg-orange-50'
+          : 'border-gray-300 bg-yellow-100'
+      }`}
+    >
       <CardHeader>
+        {h.similar && h.similarTo && (
+          <p className="text-xs font-medium text-orange-700">
+            Similar name: {h.similarTo}
+          </p>
+        )}
         <p className="text-sm text-gray-600">
           Address: {[h.purok, h.barangay, h.address].filter(Boolean).join(', ')}
         </p>
@@ -279,19 +347,19 @@ function ResultCard({
           >
             {f.husband_name && (
               <p className="font-semibold">
-                <Highlight text={f.husband_name} tokens={tokens} />
+                <Name text={f.husband_name} tokens={tokens} similarTo={h.similarTo} />
               </p>
             )}
             {f.wife_name && (
               <p className="font-semibold">
-                <Highlight text={f.wife_name} tokens={tokens} />
+                <Name text={f.wife_name} tokens={tokens} similarTo={h.similarTo} />
               </p>
             )}
             {(f.family_members?.length ?? 0) > 0 && (
               <ul className="ml-4 list-disc text-sm text-gray-700">
                 {f.family_members!.map((m, i) => (
                   <li key={m.id ?? i}>
-                    <Highlight text={m.fullname} tokens={tokens} />{' '}
+                    <Name text={m.fullname} tokens={tokens} similarTo={h.similarTo} />{' '}
                     {m.is_registered ? '' : '(NR)'}
                   </li>
                 ))}
