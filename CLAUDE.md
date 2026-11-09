@@ -18,7 +18,7 @@ npm run lint     # ESLint check
 ### Backend & Database
 
 - **Supabase** (PostgreSQL) with a custom `asenso` schema — all Supabase clients are configured to use this schema
-- Three Supabase client variants in `lib/supabase/`: `client.ts` (browser), `server.ts` (server components/actions), `admin.ts` (service role for admin ops)
+- Three Supabase client variants in `lib/supabase/`: `client.ts` (browser), `server.ts` (server components/actions), `admin.ts` (service role, server-only — `app/api/*` routes)
 - No ORM — all database access is via Supabase client queries directly
 - Auth via **Google OAuth** through Supabase Auth; callback handled at `/auth/callback`
 
@@ -42,7 +42,9 @@ Three user types with escalating access: regular **User** (location-scoped via `
 
 ### Environment Variables
 
-Required `NEXT_PUBLIC_` vars: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SERVICE_ROLE_KEY`, `RESEND_KEY`, `ORG_ID`, `BASE_URL`, `MAINTENANCE_MODE`.
+Required `NEXT_PUBLIC_` vars: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `RESEND_KEY`, `ORG_ID`, `BASE_URL`, `MAINTENANCE_MODE`.
+
+Server-only: `SUPABASE_SERVICE_ROLE_KEY` — used by `lib/supabase/admin.ts` from `app/api/*` routes only. Never prefix it with `NEXT_PUBLIC_` (that ships it to the browser).
 
 ### Data Import/Export
 

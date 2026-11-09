@@ -4,7 +4,6 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAppSelector } from '@/lib/redux/hook'
-import { supabase2 } from '@/lib/supabase/admin'
 import { supabase } from '@/lib/supabase/client'
 import { LocationUser } from '@/types'
 import {
@@ -47,14 +46,6 @@ export default function AddMemberModal({
   const [selectedRoles, setSelectedRoles] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
-  function generatePassword(length = 12) {
-    const chars =
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+[]{}|;:,.<>?'
-    return Array.from(crypto.getRandomValues(new Uint8Array(length)))
-      .map((x) => chars[x % chars.length])
-      .join('')
-  }
-
   // Search user from Supabase
   useEffect(() => {
     const fetchUsers = async () => {
@@ -89,149 +80,79 @@ export default function AddMemberModal({
   const handleInvite = async () => {
     if (!selectedUser) return
     setLoading(true)
+    const email = selectedUser.email.trim().toLowerCase()
 
-    const password = generatePassword()
-
-    const { data: createdUser, error } = await supabase2.auth.admin.createUser({
-      email: selectedUser.email,
-      password: password,
-      email_confirm: true
-    })
-
-    if (error) {
-      if (error.code === 'email_exists') {
-        const { data: authId, error } = await supabase.rpc(
-          'get_user_id_by_email',
-          {
-            p_email: selectedUser.email
-          }
-        )
-
-        if (error) {
-          toast.error(`Error fetching user ID:, ${error.message}`)
-          setLoading(false)
-          return
-        }
-
-        // Check user email if exist on users table
-        const { data: findUser, error: errorFindUser } = await supabase
-          .from('users')
-          .select()
-          .eq('email', selectedUser.email)
-          .maybeSingle()
-
-        if (errorFindUser) {
-          toast.error(`Error finding user:, ${errorFindUser.message}`)
-          setLoading(false)
-          return
-        }
-
-        // If user not exist on users table, create it
-        let userId
-        if (!findUser) {
-          const userData = {
-            user_id: authId,
-            name: selectedUser.email,
-            email: selectedUser.email,
-            password: password,
-            type: 'user',
-            org_id: process.env.NEXT_PUBLIC_ORG_ID,
-            address: location?.address,
-            is_active: true
-          }
-
-          const { data: insertedUser, error: error2 } = await supabase
-            .from('users')
-            .insert(userData)
-            .select()
-            .single()
-
-          if (error2) {
-            toast.error(`Error inserting user into table:', ${error2.message}`)
-            setLoading(false)
-            return
-          }
-          userId = insertedUser.id
-        } else {
-          const { error: updateUsers } = await supabase
-            .from('users')
-            .update({ user_id: authId })
-            .eq('email', selectedUser.email)
-          if (updateUsers) {
-            toast.error(`Error update user table:', ${updateUsers.message}`)
-            setLoading(false)
-            return
-          }
-          userId = findUser.id
-        }
-
-        const newData = {
-          user_id: userId,
-          location_id: location?.id,
-          is_editor: selectedRoles.find((r) => r === 'Editor') ? true : false,
-          is_importer: selectedRoles.find((r) => r === 'Importer')
-            ? true
-            : false
-        }
-
-        const { error: error3 } = await supabase
-          .from('location_users')
-          .insert(newData)
-
-        if (error3) {
-          toast.error(`Error inserting user into table:', ${error3.message}`)
-          setLoading(false)
-          return
-        }
-      } else {
-        console.error('Error creating user:', error.message)
-        setLoading(false)
-        return
-      }
-    } else {
-      const authId = createdUser.user?.id
-      if (!authId) return
-
-      const userData = {
-        user_id: authId,
-        name: selectedUser.email,
-        email: selectedUser.email,
-        password: password,
-        type: 'user',
-        org_id: process.env.NEXT_PUBLIC_ORG_ID,
-        address: location?.address,
-        is_active: true
-      }
-
-      const { data: insertedUser, error: error2 } = await supabase
-        .from('users')
-        .insert(userData)
-        .select()
-        .single()
-
-      if (error2) {
-        toast.error(`Error inserting user into table:', ${error2.message}`)
-        setLoading(false)
-        return
-      }
-
-      const newData = {
-        user_id: insertedUser.id,
-        location_id: location?.id,
-        is_editor: selectedRoles.find((r) => r === 'Editor') ? true : false,
-        is_importer: selectedRoles.find((r) => r === 'Importer') ? true : false
-      }
-
-      const { error: error3 } = await supabase
-        .from('location_users')
-        .insert(newData)
-
-      if (error3) {
-        toast.error(`Error inserting user into table:', ${error3.message}`)
-        setLoading(false)
-        return
-      }
+    const fail = (message: string) => {
+      toast.error(message)
+      setLoading(false)
     }
+
+    // 1. Make sure a login account exists. Done on the server, because it
+    //    needs the service-role key, which must never reach the browser.
+    const {
+      data: { session }
+    } = await supabase.auth.getSession()
+    const response = await fetch('/api/auth-users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.access_token ?? ''}`
+      },
+      body: JSON.stringify({ email })
+    })
+    const result = (await response.json().catch(() => ({}))) as {
+      authId?: string
+      error?: string
+    }
+    if (!response.ok || !result.authId) {
+      return fail(`Error creating account: ${result.error ?? response.statusText}`)
+    }
+    const authId = result.authId
+
+    // 2. Find or create the system user row, linked to that account.
+    const { data: findUser, error: errorFindUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle()
+    if (errorFindUser) {
+      return fail(`Error finding user: ${errorFindUser.message}`)
+    }
+
+    let userId: number
+    if (!findUser) {
+      const { data: insertedUser, error } = await supabase
+        .from('users')
+        .insert({
+          user_id: authId,
+          name: email,
+          email,
+          type: 'user',
+          org_id: process.env.NEXT_PUBLIC_ORG_ID,
+          address: location?.address,
+          is_active: true
+        })
+        .select('id')
+        .single()
+      if (error) return fail(`Error inserting user: ${error.message}`)
+      userId = insertedUser.id
+    } else {
+      const { error } = await supabase
+        .from('users')
+        .update({ user_id: authId })
+        .eq('id', findUser.id)
+      if (error) return fail(`Error updating user: ${error.message}`)
+      userId = findUser.id
+    }
+
+    // 3. Give them access to this location.
+    const { error: error3 } = await supabase.from('location_users').insert({
+      user_id: userId,
+      location_id: location?.id,
+      is_editor: selectedRoles.includes('Editor'),
+      is_importer: selectedRoles.includes('Importer')
+    })
+    if (error3) return fail(`Error adding user to location: ${error3.message}`)
 
     setRefresh((prev) => prev + 1)
     setLoading(false)
