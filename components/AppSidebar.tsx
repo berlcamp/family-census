@@ -1,4 +1,5 @@
 import { BarChart, CogIcon, Home, Users } from 'lucide-react'
+import { userManagementScope } from '@/lib/constants'
 
 import {
   Sidebar,
@@ -45,7 +46,7 @@ export function AppSidebar() {
           }
         ]
       : []),
-    ...(user?.type === 'super admin'
+    ...(userManagementScope(user).canManage
       ? [
           {
             title: 'Manage Users',

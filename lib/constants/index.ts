@@ -90,3 +90,55 @@ export const USER_TYPES = [
     help: 'Can switch between municipalities.'
   }
 ] as const
+
+export type UserTypeValue = (typeof USER_TYPES)[number]['value']
+
+export interface UserManagementScope {
+  /** Can open /manage-users at all. */
+  canManage: boolean
+  /** null = every municipality; otherwise only this one. */
+  municipality: string | null
+  /** User types this person may list, add and edit. */
+  types: UserTypeValue[]
+  /** The owner can see and edit other owners/province admins; nobody else. */
+  isOwner: boolean
+}
+
+/**
+ * Who may manage which users on /manage-users:
+ * - owner (OWNER_EMAILS): everyone, every municipality
+ * - province admin: viewers, encoders and super admins in every municipality
+ * - super admin: viewers and encoders in their own municipality only
+ * Owners are never listed for, or editable by, anyone but an owner.
+ */
+export function userManagementScope(me?: {
+  email?: string | null
+  type?: string | null
+  address?: string | null
+} | null): UserManagementScope {
+  if (isOwner(me?.email)) {
+    return {
+      canManage: true,
+      municipality: null,
+      types: USER_TYPES.map((t) => t.value),
+      isOwner: true
+    }
+  }
+  if (me?.type === 'province admin') {
+    return {
+      canManage: true,
+      municipality: null,
+      types: ['viewer', 'user', 'super admin'],
+      isOwner: false
+    }
+  }
+  if (me?.type === 'super admin' && me.address) {
+    return {
+      canManage: true,
+      municipality: me.address,
+      types: ['viewer', 'user'],
+      isOwner: false
+    }
+  }
+  return { canManage: false, municipality: null, types: [], isOwner: false }
+}
