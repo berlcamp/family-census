@@ -246,7 +246,10 @@ export default function ManageUsersPage() {
     setForm({
       email: '',
       name: '',
-      type: allowedTypes[0]?.value ?? 'viewer',
+      // Most new users are encoders, who must be assigned barangays.
+      type: allowedTypes.some((t) => t.value === 'user')
+        ? 'user'
+        : (allowedTypes[0]?.value ?? 'viewer'),
       address: scope.municipality ?? '',
       is_active: true
     })
@@ -706,11 +709,19 @@ export default function ManageUsersPage() {
               )}
             </div>
 
+            {form.type === 'user' && !form.address && (
+              <p className="text-sm text-amber-700">
+                Select a municipality first, then choose the barangays this
+                encoder will handle.
+              </p>
+            )}
+
             {form.type === 'user' && form.address && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium">
-                    Barangays ({selected.size} selected)
+                    Barangays <span className="text-red-600">*</span> (
+                    {selected.size} selected)
                   </label>
                   <div className="flex gap-2 text-xs">
                     <button
@@ -748,7 +759,9 @@ export default function ManageUsersPage() {
                     onChange={(e) => setBarangayFilter(e.target.value)}
                   />
                 )}
-                <div className="max-h-48 overflow-y-auto rounded border p-2 grid grid-cols-2 gap-1">
+                <div
+                  className={`max-h-48 overflow-y-auto rounded border p-2 grid grid-cols-2 gap-1 ${selected.size === 0 ? 'border-red-300' : ''}`}
+                >
                   {shownBarangays.length === 0 && (
                     <p className="col-span-2 text-xs text-gray-500">
                       No barangays found.
@@ -773,6 +786,11 @@ export default function ManageUsersPage() {
                     </label>
                   ))}
                 </div>
+                {selected.size === 0 && (
+                  <p className="text-xs text-red-600">
+                    Select at least one barangay.
+                  </p>
+                )}
                 <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -812,7 +830,12 @@ export default function ManageUsersPage() {
               >
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={saving}>
+              <Button
+                onClick={handleSave}
+                disabled={
+                  saving || (form.type === 'user' && selected.size === 0)
+                }
+              >
                 {saving ? 'Saving...' : form.id ? 'Save' : 'Add User'}
               </Button>
             </div>

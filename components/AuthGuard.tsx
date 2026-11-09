@@ -1,5 +1,6 @@
 'use client'
 
+import { isOwner } from '@/lib/constants'
 import { addList } from '@/lib/redux/locationsSlice'
 import { setUser } from '@/lib/redux/userSlice'
 import { supabase } from '@/lib/supabase/client'
@@ -41,6 +42,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         setLoading(false)
         return
       }
+
+      // The owner gets everything a province admin can see and do
+      // (all municipalities, address switcher, settings, dashboards).
+      if (isOwner(systemUser.email)) systemUser.type = 'province admin'
 
       // Fetch locations the user is allowed to access
       try {
