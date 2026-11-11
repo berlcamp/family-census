@@ -2,6 +2,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { isOwner } from '@/lib/constants'
 import { useAppSelector } from '@/lib/redux/hook'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -16,14 +17,17 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<number | null>(null)
 
-  // Only province admin can access
+  // Only the owner (OWNER_EMAILS, i.e. berlcamp@gmail.com) can access
+  const allowed = isOwner(user?.email)
+
   useEffect(() => {
     if (!user) return
-    if (user.type !== 'province admin') router.replace('/')
-  }, [router, user])
+    if (!allowed) router.replace('/')
+  }, [router, user, allowed])
 
   // Load all location settings
   useEffect(() => {
+    if (!allowed) return
     const loadSettings = async () => {
       const { data, error } = await supabase
         .from('location_settings')
@@ -41,7 +45,7 @@ export default function SettingsPage() {
       setLoading(false)
     }
     loadSettings()
-  }, [])
+  }, [allowed])
 
   // Toggle enable_edit
   const handleToggle = async (setting: any) => {
@@ -67,6 +71,7 @@ export default function SettingsPage() {
     toast.success(data.enable_edit ? 'Editing enabled' : 'Editing disabled')
   }
 
+  if (!allowed) return null
   if (loading) return <div className="p-4">Loading...</div>
 
   return (

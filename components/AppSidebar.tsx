@@ -1,5 +1,5 @@
 import { BarChart, CogIcon, Home, Users } from 'lucide-react'
-import { userManagementScope } from '@/lib/constants'
+import { isOwner, userManagementScope } from '@/lib/constants'
 
 import {
   Sidebar,
@@ -37,7 +37,7 @@ export function AppSidebar() {
           }
         ]
       : []),
-    ...(user?.type === 'province admin'
+    ...(isOwner(user?.email)
       ? [
           {
             title: 'Settings',

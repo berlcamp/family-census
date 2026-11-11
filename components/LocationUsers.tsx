@@ -20,7 +20,13 @@ import {
 
 type Checked = DropdownMenuCheckboxItemProps['checked']
 
-function LocationUser({ user }: { user: LocationUserType }) {
+function LocationUser({
+  user,
+  onRemoved
+}: {
+  user: LocationUserType
+  onRemoved: () => void
+}) {
   const [editor, setEditor] = useState<Checked>(!!user.is_editor)
   const [disabled, setDisabled] = useState<Checked>(!!user.is_disabled)
 
@@ -40,6 +46,28 @@ function LocationUser({ user }: { user: LocationUserType }) {
     setEditor(checked)
     setDisabled(false)
     void handleRoleUpdate({ is_editor: !!checked, is_disabled: false })
+  }
+
+  const handleRemove = async () => {
+    if (
+      !window.confirm(
+        `Remove ${user.user.name} from this barangay? Their account is kept; they just lose access here.`
+      )
+    )
+      return
+
+    const { data, error } = await supabase
+      .from('location_users')
+      .delete()
+      .eq('id', user.id)
+      .select('id')
+
+    if (error || !data?.length) {
+      toast.error('Failed to remove user')
+      return
+    }
+    toast.success('User removed')
+    onRemoved()
   }
 
   const toggleDisable = (checked: boolean) => {
@@ -114,6 +142,13 @@ function LocationUser({ user }: { user: LocationUserType }) {
                   <Button variant="green">Re-activate User</Button>
                 </DropdownMenuItem>
               )}
+
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => void handleRemove()}>
+                <Button variant="outline" className="text-red-600">
+                  Remove from Barangay
+                </Button>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -166,7 +201,15 @@ export default function LocationUsers({
         </div>
       )}
       <div className="mt-4">
-        {users?.map((user) => <LocationUser key={user.id} user={user} />)}
+        {users?.map((user) => (
+          <LocationUser
+            key={user.id}
+            user={user}
+            onRemoved={() =>
+              setUsers((prev) => prev.filter((u) => u.id !== user.id))
+            }
+          />
+        ))}
       </div>
       <AddMemberModal
         users={users}
