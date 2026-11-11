@@ -6,7 +6,6 @@ import NoAccess from '@/components/NoAccess'
 import Notfoundpage from '@/components/Notfoundpage'
 import { OverviewTab } from '@/components/OverviewTab'
 import VerticalMenu from '@/components/VerticalMenu'
-import { disabledAddresses } from '@/lib/constants'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import { clearLocation, setLocation } from '@/lib/redux/locationSlice'
 import { supabase } from '@/lib/supabase/client'
@@ -87,13 +86,29 @@ export default function Page() {
     }
   }, [location, locationId, user])
 
-  const enableEdit = !disabledAddresses.includes(location?.address ?? '')
+  // Same source of truth as the households page: Settings > Edit Settings
+  // (location_settings.enable_edit). null = not loaded yet.
+  const [enableEdit, setEnableEdit] = useState<boolean | null>(null)
 
-  if (loading) {
+  useEffect(() => {
+    if (!location?.address) return
+    const loadSetting = async () => {
+      const { data, error } = await supabase
+        .from('location_settings')
+        .select('enable_edit')
+        .eq('address', location.address)
+        .single()
+      // Default: editing disabled unless explicitly enabled
+      setEnableEdit(!error && data ? data.enable_edit === true : false)
+    }
+    void loadSetting()
+  }, [location?.address])
+
+  if (loading || (user?.type === 'user' && location && enableEdit === null)) {
     return <LoadingSkeleton />
   }
 
-  if (!enableEdit && user?.type === 'user') {
+  if (enableEdit === false && user?.type === 'user') {
     return <NoAccess />
   }
 
