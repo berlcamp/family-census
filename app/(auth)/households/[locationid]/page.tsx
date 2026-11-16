@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import LoadingSkeleton from '@/components/LoadingSkeleton'
 import NoAccess from '@/components/NoAccess'
@@ -34,7 +34,10 @@ export default function HouseholdsPage() {
   const { locationid } = useParams<{ locationid: string }>()
   const locationIdNum = Number(locationid)
 
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [listLoading, setListLoading] = useState(true)
+  // Only the latest households request may update the list.
+  const listRequest = useRef(0)
   const [userHasAccess, setUserHasAccess] = useState<LocationUser | null>(null)
 
   const [selectedDate, setSelectedDate] = useState('')
@@ -319,38 +322,93 @@ export default function HouseholdsPage() {
       familyId = data.id
     }
 
-    // 4. Full Replace Family Members
-    let insertedMembers: FamilyMember[] = []
+    // 4. Save family members in place.
+    //    Existing rows are updated (keeping their id, so is_ap_member,
+    //    address, category, Kadiwa claims and AP match results stay linked),
+    //    new ones are inserted, and only members removed in the form are
+    //    deleted. Deletes run last, after everything else has succeeded.
+    let savedMembers: FamilyMember[] = []
 
     if (familyId) {
-      // Delete all existing members
-      await supabase.from('family_members').delete().eq('family_id', familyId)
+      const { data: currentRows, error: currentError } = await supabase
+        .from('family_members')
+        .select('id')
+        .eq('family_id', familyId)
 
-      // Insert fresh members
-      if (family.family_members?.length) {
-        const inserts = family.family_members.map((member) => ({
-          family_id: familyId,
-          voter_id: member.is_registered ? member.voter_id : null,
-          fullname: member.fullname,
-          relation: member.relation,
-          is_registered: member.is_registered,
-          asenso: member.asenso,
-          barangay: location?.name
-        }))
+      if (currentError) {
+        console.error('Error loading members:', currentError)
+        toast.error('Failed to save family members.')
+        return
+      }
 
-        const { data: membersData, error: insertError } = await supabase
+      const currentIds = new Set((currentRows ?? []).map((r) => r.id))
+      const memberFields = (member: FamilyMember) => ({
+        voter_id: member.is_registered ? member.voter_id ?? null : null,
+        fullname: member.fullname,
+        relation: member.relation,
+        is_registered: member.is_registered,
+        asenso: member.asenso
+      })
+
+      const formMembers = family.family_members ?? []
+      const keptIds = new Set<number>()
+
+      for (const member of formMembers) {
+        const memberId = member.member_id
+        if (memberId && currentIds.has(memberId)) {
+          const { data, error } = await supabase
+            .from('family_members')
+            .update(memberFields(member))
+            .eq('id', memberId)
+            .eq('family_id', familyId)
+            .select()
+            .single()
+          if (error) {
+            console.error('Error updating member:', error)
+            toast.error('Failed to save family members.')
+            return
+          }
+          keptIds.add(memberId)
+          savedMembers.push(data)
+        } else {
+          const { data, error } = await supabase
+            .from('family_members')
+            .insert({
+              ...memberFields(member),
+              family_id: familyId,
+              barangay: location?.name
+            })
+            .select()
+            .single()
+          if (error) {
+            console.error('Error inserting member:', error)
+            toast.error('Failed to save family members.')
+            return
+          }
+          savedMembers.push(data)
+        }
+      }
+
+      const removedIds = [...currentIds].filter((id) => !keptIds.has(id))
+      if (removedIds.length) {
+        const { error } = await supabase
           .from('family_members')
-          .insert(inserts)
-          .select()
-
-        if (insertError) {
-          console.error('Error inserting members:', insertError)
-          toast.error('Failed to save family members.')
+          .delete()
+          .in('id', removedIds)
+          .eq('family_id', familyId)
+        if (error) {
+          console.error('Error removing members:', error)
+          toast.error('Family saved, but removed members could not be deleted.')
           return
         }
-
-        insertedMembers = membersData ?? []
       }
+
+      // Same shape the list uses (id = voter id, member_id = row id).
+      savedMembers = savedMembers.map((m) => ({
+        ...m,
+        id: m.voter_id ?? undefined,
+        member_id: m.id
+      }))
     }
 
     // 5. Prepare Family object for Redux
@@ -365,7 +423,7 @@ export default function HouseholdsPage() {
       wife_name: family.wife?.fullname ?? null,
       asenso_husband: family.husband?.is_asenso || false,
       asenso_wife: family.wife?.is_asenso || false,
-      family_members: insertedMembers
+      family_members: savedMembers
     } as Family
 
     // 6. Dispatch to Redux
@@ -520,6 +578,8 @@ export default function HouseholdsPage() {
   ) => {
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
+    const requestId = ++listRequest.current
+    setListLoading(true)
 
     try {
       let householdIds: number[] = []
@@ -661,6 +721,7 @@ export default function HouseholdsPage() {
 
           family_members: (f.family_members ?? []).map((m: any) => ({
             id: m.voter_id ?? null,
+            member_id: m.id,
             voter_id: m.voter_id ?? null,
             fullname: m.fullname,
             barangay: m.barangay,
@@ -671,7 +732,7 @@ export default function HouseholdsPage() {
         }))
       }))
 
-      console.log('mapped', mapped)
+      if (requestId !== listRequest.current) return
       dispatch(
         setHouseholds({
           households: mapped,
@@ -681,73 +742,79 @@ export default function HouseholdsPage() {
       )
     } catch (err) {
       console.error('Error fetching households:', err)
+      if (requestId === listRequest.current) toast.error('Could not load households.')
+    } finally {
+      if (requestId === listRequest.current) setListLoading(false)
     }
   }
 
+  // Load the barangay, the user's access row and the edit setting together,
+  // so the page is not waiting on one request after another.
   useEffect(() => {
-    if (!locationIdNum) return
+    if (!locationIdNum || !user) return
 
     dispatch(clearLocation()) // 👈 Clear old location when URL changes
+    let cancelled = false
 
     const fetchData = async () => {
       setLoading(true)
+      const isAdmin =
+        user.type === 'super admin' || user.type === 'province admin'
 
-      // Super admin
-      if (user?.type === 'super admin' || user?.type === 'province admin') {
-        const { data, error } = await supabase
-          .from('locations')
-          .select('*,service_providers(*)')
-          .eq('address', user?.address)
-          .eq('id', locationIdNum)
-          .single()
+      const locationRequest = isAdmin
+        ? supabase
+            .from('locations')
+            .select('*,service_providers(*)')
+            .eq('address', user.address)
+            .eq('id', locationIdNum)
+            .single()
+        : supabase.rpc('check_location_access', {
+            input_user_id: user.system_user_id,
+            input_location_id: locationIdNum
+          })
+      const accessRequest =
+        user.type === 'user'
+          ? supabase
+              .from('location_users')
+              .select()
+              .eq('location_id', locationIdNum)
+              .eq('user_id', user.system_user_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null })
 
-        if (error) {
-          console.error('Error checking access:', error)
-        }
-        dispatch(setLocation(data))
-      } else {
-        const { data, error } = await supabase.rpc('check_location_access', {
-          input_user_id: user?.system_user_id,
-          input_location_id: locationIdNum
-        })
+      const [locationRes, accessRes] = await Promise.all([
+        locationRequest,
+        accessRequest
+      ])
+      if (cancelled) return
 
-        if (error) {
-          console.error('Error checking access:', error)
-        } else if (data === false) {
-          console.log('User has no access')
-        } else if (data) {
-          console.log('location details fetched2', data)
-          dispatch(setLocation(data))
-        }
+      if (locationRes.error) {
+        console.error('Error checking access:', locationRes.error)
       }
+      const loc = locationRes.data && locationRes.data !== false ? locationRes.data : null
+      setUserHasAccess(accessRes.data ?? null)
 
+      let editSetting = false
+      if (loc?.address) {
+        const { data, error } = await supabase
+          .from('location_settings')
+          .select('enable_edit')
+          .eq('address', loc.address)
+          .maybeSingle()
+        // Default: editing disabled unless explicitly enabled
+        editSetting = !error && !!data?.enable_edit
+      }
+      if (cancelled) return
+
+      setEnableEdit(editSetting)
+      if (loc) dispatch(setLocation(loc))
       setLoading(false)
     }
     void fetchData()
-  }, [
-    dispatch,
-    locationIdNum,
-    user?.address,
-    user?.admin,
-    user?.system_user_id
-  ])
-
-  useEffect(() => {
-    const checkAccess = async () => {
-      const { data: locationUser } = await supabase
-        .from('location_users')
-        .select()
-        .eq('location_id', location?.id)
-        .eq('user_id', user?.system_user_id)
-        .single()
-      if (locationUser) {
-        setUserHasAccess(locationUser)
-      }
+    return () => {
+      cancelled = true
     }
-    if (user?.type === 'user' && location) {
-      checkAccess()
-    }
-  }, [location, user])
+  }, [dispatch, locationIdNum, user])
 
   // 🚀 Fetch households whenever page or location changes (but not directly on search)
   useEffect(() => {
@@ -755,32 +822,6 @@ export default function HouseholdsPage() {
 
     fetchHouseholds(currentPage, search, purok, sp)
   }, [currentPage, locationIdNum]) // 👈 removed search here
-
-  // const enableEdit =
-  //   !disabledAddresses.includes(location?.address ?? '') ||
-  //   (user?.type === 'province admin' && location?.address !== 'OZAMIZ CITY')
-  // || ['MALAUBANG'].includes(location?.name ?? '')
-
-  useEffect(() => {
-    const loadSetting = async () => {
-      if (!location?.address) return
-
-      const { data, error } = await supabase
-        .from('location_settings')
-        .select('enable_edit')
-        .eq('address', location.address)
-        .single()
-
-      if (!error && data) {
-        setEnableEdit(data.enable_edit)
-      } else {
-        // Default: editing disabled unless explicitly enabled
-        setEnableEdit(false)
-      }
-    }
-
-    loadSetting()
-  }, [location?.address])
 
   const enableEdit2 =
     user?.type === 'super admin' ||
@@ -940,12 +981,27 @@ export default function HouseholdsPage() {
         </Button>
       </div>
 
-      {households.length === 0 && (
+      {!listLoading && households.length === 0 && (
         <div className="p-4 text-xl text-gray-600">No households found.</div>
       )}
 
+      {listLoading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div
+              key={i}
+              className="h-48 border border-gray-300 bg-yellow-50 animate-pulse"
+            />
+          ))}
+        </div>
+      )}
+
       {/* ✅ Conditional layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+      <div
+        className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 ${
+          listLoading ? 'hidden' : ''
+        }`}
+      >
         {households.map((h) => (
           <Card
             key={`household-${h.id}`}

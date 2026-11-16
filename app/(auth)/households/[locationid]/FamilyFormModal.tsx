@@ -33,6 +33,10 @@ interface FamilyFormProps {
 
 type AbortRef = { current: AbortController | null }
 
+// Barangay voter lists already loaded this session, keyed "TOWN|BARANGAY".
+const voterCache = new Map<string, Voter[]>()
+const MAX_PRELOAD = 20000
+
 export default function FamilyModal({
   open,
   onSave,
@@ -245,41 +249,44 @@ export default function FamilyModal({
     }
   }
 
-  // fetch all voters in barangay once
+  // Load the barangay's voters (for instant local search) only when the form
+  // is opened, once per barangay. Fetched in pages so barangays with more
+  // than 1,000 voters are not cut off.
   useEffect(() => {
+    if (!open || !location?.name || !location?.address) return
+    const key = `${location.address}|${location.name}`
+    const cached = voterCache.get(key)
+    if (cached) {
+      setAllVoters(cached)
+      return
+    }
+
+    let cancelled = false
     const fetchInitialVoters = async () => {
-      const cleanBarangay = location?.name?.trim()
-      const cleanAddress = location?.address?.trim()
-
-      if (location?.address === 'CONCEPCION') {
-        const { data, error } = await supabase
-          .from('voters')
-          .select('id, fullname')
-          .eq('address', location?.address)
-
-        if (!error && data) {
-          setAllVoters(data)
-        }
-      } else {
-        const { data, error } = await supabase
-          .from('voters')
-          .select('id, fullname')
-          // .eq('barangay', location?.name)
-          // .eq('address', location?.address)
-          .ilike('barangay', `%${cleanBarangay}%`)
-          .ilike('address', `%${cleanAddress}%`)
-
-        console.log('data', cleanBarangay, cleanAddress, data?.length)
-        if (!error && data) {
-          setAllVoters(data)
-        }
+      const cleanBarangay = location.name.trim()
+      const cleanAddress = location.address.trim()
+      const rows: Voter[] = []
+      for (let from = 0; from < MAX_PRELOAD; from += 1000) {
+        let q = supabase.from('voters').select('id, fullname')
+        q =
+          location.address === 'CONCEPCION'
+            ? q.eq('address', location.address)
+            : q
+                .ilike('barangay', `%${cleanBarangay}%`)
+                .ilike('address', `%${cleanAddress}%`)
+        const { data, error } = await q.order('id').range(from, from + 999)
+        if (error || !data) break
+        rows.push(...data)
+        if (data.length < 1000) break
       }
+      voterCache.set(key, rows)
+      if (!cancelled) setAllVoters(rows)
     }
-
-    if (location?.name) {
-      fetchInitialVoters()
+    fetchInitialVoters()
+    return () => {
+      cancelled = true
     }
-  }, [location?.address, location?.name])
+  }, [open, location?.address, location?.name])
 
   // sync when editing
   useEffect(() => {

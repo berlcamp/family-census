@@ -198,6 +198,8 @@ export interface Family {
 // Family member record (asenso.family_members)
 export interface FamilyMember {
   id?: number
+  // family_members.id. (In the households screen `id` holds the voter id.)
+  member_id?: number | null
   family_id?: number
   voter_id?: number | null
   fullname: string
