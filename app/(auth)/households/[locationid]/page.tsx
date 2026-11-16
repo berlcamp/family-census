@@ -24,10 +24,9 @@ import {
 import { clearLocation, setLocation } from '@/lib/redux/locationSlice'
 import { supabase } from '@/lib/supabase/client'
 import { Family, FamilyMember, Household, LocationUser } from '@/types'
-import { Check } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import toast from 'react-hot-toast'
-import FamilyFormModal from './FamilyFormModal'
+import FamilyEditor, { PersonLine } from './FamilyEditor'
 import HouseholdModal from './HouseholdModal'
 
 export default function HouseholdsPage() {
@@ -58,11 +57,11 @@ export default function HouseholdsPage() {
   const [showHouseholdModal, setShowHouseholdModal] = useState(false)
   const [editHousehold, setEditHousehold] = useState<Household | null>(null)
 
-  const [showFamilyModal, setShowFamilyModal] = useState(false)
-  const [currentHouseholdId, setCurrentHouseholdId] = useState<number | null>(
-    null
-  )
-  const [editFamily, setEditFamily] = useState<Family | null>(null)
+  // The one family being added or edited inline (familyId null = new).
+  const [editing, setEditing] = useState<{
+    householdId: number
+    familyId: number | null
+  } | null>(null)
 
   const dispatch = useAppDispatch()
   const location = useAppSelector((state) => state.location.selectedLocation)
@@ -150,8 +149,11 @@ export default function HouseholdsPage() {
   }
 
   // Save Family (Full Replace Strategy)
-  const handleSaveFamily = async (family: Partial<Family>) => {
-    if (!currentHouseholdId) return
+  // Returns true when saved, so the inline editor can close.
+  const handleSaveFamily = async (
+    householdId: number,
+    family: Partial<Family>
+  ): Promise<boolean> => {
 
     // 1. Check if husband, wife, or any member is registered
     const hasHusband = !!family.husband?.voter_id
@@ -169,7 +171,7 @@ export default function HouseholdsPage() {
       toast.error(
         'At least one of Husband, Wife, or Family Members must be a registered voter.'
       )
-      return
+      return false
     }
 
     // 2. Check duplicates (husband/wife already part of another family)
@@ -204,7 +206,7 @@ export default function HouseholdsPage() {
       if (familiesErr || wivesErr || membersErr) {
         console.error(familiesErr || wivesErr || membersErr)
         toast.error('Error checking duplicates. Please try again.')
-        return
+        return false
       }
 
       // Combine results
@@ -251,7 +253,7 @@ export default function HouseholdsPage() {
         toast.error(
           `${conflictedName} is already part of another family in ${conflictedBarangay}.`
         )
-        return
+        return false
       }
     }
 
@@ -273,7 +275,7 @@ export default function HouseholdsPage() {
       const { error } = await supabase
         .from('families')
         .update({
-          household_id: currentHouseholdId,
+          household_id: householdId,
           sp: family.sp,
           husband_id: family.husband?.voter_id ?? null,
           husband_name: family.husband?.fullname ?? null,
@@ -288,7 +290,7 @@ export default function HouseholdsPage() {
       if (error) {
         console.error('Error updating family:', error)
         toast.error('Failed to update family.')
-        return
+        return false
       }
 
       familyId = family.id
@@ -298,7 +300,7 @@ export default function HouseholdsPage() {
         .from('families')
         .insert([
           {
-            household_id: currentHouseholdId,
+            household_id: householdId,
             sp: family.sp,
             husband_id: family.husband?.voter_id ?? null,
             husband_name: family.husband?.fullname ?? null,
@@ -316,7 +318,7 @@ export default function HouseholdsPage() {
       if (error) {
         console.error('Error inserting family:', error)
         toast.error('Failed to add family.')
-        return
+        return false
       }
 
       familyId = data.id
@@ -338,7 +340,7 @@ export default function HouseholdsPage() {
       if (currentError) {
         console.error('Error loading members:', currentError)
         toast.error('Failed to save family members.')
-        return
+        return false
       }
 
       const currentIds = new Set((currentRows ?? []).map((r) => r.id))
@@ -366,7 +368,7 @@ export default function HouseholdsPage() {
           if (error) {
             console.error('Error updating member:', error)
             toast.error('Failed to save family members.')
-            return
+            return false
           }
           keptIds.add(memberId)
           savedMembers.push(data)
@@ -383,7 +385,7 @@ export default function HouseholdsPage() {
           if (error) {
             console.error('Error inserting member:', error)
             toast.error('Failed to save family members.')
-            return
+            return false
           }
           savedMembers.push(data)
         }
@@ -399,7 +401,7 @@ export default function HouseholdsPage() {
         if (error) {
           console.error('Error removing members:', error)
           toast.error('Family saved, but removed members could not be deleted.')
-          return
+          return false
         }
       }
 
@@ -414,7 +416,7 @@ export default function HouseholdsPage() {
     // 5. Prepare Family object for Redux
     savedFamily = {
       id: familyId,
-      household_id: currentHouseholdId,
+      household_id: householdId,
       husband: family.husband ?? null,
       wife: family.wife ?? null,
       husband_id: family.husband?.voter_id ?? null,
@@ -430,7 +432,7 @@ export default function HouseholdsPage() {
     if (family.id) {
       dispatch(
         updateFamily({
-          householdId: currentHouseholdId,
+          householdId: householdId,
           family: savedFamily
         })
       )
@@ -441,12 +443,12 @@ export default function HouseholdsPage() {
         p_system_user_id: user?.system_user_id,
         p_user_name: user?.name,
         p_action: 'Updated Family',
-        p_details: `Updated family on household ID:${currentHouseholdId}`
+        p_details: `Updated family on household ID:${householdId}`
       })
     } else {
       dispatch(
         addFamily({
-          householdId: currentHouseholdId,
+          householdId: householdId,
           family: savedFamily
         })
       )
@@ -457,12 +459,12 @@ export default function HouseholdsPage() {
         p_system_user_id: user?.system_user_id,
         p_user_name: user?.name,
         p_action: 'Added New Family',
-        p_details: `Added new family on household ID:${currentHouseholdId}`
+        p_details: `Added new family on household ID:${householdId}`
       })
     }
 
     toast.success('Family saved successfully!')
-    setShowFamilyModal(false)
+    return true
   }
 
   const handleDeleteHousehold = async (householdId: number) => {
@@ -520,8 +522,8 @@ export default function HouseholdsPage() {
 
       toast.success('Family deleted successfully!')
 
-      // 3. Close modal
-      setShowHouseholdModal(false)
+      // 3. Close the inline editor
+      setEditing(null)
     } catch (err) {
       console.error('Failed to delete Family:', err)
       toast.error('❌ Error deleting Family. Please try again.')
@@ -827,8 +829,7 @@ export default function HouseholdsPage() {
     user?.type === 'super admin' ||
     user?.type === 'province admin' ||
     userHasAccess?.is_editor === true
-
-  console.log('location?.service_providers', location?.service_providers)
+  const canEdit = enableEdit && enableEdit2
 
   if (user?.type === 'user' && userHasAccess?.is_disabled) {
     return <NoAccess />
@@ -1037,76 +1038,88 @@ export default function HouseholdsPage() {
               )}
             </CardHeader>
             <CardContent>
-              {h.families?.map((f) => (
-                <div
-                  key={`family-${f.id}-${h.id}`}
-                  className={`mb-3 rounded p-2 ${
-                    f.all_nr ? 'bg-red-100 border border-red-300' : ''
-                  }`}
-                >
-                  <div className="font-semibold flex items-start justify-between">
-                    <span>
-                      {f.husband_name}{' '}
-                      {f.husband && !f.husband?.voter_id && '(NR)'}
-                    </span>
-                    {f.husband_name && f.asenso_husband === true && (
-                      <Check className="text-xs text-orange-600 h-4 w-4" />
+              {h.families?.map((f) =>
+                editing?.householdId === h.id && editing.familyId === f.id ? (
+                  <FamilyEditor
+                    key={`edit-${f.id}`}
+                    initialFamily={f}
+                    onSave={(family) => handleSaveFamily(h.id, family)}
+                    onDelete={() => handleDeleteFamily(h.id, f.id)}
+                    onCancel={() => setEditing(null)}
+                  />
+                ) : (
+                  <div
+                    key={`family-${f.id}-${h.id}`}
+                    className={`group mb-3 rounded p-2 ${
+                      f.all_nr ? 'bg-red-100 border border-red-300' : ''
+                    } ${
+                      canEdit && !editing
+                        ? 'cursor-pointer hover:bg-yellow-200/60'
+                        : ''
+                    }`}
+                    onClick={() => {
+                      if (canEdit && !editing) {
+                        setEditing({ householdId: h.id, familyId: f.id })
+                      }
+                    }}
+                    title={canEdit && !editing ? 'Click to edit family' : undefined}
+                  >
+                    {f.husband_name && (
+                      <PersonLine
+                        className="font-semibold"
+                        name={f.husband_name}
+                        registered={!!f.husband?.voter_id}
+                        asenso={f.asenso_husband}
+                      />
+                    )}
+                    {f.wife_name && (
+                      <PersonLine
+                        className="font-semibold"
+                        name={f.wife_name}
+                        registered={!!f.wife?.voter_id}
+                        asenso={f.asenso_wife}
+                      />
+                    )}
+                    <ul className="ml-4 list-disc text-sm text-gray-700">
+                      {f.family_members?.map((m, i) => (
+                        <li key={m.member_id ?? i}>
+                          <PersonLine
+                            className="font-semibold"
+                            name={m.fullname}
+                            registered={!!m.is_registered}
+                            asenso={m.asenso}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                    {canEdit && !editing && (
+                      <span className="mt-1 inline-block text-xs text-blue-700 opacity-60 group-hover:opacity-100">
+                        ✎ Edit family
+                      </span>
                     )}
                   </div>
-                  <div className="font-semibold flex items-start justify-between">
-                    <span>
-                      {f.wife_name} {f.wife && !f.wife?.voter_id && '(NR)'}
-                    </span>
-                    {f.wife_name && f.asenso_wife === true && (
-                      <Check className="text-xs text-orange-600 h-4 w-4" />
-                    )}
-                  </div>
-                  {/* <p className="font-semibold">
-                    {f.wife_name} {f.wife && !f.wife?.voter_id && '(NR)'}
-                  </p> */}
-                  <ul className="ml-4 list-disc text-sm text-gray-700">
-                    {f.family_members?.map((m, i) => (
-                      <li key={i}>
-                        {/* {m.fullname} {m.is_registered ? '' : '(NR)'} */}
-                        <div className="font-semibold flex items-start justify-between">
-                          <span>
-                            {m.fullname} {!m.is_registered && '(NR)'}
-                          </span>
-                          {m.asenso === true && (
-                            <Check className="text-xs text-orange-600 h-4 w-4" />
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                  {enableEdit && enableEdit2 && (
-                    <Button
-                      size="sm"
-                      variant="link"
-                      className="mt-1 text-blue-700"
-                      onClick={() => {
-                        setCurrentHouseholdId(h.id)
-                        setEditFamily(f)
-                        setShowFamilyModal(true)
-                      }}
-                    >
-                      Edit Family
-                    </Button>
-                  )}
-                </div>
-              ))}
-              {enableEdit && enableEdit2 && (
-                <Button
-                  size="xs"
-                  className="mt-2"
-                  onClick={() => {
-                    setCurrentHouseholdId(h.id)
-                    setEditFamily(null)
-                    setShowFamilyModal(true)
-                  }}
-                >
-                  + Add Family
-                </Button>
+                )
+              )}
+              {editing?.householdId === h.id && editing.familyId === null ? (
+                <FamilyEditor
+                  key={`new-${h.id}`}
+                  initialFamily={null}
+                  onSave={(family) => handleSaveFamily(h.id, family)}
+                  onCancel={() => setEditing(null)}
+                />
+              ) : (
+                canEdit &&
+                !editing && (
+                  <Button
+                    size="xs"
+                    className="mt-2"
+                    onClick={() =>
+                      setEditing({ householdId: h.id, familyId: null })
+                    }
+                  >
+                    + Add Family
+                  </Button>
+                )
               )}
             </CardContent>
           </Card>
@@ -1142,13 +1155,7 @@ export default function HouseholdsPage() {
         onDelete={handleDeleteHousehold} // ✅ wired to slice
       />
 
-      <FamilyFormModal
-        open={showFamilyModal}
-        onCancel={() => setShowFamilyModal(false)}
-        onSave={handleSaveFamily}
-        initialFamily={editFamily}
-        onDelete={handleDeleteFamily} // ✅ wired to slice
-      />
+
     </div>
   )
 }
