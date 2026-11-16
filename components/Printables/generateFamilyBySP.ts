@@ -219,7 +219,7 @@ export const generateFamilyBySP = async (
   })
 
   // Add page numbers AFTER table generation
-  const pageCount = doc.internal.getNumberOfPages()
+  const pageCount = doc.getNumberOfPages()
 
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
