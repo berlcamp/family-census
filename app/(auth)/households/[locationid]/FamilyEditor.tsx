@@ -12,11 +12,17 @@ import { useBarangayVoters, VoterOption } from './useBarangayVoters'
 /** Small badge shown after a person's name. */
 export function RegisteredBadge({ registered }: { registered: boolean }) {
   return registered ? (
-    <span className="ml-1 inline-block rounded bg-green-600 px-1 py-px text-[10px] font-semibold leading-tight text-white align-middle">
-      Registered
+    <span
+      className="ml-1 inline-block rounded bg-green-600 px-1 py-px text-[10px] font-semibold leading-tight text-white align-middle"
+      title="Registered voter"
+    >
+      R
     </span>
   ) : (
-    <span className="ml-1 inline-block rounded bg-gray-400 px-1 py-px text-[10px] font-semibold leading-tight text-white align-middle">
+    <span
+      className="ml-1 inline-block rounded bg-gray-400 px-1 py-px text-[10px] font-semibold leading-tight text-white align-middle"
+      title="Not registered"
+    >
       NR
     </span>
   )
@@ -31,6 +37,27 @@ export function ApBadge() {
     >
       AP
     </span>
+  )
+}
+
+/** Explains the badges shown after names on the household cards. */
+export function BadgeLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
+      <span className="font-medium text-gray-700">Legend:</span>
+      <span>
+        <RegisteredBadge registered /> Registered voter
+      </span>
+      <span>
+        <RegisteredBadge registered={false} /> Not registered
+      </span>
+      <span>
+        <ApBadge /> AP member
+      </span>
+      <span className="inline-flex items-center gap-1">
+        <Check className="h-4 w-4 text-orange-600" /> Asenso (A)
+      </span>
+    </div>
   )
 }
 

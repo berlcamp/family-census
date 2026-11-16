@@ -26,7 +26,9 @@ import { supabase } from '@/lib/supabase/client'
 import { Family, FamilyMember, Household, LocationUser } from '@/types'
 import { useParams } from 'next/navigation'
 import toast from 'react-hot-toast'
-import FamilyEditor, { PersonLine } from './FamilyEditor'
+import FamilyEditor, { BadgeLegend, PersonLine } from './FamilyEditor'
+import { Download, MapPin, RotateCcw, Search as SearchIcon, UserRound } from 'lucide-react'
+import { FilterChip, FilterSelect } from './HouseholdFilters'
 import HouseholdModal from './HouseholdModal'
 
 export default function HouseholdsPage() {
@@ -54,6 +56,12 @@ export default function HouseholdsPage() {
   )
 
   const [search, setSearch] = useState('')
+  // Filters of the list currently shown (for the chips and the count).
+  const [appliedFilters, setAppliedFilters] = useState({
+    search: '',
+    purok: '',
+    sp: ''
+  })
   const [purok, setPurok] = useState('')
   const [sp, setSp] = useState('')
 
@@ -600,6 +608,13 @@ export default function HouseholdsPage() {
     }
   }
 
+  const applyFilters = (searchText: string, purokText: string, spText: string) => {
+    setAppliedFilters({ search: searchText.trim(), purok: purokText, sp: spText })
+    // Changing the page reloads the list (with the same filters) by itself.
+    if (currentPage !== 1) dispatch(setPage(1))
+    else fetchHouseholds(1, searchText, purokText, spText)
+  }
+
   // Fetch Households by Location
   const fetchHouseholds = async (
     page: number,
@@ -619,15 +634,15 @@ export default function HouseholdsPage() {
         // ✅ Call RPC with both search and purok
         let sp_id_param: number | null
 
-        if (sp === '') {
+        if (spText === '') {
           // All SP selected
           sp_id_param = null
-        } else if (sp === 'none') {
+        } else if (spText === 'none') {
           // No SP selected
           sp_id_param = -1 // special marker in RPC
         } else {
           // Specific SP selected
-          sp_id_param = Number(sp)
+          sp_id_param = Number(spText)
         }
 
         const { data: rpcData, error: rpcError } = await supabase.rpc(
@@ -863,6 +878,11 @@ export default function HouseholdsPage() {
     user?.type === 'province admin' ||
     userHasAccess?.is_editor === true
   const canEdit = enableEdit && enableEdit2
+  const hasFilters = !!(
+    appliedFilters.search ||
+    appliedFilters.purok ||
+    appliedFilters.sp
+  )
 
   if (user?.type === 'user' && userHasAccess?.is_disabled) {
     return <NoAccess />
@@ -904,115 +924,135 @@ export default function HouseholdsPage() {
 
       <VerticalMenu activeTab="households" />
 
+      {/* Filters */}
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          fetchHouseholds(1, search, purok, sp)
+          applyFilters(search, purok, sp)
         }}
-        className="flex items-end gap-2 my-4 p-4 xl:w-2/3"
+        className="mx-4 mt-4 rounded-lg border bg-white p-3 shadow-sm"
       >
-        {/* Search Input */}
-        <div className="flex-1 min-w-[200px]">
-          <Input
-            placeholder="Search full name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[220px] flex-1">
+            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              placeholder="Search a name in this barangay…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-9 pl-8"
+            />
+          </div>
 
-        {/* Purok Dropdown */}
-        <div className="min-w-[150px]">
-          <label className="text-xs font-medium text-gray-600">Purok</label>
-          <select
+          <FilterSelect
+            icon={<MapPin className="h-4 w-4" />}
             value={purok}
-            onChange={(e) => setPurok(e.target.value)}
-            className="w-full border rounded p-2 text-sm"
-          >
-            <option value="">-- All Puroks --</option>
-            {Array.isArray(location?.purok) &&
-              location.purok.map((p: string, i: number) => (
-                <option key={i} value={p}>
-                  {p}
-                </option>
-              ))}
-          </select>
-        </div>
-        {/* SP Dropdown */}
-        <div className="min-w-[150px]">
-          <label className="text-xs font-medium text-gray-600">SP</label>
-          <select
-            value={sp}
-            onChange={(e) => setSp(e.target.value)}
-            className="w-full border rounded p-2 text-sm"
-          >
-            <option value="">-- All SP --</option>
-            <option value="none">No SP</option>
-            {location?.service_providers
-              ?.slice() // avoid mutating original array
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map((sp) => (
-                <option key={sp.id} value={sp.id}>
-                  {sp.name}
-                </option>
-              ))}
-          </select>
-        </div>
+            onChange={(v) => {
+              setPurok(v)
+              applyFilters(search, v, sp)
+            }}
+            options={[
+              { value: '', label: 'All puroks' },
+              ...(Array.isArray(location?.purok)
+                ? location.purok.map((p: string) => ({ value: p, label: p }))
+                : [])
+            ]}
+          />
 
-        {/* Search & Reset Buttons */}
-        <div className="flex gap-2 ml-auto">
-          <Button type="submit" variant="blue">
+          <FilterSelect
+            icon={<UserRound className="h-4 w-4" />}
+            value={sp}
+            onChange={(v) => {
+              setSp(v)
+              applyFilters(search, purok, v)
+            }}
+            options={[
+              { value: '', label: 'All SPs' },
+              { value: 'none', label: 'No SP' },
+              ...(location?.service_providers ?? [])
+                .slice()
+                .sort((x, y) => x.name.localeCompare(y.name))
+                .map((x) => ({ value: String(x.id), label: x.name }))
+            ]}
+          />
+
+          <Button type="submit" variant="blue" className="h-9">
             Search
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setSearch('')
-              setPurok('')
-              setSp('')
-              fetchHouseholds(1, '', '', '') // reset
-            }}
-          >
-            Reset
-          </Button>
+          {hasFilters && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-9 text-gray-600"
+              onClick={() => {
+                setSearch('')
+                setPurok('')
+                setSp('')
+                applyFilters('', '', '')
+              }}
+            >
+              <RotateCcw className="h-4 w-4" /> Clear
+            </Button>
+          )}
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+          <span>
+            {listLoading
+              ? 'Loading…'
+              : `${totalCount.toLocaleString()} ${hasFilters ? 'matching ' : ''}household${totalCount === 1 ? '' : 's'}`}
+          </span>
+          {appliedFilters.search && (
+            <FilterChip
+              label={`Name: ${appliedFilters.search}`}
+              onClear={() => {
+                setSearch('')
+                applyFilters('', purok, sp)
+              }}
+            />
+          )}
+          {appliedFilters.purok && (
+            <FilterChip
+              label={`Purok: ${appliedFilters.purok}`}
+              onClear={() => {
+                setPurok('')
+                applyFilters(search, '', sp)
+              }}
+            />
+          )}
+          {appliedFilters.sp && (
+            <FilterChip
+              label={`SP: ${
+                appliedFilters.sp === 'none'
+                  ? 'None'
+                  : location?.service_providers?.find(
+                      (x) => String(x.id) === appliedFilters.sp
+                    )?.name ?? appliedFilters.sp
+              }`}
+              onClear={() => {
+                setSp('')
+                applyFilters(search, purok, '')
+              }}
+            />
+          )}
         </div>
       </form>
 
-      {/* ✅ Toggle buttons */}
-      {/* {households.length > 0 && (
-        <div className="flex justify-end gap-2 p-4">
-          <Button
-            variant={viewMode === 'grid' ? 'outline' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('grid')}
-          >
-            Grid View
-          </Button>
-          <Button
-            variant={viewMode === 'list' ? 'outline' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('list')}
-          >
-            List View
+      {/* Badge legend + user logs */}
+      <div className="mx-4 mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+        <BadgeLegend />
+        <div className="ml-auto flex items-center gap-2 text-xs text-gray-600">
+          <span>User logs</span>
+          <input
+            type="date"
+            className="h-7 rounded border px-1 text-xs"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            required
+          />
+          <Button variant="outline" size="xs" onClick={handleDownloadLogs}>
+            <Download className="h-3 w-3" /> Download
           </Button>
         </div>
-      )} */}
-
-      {/* Logs */}
-      <div className="flex items-center justify-end gap-2 p-4">
-        <span className="text-xs">User logs:</span>
-
-        <input
-          type="date"
-          className="text-xs border p-1"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          required
-        />
-
-        <Button variant="outline" size="xs" onClick={handleDownloadLogs}>
-          <span className="text-xs">Download Logs</span>
-        </Button>
       </div>
 
       {!listLoading && households.length === 0 && (
