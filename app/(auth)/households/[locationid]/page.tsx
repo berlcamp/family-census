@@ -37,6 +37,11 @@ export default function HouseholdsPage() {
   const [listLoading, setListLoading] = useState(true)
   // Only the latest households request may update the list.
   const listRequest = useRef(0)
+  // AP crossmatch result per person, for the AP badge (loaded after the list).
+  const [apStatus, setApStatus] = useState<{
+    families: Record<number, { husband: boolean | null; wife: boolean | null }>
+    members: Record<number, boolean | null>
+  }>({ families: {}, members: {} })
   const [userHasAccess, setUserHasAccess] = useState<LocationUser | null>(null)
 
   const [selectedDate, setSelectedDate] = useState('')
@@ -571,6 +576,30 @@ export default function HouseholdsPage() {
     URL.revokeObjectURL(url)
   }
 
+  // AP badges: ask the server for these households' crossmatch results.
+  // Failure only hides the badges; the list itself is unaffected.
+  const loadApStatus = async (householdIds: number[], requestId: number) => {
+    if (householdIds.length === 0) return
+    try {
+      const {
+        data: { session }
+      } = await supabase.auth.getSession()
+      const response = await fetch('/api/ap-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token ?? ''}`
+        },
+        body: JSON.stringify({ householdIds })
+      })
+      if (!response.ok) return
+      const body = await response.json()
+      if (requestId === listRequest.current) setApStatus(body)
+    } catch (err) {
+      console.error('Could not load AP status:', err)
+    }
+  }
+
   // Fetch Households by Location
   const fetchHouseholds = async (
     page: number,
@@ -741,6 +770,10 @@ export default function HouseholdsPage() {
           totalCount: count,
           page
         })
+      )
+      void loadApStatus(
+        mapped.map((h: any) => h.id),
+        requestId
       )
     } catch (err) {
       console.error('Error fetching households:', err)
@@ -1069,6 +1102,7 @@ export default function HouseholdsPage() {
                         className="font-semibold"
                         name={f.husband_name}
                         registered={!!f.husband?.voter_id}
+                        ap={apStatus.families[f.id]?.husband}
                         asenso={f.asenso_husband}
                       />
                     )}
@@ -1077,6 +1111,7 @@ export default function HouseholdsPage() {
                         className="font-semibold"
                         name={f.wife_name}
                         registered={!!f.wife?.voter_id}
+                        ap={apStatus.families[f.id]?.wife}
                         asenso={f.asenso_wife}
                       />
                     )}
@@ -1087,6 +1122,11 @@ export default function HouseholdsPage() {
                             className="font-semibold"
                             name={m.fullname}
                             registered={!!m.is_registered}
+                            ap={
+                              m.member_id
+                                ? apStatus.members[m.member_id]
+                                : undefined
+                            }
                             asenso={m.asenso}
                           />
                         </li>

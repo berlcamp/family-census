@@ -22,15 +22,29 @@ export function RegisteredBadge({ registered }: { registered: boolean }) {
   )
 }
 
+/** AP member according to the AP crossmatch. Shown only when AP. */
+export function ApBadge() {
+  return (
+    <span
+      className="ml-1 inline-block rounded bg-blue-700 px-1 py-px text-[10px] font-semibold leading-tight text-white align-middle"
+      title="AP member (AP crossmatch)"
+    >
+      AP
+    </span>
+  )
+}
+
 /** Name + badges + the existing orange check, as shown on the card. */
 export function PersonLine({
   name,
   registered,
+  ap,
   asenso,
   className = ''
 }: {
   name: string
   registered: boolean
+  ap?: boolean | null
   asenso?: boolean | null
   className?: string
 }) {
@@ -39,6 +53,7 @@ export function PersonLine({
       <span>
         {name}
         <RegisteredBadge registered={registered} />
+        {ap === true && <ApBadge />}
       </span>
       {asenso === true && (
         <Check className="h-4 w-4 shrink-0 text-orange-600" />
