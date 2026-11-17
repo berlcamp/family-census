@@ -51,3 +51,29 @@ export function FilterChip({ label, onClear }: { label: string; onClear: () => v
     </span>
   )
 }
+
+/** Neutral placeholder shaped like a household card, shown while loading. */
+export function HouseholdCardSkeleton() {
+  const bar = 'rounded bg-gray-200 dark:bg-gray-700'
+  return (
+    <div
+      aria-hidden
+      className="animate-pulse rounded-sm border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900"
+    >
+      <div className="flex justify-between">
+        <div className={`h-5 w-2/3 ${bar}`} />
+        <div className={`h-3 w-16 ${bar}`} />
+      </div>
+      <div className={`mt-3 h-3 w-1/3 ${bar}`} />
+      <div className={`mt-2 h-3 w-1/4 ${bar}`} />
+      <div className={`mt-2 h-3 w-2/5 ${bar}`} />
+      <div className="mt-5 space-y-2 rounded bg-gray-50 p-2 dark:bg-gray-800">
+        <div className={`h-4 w-3/4 ${bar}`} />
+        <div className={`h-4 w-2/3 ${bar}`} />
+        <div className={`ml-4 h-3 w-1/2 ${bar}`} />
+        <div className={`ml-4 h-3 w-3/5 ${bar}`} />
+      </div>
+      <div className={`mt-4 h-6 w-24 ${bar}`} />
+    </div>
+  )
+}

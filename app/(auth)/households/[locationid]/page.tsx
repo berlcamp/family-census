@@ -28,7 +28,7 @@ import { useParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import FamilyEditor, { BadgeLegend, PersonLine } from './FamilyEditor'
 import { Download, MapPin, Pencil, RotateCcw, Search as SearchIcon, UserRound } from 'lucide-react'
-import { FilterChip, FilterSelect } from './HouseholdFilters'
+import { FilterChip, FilterSelect, HouseholdCardSkeleton } from './HouseholdFilters'
 import HouseholdEditor from './HouseholdEditor'
 
 export default function HouseholdsPage() {
@@ -1096,10 +1096,7 @@ export default function HouseholdsPage() {
       {listLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
           {Array.from({ length: 6 }, (_, i) => (
-            <div
-              key={i}
-              className="h-48 border border-gray-300 bg-yellow-50 animate-pulse"
-            />
+            <HouseholdCardSkeleton key={i} />
           ))}
         </div>
       )}
