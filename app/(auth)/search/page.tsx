@@ -61,10 +61,11 @@ function SearchScreen() {
 
   const tokens = useMemo(() => tokenize(debounced), [debounced])
 
-  // Viewers are municipality-scoped: they only ever search their own address.
-  const isViewer = user?.type === 'viewer'
-  const scope = isViewer ? user?.address ?? null : null
-  const blocked = !user || user.type === 'user' || (isViewer && !scope)
+  // Viewers and super admins are municipality-scoped: they only ever search
+  // their own address. Province admins (and the owner) search everywhere.
+  const isScoped = user?.type === 'viewer' || user?.type === 'super admin'
+  const scope = isScoped ? user?.address ?? null : null
+  const blocked = !user || user.type === 'user' || (isScoped && !scope)
 
   useEffect(() => {
     setFilter(null)
@@ -118,13 +119,13 @@ function SearchScreen() {
 
   if (!user) return null
 
-  if (user.type === 'user' || (isViewer && !scope)) {
+  if (user.type === 'user' || (isScoped && !scope)) {
     return (
       <div className="p-4">
         <h1 className="text-2xl font-semibold mb-2 text-gray-800">
           Search access denied
         </h1>
-        {isViewer && (
+        {isScoped && (
           <p className="text-gray-500">
             Your account has no municipality assigned. Ask the administrator
             to set one.
