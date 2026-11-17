@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button'
 import { useAppSelector } from '@/lib/redux/hook'
-import { Check, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import PersonPicker from './PersonPicker'
@@ -40,6 +40,18 @@ export function ApBadge() {
   )
 }
 
+/** Asenso (the "A" checkbox in the family editor). */
+export function AsensoBadge() {
+  return (
+    <span
+      className="ml-1 inline-block rounded bg-orange-500 px-1 py-px text-[10px] font-semibold leading-tight text-white align-middle"
+      title="Asenso"
+    >
+      A
+    </span>
+  )
+}
+
 /** Explains the badges shown after names on the household cards. */
 export function BadgeLegend() {
   return (
@@ -54,14 +66,14 @@ export function BadgeLegend() {
       <span>
         <ApBadge /> AP member
       </span>
-      <span className="inline-flex items-center gap-1">
-        <Check className="h-4 w-4 text-orange-600" /> Asenso (A)
+      <span>
+        <AsensoBadge /> Asenso
       </span>
     </div>
   )
 }
 
-/** Name + badges + the existing orange check, as shown on the card. */
+/** Name followed by its badges, as shown on the card. */
 export function PersonLine({
   name,
   registered,
@@ -76,15 +88,14 @@ export function PersonLine({
   className?: string
 }) {
   return (
-    <div className={`flex items-start justify-between gap-2 ${className}`}>
-      <span>
-        {name}
+    <div className={className}>
+      {name}
+      {/* Badges wrap to the next line together, never one by one. */}
+      <span className="whitespace-nowrap">
         <RegisteredBadge registered={registered} />
         {ap === true && <ApBadge />}
+        {asenso === true && <AsensoBadge />}
       </span>
-      {asenso === true && (
-        <Check className="h-4 w-4 shrink-0 text-orange-600" />
-      )}
     </div>
   )
 }
@@ -184,14 +195,16 @@ export default function FamilyEditor({
       </div>
 
       <SpouseSlot
-        label="Husband"
+        label="Husband/Head #1"
+        placeholder="Husband / Head #1: Lastname, Firstname"
         person={husband}
         voters={voters}
         autoFocus={!initialFamily}
         onChange={setHusband}
       />
       <SpouseSlot
-        label="Wife"
+        label="Wife/Head #2"
+        placeholder="Wife / Head #2: Lastname, Firstname"
         person={wife}
         voters={voters}
         onChange={setWife}
@@ -314,20 +327,22 @@ export default function FamilyEditor({
 
 function SpouseSlot({
   label,
+  placeholder,
   person,
   voters,
   autoFocus,
   onChange
 }: {
   label: string
+  placeholder: string
   person: Slot
   voters: VoterOption[]
   autoFocus?: boolean
   onChange: (p: Slot) => void
 }) {
   return (
-    <div className="mb-1 grid grid-cols-[3.5rem_1fr] items-center gap-2">
-      <span className="text-xs font-medium text-gray-600">{label}</span>
+    <div className="mb-2">
+      <div className="mb-0.5 text-xs font-medium text-gray-600">{label}</div>
       {person ? (
         <div className="flex items-center gap-2 rounded bg-white/70 px-2 py-1">
           <span className="flex-1 font-semibold">
@@ -344,7 +359,7 @@ function SpouseSlot({
         <PersonPicker
           voters={voters}
           autoFocus={autoFocus}
-          placeholder={`${label}: Lastname, Firstname`}
+          placeholder={placeholder}
           onPick={(p) => onChange({ ...p, is_asenso: true })}
         />
       )}
