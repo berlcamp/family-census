@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import LocationUsers from './LocationUsers'
 import OverviewBarGraph from './OverviewBarGraph'
+import PurokManager from './PurokManager'
 import { generateFamilyBySP } from './Printables/generateFamilyBySP'
 import { generateFamilyBySPCong } from './Printables/generateFamilyBySPCong'
 import { generateFamilyBySPD2 } from './Printables/generateFamilyBySPD2'
@@ -38,11 +39,9 @@ export const OverviewTab = () => {
   const user = useAppSelector((state) => state.user.user)
 
   const [enableEdit, setEnableEdit] = useState(false)
+  const [enablePurokEdit, setEnablePurokEdit] = useState(false)
 
   const [selectedColor, setSelectedColor] = useState(location?.color || 'gray')
-  const [purokText, setPurokText] = useState(
-    Array.isArray(location?.purok) ? location.purok.join('\n') : ''
-  )
 
   const [loading, setLoading] = useState(false)
   const [showSave, setShowSave] = useState(false)
@@ -81,15 +80,17 @@ export const OverviewTab = () => {
 
       const { data, error } = await supabase
         .from('location_settings')
-        .select('enable_edit')
+        .select('enable_edit, enable_purok_edit')
         .eq('address', location.address)
         .single()
 
       if (!error && data) {
         setEnableEdit(data.enable_edit)
+        setEnablePurokEdit(data.enable_purok_edit)
       } else {
         // Default: editing disabled unless explicitly enabled
         setEnableEdit(false)
+        setEnablePurokEdit(false)
       }
     }
 
@@ -102,17 +103,10 @@ export const OverviewTab = () => {
 
     setLoading(true)
 
-    const purokArray = purokText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-
     const { data, error } = await supabase
       .from('locations')
-      .update({
-        color: selectedColor,
-        purok: purokArray
-      })
+      // Puroks are saved by PurokManager as they change.
+      .update({ color: selectedColor })
       .eq('id', location.id)
       .select()
       .single()
@@ -131,20 +125,12 @@ export const OverviewTab = () => {
   // Update state if selected location changes
   useEffect(() => {
     setSelectedColor(location?.color || 'gray')
-    setPurokText(
-      Array.isArray(location?.purok) ? location.purok.join('\n') : ''
-    )
   }, [location])
 
   // Detect unsaved changes
   useEffect(() => {
-    const hasChanges =
-      selectedColor !== (location?.color || 'gray') ||
-      purokText !==
-        (Array.isArray(location?.purok) ? location.purok.join('\n') : '')
-
-    setShowSave(hasChanges)
-  }, [selectedColor, purokText, location])
+    setShowSave(selectedColor !== (location?.color || 'gray'))
+  }, [selectedColor, location])
 
   return (
     <div className="lg:grid grid-cols-3 min-h-screen">
@@ -187,30 +173,10 @@ export const OverviewTab = () => {
           </div>
         </div>
 
-        {/* Purok Textarea */}
-        <div>
-          <div className="text-sm mb-2">Puroks (one per line)</div>
-          {!enableEdit ? (
-            <div>
-              <ul className="list-disc pl-4 text-sm">
-                {purokText
-                  .split('\n')
-                  .filter((p) => p.trim() !== '')
-                  .map((p, i) => (
-                    <li key={i}>{p}</li>
-                  ))}
-              </ul>
-            </div>
-          ) : (
-            <textarea
-              value={purokText}
-              onChange={(e) => setPurokText(e.target.value)}
-              rows={6}
-              className="w-full border rounded p-2 text-sm"
-              placeholder="Enter one purok per line..."
-            />
-          )}
-        </div>
+        {/* Puroks: add / rename / delete (own setting: enable_purok_edit) */}
+        {location && (
+          <PurokManager location={location} canEdit={enablePurokEdit} />
+        )}
 
         {showSave && enableEdit && (
           <div className="space-x-2 mt-4">

@@ -1,7 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
-import { Button } from '@/components/ui/button'
 import { isOwner } from '@/lib/constants'
 import { useAppSelector } from '@/lib/redux/hook'
 import { supabase } from '@/lib/supabase/client'
@@ -9,13 +7,37 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
+interface LocationSetting {
+  id: number
+  address: string
+  /** Households / families can be added and edited. */
+  enable_edit: boolean
+  /** The barangays' purok lists (Overview tab) can be edited. */
+  enable_purok_edit: boolean
+}
+
+type SettingKey = 'enable_edit' | 'enable_purok_edit'
+
+const SWITCHES: { key: SettingKey; label: string; hint: string }[] = [
+  {
+    key: 'enable_edit',
+    label: 'Household editing',
+    hint: 'Add and edit households and families'
+  },
+  {
+    key: 'enable_purok_edit',
+    label: 'Purok editing',
+    hint: "Add, rename and delete a barangay's puroks"
+  }
+]
+
 export default function SettingsPage() {
   const user = useAppSelector((s) => s.user.user)
   const router = useRouter()
 
-  const [settings, setSettings] = useState<any[]>([])
+  const [settings, setSettings] = useState<LocationSetting[]>([])
   const [loading, setLoading] = useState(true)
-  const [savingId, setSavingId] = useState<number | null>(null)
+  const [saving, setSaving] = useState<string | null>(null)
 
   // Only the owner (OWNER_EMAILS, i.e. berlcamp@gmail.com) can access
   const allowed = isOwner(user?.email)
@@ -25,13 +47,12 @@ export default function SettingsPage() {
     if (!allowed) router.replace('/')
   }, [router, user, allowed])
 
-  // Load all location settings
   useEffect(() => {
     if (!allowed) return
     const loadSettings = async () => {
       const { data, error } = await supabase
         .from('location_settings')
-        .select('*')
+        .select('id, address, enable_edit, enable_purok_edit')
         .neq('address', 'OZAMIZ CITY')
         .order('address')
 
@@ -41,79 +62,129 @@ export default function SettingsPage() {
       } else {
         setSettings(data)
       }
-
       setLoading(false)
     }
     loadSettings()
   }, [allowed])
 
-  // Toggle enable_edit
-  const handleToggle = async (setting: any) => {
-    setSavingId(setting.id)
-
+  const toggle = async (setting: LocationSetting, key: SettingKey) => {
+    const id = `${setting.id}-${key}`
+    setSaving(id)
     const { data, error } = await supabase
       .from('location_settings')
-      .update({ enable_edit: !setting.enable_edit })
+      .update({ [key]: !setting[key] })
       .eq('id', setting.id)
-      .select()
+      .select('id, address, enable_edit, enable_purok_edit')
       .single()
-
-    setSavingId(null)
+    setSaving(null)
 
     if (error) {
       toast.error('Failed to update setting')
       console.error(error)
       return
     }
-
     setSettings((prev) => prev.map((s) => (s.id === setting.id ? data : s)))
-
-    toast.success(data.enable_edit ? 'Editing enabled' : 'Editing disabled')
+    const label = SWITCHES.find((s) => s.key === key)?.label
+    toast.success(`${label} ${data[key] ? 'enabled' : 'disabled'} for ${data.address}`)
   }
 
   if (!allowed) return null
-  if (loading) return <div className="p-4">Loading...</div>
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-lg font-semibold">Edit Settings</h1>
-
-      <div className="space-y-2 lg:w-1/2">
-        {settings.map((s) => (
-          <div
-            key={s.id}
-            className="flex items-center justify-between border p-2 rounded-md"
-          >
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-sm">{s.address}</span>
-
-              {s.enable_edit ? (
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                  Editing Enabled
-                </span>
-              ) : (
-                <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
-                  Editing Disabled
-                </span>
-              )}
-            </div>
-
-            <Button
-              onClick={() => handleToggle(s)}
-              variant={s.enable_edit ? 'blue' : 'default'}
-              disabled={savingId === s.id}
-              size="sm"
-              className="text-xs px-3 py-1"
-            >
-              {savingId === s.id
-                ? 'Saving...'
-                : s.enable_edit
-                  ? 'Disable Edit'
-                  : 'Enable Edit'}
-            </Button>
-          </div>
-        ))}
+    <div className="space-y-4 p-4 pt-6">
+      <div>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">Settings</h1>
+        <p className="text-sm text-gray-500">What encoders may change, per municipality.</p>
       </div>
+
+      <section className="overflow-hidden rounded-lg border bg-white shadow-sm lg:w-2/3 dark:border-gray-700 dark:bg-gray-900">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+            <tr>
+              <th className="px-4 py-2 text-left font-medium">Municipality / City</th>
+              {SWITCHES.map((s) => (
+                <th key={s.key} className="px-4 py-2 text-left font-medium">
+                  <div>{s.label}</div>
+                  <div className="text-[11px] font-normal text-gray-400">{s.hint}</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading
+              ? Array.from({ length: 8 }, (_, i) => (
+                  <tr key={i} className="border-t dark:border-gray-800">
+                    <td className="px-4 py-3">
+                      <div className="h-3 w-32 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                    </td>
+                    {SWITCHES.map((s) => (
+                      <td key={s.key} className="px-4 py-3">
+                        <div className="h-5 w-9 animate-pulse rounded-full bg-gray-200 dark:bg-gray-700" />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              : settings.map((setting) => (
+                  <tr key={setting.id} className="border-t dark:border-gray-800">
+                    <td className="px-4 py-2.5 font-medium text-gray-800 dark:text-gray-100">
+                      {setting.address}
+                    </td>
+                    {SWITCHES.map((s) => (
+                      <td key={s.key} className="px-4 py-2.5">
+                        <Switch
+                          checked={setting[s.key]}
+                          disabled={saving === `${setting.id}-${s.key}`}
+                          label={`${s.label} for ${setting.address}`}
+                          onChange={() => toggle(setting, s.key)}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+          </tbody>
+        </table>
+      </section>
     </div>
+  )
+}
+
+function Switch({
+  checked,
+  disabled,
+  label,
+  onChange
+}: {
+  checked: boolean
+  disabled?: boolean
+  label: string
+  onChange: () => void
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onChange}
+      className="inline-flex items-center gap-2 disabled:opacity-50"
+    >
+      <span
+        className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${
+          checked ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+            checked ? 'translate-x-4' : 'translate-x-0.5'
+          }`}
+        />
+      </span>
+      <span
+        className={`text-xs ${checked ? 'text-green-700 dark:text-green-400' : 'text-gray-500'}`}
+      >
+        {disabled ? 'Saving…' : checked ? 'On' : 'Off'}
+      </span>
+    </button>
   )
 }
