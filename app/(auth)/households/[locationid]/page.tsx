@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import VerticalMenu from '@/components/VerticalMenu'
+import { isOwner } from '@/lib/constants'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import {
   addFamily,
@@ -1074,19 +1075,22 @@ export default function HouseholdsPage() {
       {/* Badge legend + user logs */}
       <div className="mx-4 mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
         <BadgeLegend />
-        <div className="ml-auto flex items-center gap-2 text-xs text-gray-600">
-          <span>User logs</span>
-          <input
-            type="date"
-            className="h-7 rounded border px-1 text-xs"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            required
-          />
-          <Button variant="outline" size="xs" onClick={handleDownloadLogs}>
-            <Download className="h-3 w-3" /> Download
-          </Button>
-        </div>
+        {/* User logs: owner only */}
+        {isOwner(user?.email) && (
+          <div className="ml-auto flex items-center gap-2 text-xs text-gray-600">
+            <span>User logs</span>
+            <input
+              type="date"
+              className="h-7 rounded border px-1 text-xs"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              required
+            />
+            <Button variant="outline" size="xs" onClick={handleDownloadLogs}>
+              <Download className="h-3 w-3" /> Download
+            </Button>
+          </div>
+        )}
       </div>
 
       {!listLoading && households.length === 0 && (
