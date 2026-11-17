@@ -196,7 +196,7 @@ export default function FamilyEditor({
 
   return (
     <div
-      className="mb-3 rounded border-2 border-yellow-400 bg-yellow-50 p-2 text-sm shadow-sm"
+      className="mb-2 rounded border-2 border-yellow-400 bg-yellow-50 p-2 text-sm shadow-sm"
       onKeyDown={(e) => {
         if (e.key === 'Escape' && !saving) {
           const target = e.target as HTMLElement

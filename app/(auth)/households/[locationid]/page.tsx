@@ -1118,8 +1118,8 @@ export default function HouseholdsPage() {
         }`}
       >
         {isEditingHousehold(null) && (
-          <Card className="rounded-none border-gray-300 bg-yellow-100">
-            <CardContent className="pt-4">
+          <Card className="gap-2 rounded-none border-gray-300 bg-yellow-100 py-3">
+            <CardContent className="px-3">
               <HouseholdEditor
                 initialData={null}
                 onSave={handleSaveHousehold}
@@ -1132,9 +1132,9 @@ export default function HouseholdsPage() {
         {households.map((h) => (
           <Card
             key={`household-${h.id}`}
-            className="rounded-none border-gray-300 bg-yellow-100"
+            className="gap-2 rounded-none border-gray-300 bg-yellow-100 py-3"
           >
-            <CardHeader>
+            <CardHeader className="gap-0 px-3">
               {isEditingHousehold(h.id) ? (
                 <HouseholdEditor
                   initialData={h}
@@ -1145,7 +1145,7 @@ export default function HouseholdsPage() {
                 />
               ) : (
                 <>
-                  <CardTitle className="flex items-start justify-between gap-2">
+                  <CardTitle className="mb-1 flex items-start justify-between gap-2">
                     <span className="text-blue-800 font-bold">{h.name}</span>
                     {canEdit && (
                       <button
@@ -1157,22 +1157,16 @@ export default function HouseholdsPage() {
                       </button>
                     )}
                   </CardTitle>
-                  <p className="text-sm text-gray-500">
-                    Household No: HH-{h.series_number}
-                  </p>
-                  <p className="text-sm text-gray-500">Purok: {h.purok}</p>
-
-                  <p className="text-sm text-gray-500">
-                    SP: {h.service_provider?.name ?? 'None'}
-                  </p>
-
-                  {h.sitio && (
-                    <p className="text-sm text-gray-500">Sitio: {h.sitio}</p>
-                  )}
+                  <div className="text-sm leading-snug text-gray-500">
+                    <p>Household No: HH-{h.series_number}</p>
+                    <p>Purok: {h.purok}</p>
+                    <p>SP: {h.service_provider?.name ?? 'None'}</p>
+                    {h.sitio && <p>Sitio: {h.sitio}</p>}
+                  </div>
                 </>
               )}
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3">
               {h.families?.map((f) =>
                 isEditingFamily(h.id, f.id) ? (
                   <FamilyEditor
@@ -1186,7 +1180,7 @@ export default function HouseholdsPage() {
                 ) : (
                   <div
                     key={`family-${f.id}-${h.id}`}
-                    className={`group mb-3 rounded p-2 ${
+                    className={`group mb-2 rounded px-2 py-1.5 ${
                       f.all_nr ? 'bg-red-100 border border-red-300' : ''
                     } ${canEdit ? 'cursor-pointer hover:bg-yellow-200/60' : ''}`}
                     onClick={() => {
