@@ -1158,7 +1158,6 @@ export default function HouseholdsPage() {
                     )}
                   </CardTitle>
                   <div className="text-sm leading-snug text-gray-500">
-                    <p>Household No: HH-{h.series_number}</p>
                     <p>Purok: {h.purok}</p>
                     <p>SP: {h.service_provider?.name ?? 'None'}</p>
                     {h.sitio && <p>Sitio: {h.sitio}</p>}
