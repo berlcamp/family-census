@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import LoadingSkeleton from '@/components/LoadingSkeleton'
 import NoAccess from '@/components/NoAccess'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import VerticalMenu from '@/components/VerticalMenu'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -1169,13 +1169,13 @@ export default function HouseholdsPage() {
               ) : (
                 <>
                   {canEdit && (
-                    <div className="mb-1 flex items-center gap-3 text-xs">
+                    <div className="mb-2 flex items-center gap-3 text-xs">
                       <button
                         type="button"
                         onClick={() => openHouseholdEditor(h.id)}
                         className="inline-flex items-center gap-1 text-blue-700 hover:underline"
                       >
-                        <Pencil className="h-3 w-3" /> Edit Household
+                        <Pencil className="h-3 w-3" /> Edit
                       </button>
                       <button
                         type="button"
@@ -1184,14 +1184,12 @@ export default function HouseholdsPage() {
                         }
                         className="inline-flex items-center gap-1 text-red-600 hover:underline"
                       >
-                        <Trash2 className="h-3 w-3" /> Delete Household
+                        <Trash2 className="h-3 w-3" /> Delete
                       </button>
                     </div>
                   )}
-                  <CardTitle className="mb-1 text-blue-800 font-bold">
-                    {h.name}
-                  </CardTitle>
                   <div className="text-sm leading-snug text-gray-500">
+                    <p className="font-medium text-gray-700">{h.name}</p>
                     <p>Purok: {h.purok}</p>
                     <p>SP: {h.service_provider?.name ?? 'None'}</p>
                     {h.sitio && <p>Sitio: {h.sitio}</p>}
