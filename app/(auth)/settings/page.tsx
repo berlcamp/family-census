@@ -53,7 +53,6 @@ export default function SettingsPage() {
       const { data, error } = await supabase
         .from('location_settings')
         .select('id, address, enable_edit, enable_purok_edit')
-        .neq('address', 'OZAMIZ CITY')
         .order('address')
 
       if (error) {
