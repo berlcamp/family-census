@@ -1,5 +1,6 @@
 'use client'
 
+import OwnerMark from '@/components/OwnerMark'
 import { isOwner } from '@/lib/constants'
 import { useAppSelector } from '@/lib/redux/hook'
 import { supabase } from '@/lib/supabase/client'
@@ -92,7 +93,9 @@ export default function SettingsPage() {
   return (
     <div className="space-y-4 p-4 pt-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">Settings</h1>
+        <h1 className="flex items-center gap-2 text-xl font-semibold text-gray-900 dark:text-gray-50">
+          Settings <OwnerMark />
+        </h1>
         <p className="text-sm text-gray-500">What encoders may change, per municipality.</p>
       </div>
 

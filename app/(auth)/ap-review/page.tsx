@@ -1,5 +1,6 @@
 'use client'
 
+import OwnerMark from '@/components/OwnerMark'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -221,7 +222,9 @@ export default function ApReviewPage() {
   return (
     <div className="p-4 md:p-6 space-y-4">
       <div>
-        <h1 className="text-lg font-semibold">AP Match Review</h1>
+        <h1 className="flex items-center gap-2 text-lg font-semibold">
+          AP Match Review <OwnerMark />
+        </h1>
         <p className="text-sm text-muted-foreground">
           Names the matcher was not sure about. Accept if the census person and
           the proposed record are the same person; reject if not. Decisions

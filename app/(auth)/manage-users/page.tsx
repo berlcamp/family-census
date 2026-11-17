@@ -1,5 +1,6 @@
 'use client'
 
+import OwnerMark from '@/components/OwnerMark'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/select'
 import {
   MUNICIPALITIES,
+  isOwner,
   OWNER_EMAILS,
   USER_TYPES,
   userManagementScope
@@ -548,7 +550,13 @@ export default function ManageUsersPage() {
                     )}
                   </td>
                   <td className="border px-3 py-2 text-sm">
-                    {typeLabel(u.type)}
+                    {isOwner(u.email) ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        Owner <OwnerMark />
+                      </span>
+                    ) : (
+                      typeLabel(u.type)
+                    )}
                   </td>
                   <td className="border px-3 py-2 text-sm">
                     <div>{u.address ?? '—'}</div>

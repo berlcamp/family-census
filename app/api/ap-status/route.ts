@@ -9,10 +9,10 @@ export const dynamic = 'force-dynamic'
  * in the given households, for the AP badge on the household cards.
  *
  * The crossmatch tables are server-only, so this route reads them with the
- * service role, after checking the caller may see those households:
+ * service role, after checking the caller may see AP status at all (for now
+ * only the owner and province admins) and those households:
  *   - owner: any household
- *   - super admin / province admin: households in their own municipality
- *   - other users: households in barangays assigned to them
+ *   - province admin: households in their own municipality
  *
  * Response: { families: { [familyId]: { husband, wife } },
  *             members:  { [familyMemberId]: ap } }
@@ -37,7 +37,7 @@ async function allowedHouseholds(admin: Admin, token: string, ids: number[]) {
 
   const { data: me } = await admin
     .from('users')
-    .select('id, type, address')
+    .select('type, address')
     .eq('email', email)
     .eq('is_active', true)
     .maybeSingle()
@@ -51,20 +51,13 @@ async function allowedHouseholds(admin: Admin, token: string, ids: number[]) {
 
   if (isOwner(email)) return households.map((h) => h.id)
 
-  if (me.type === 'super admin' || me.type === 'province admin') {
-    const mine = (me.address ?? '').trim().toUpperCase()
-    return households
-      .filter((h) => (h.address ?? '').trim().toUpperCase() === mine)
-      .map((h) => h.id)
-  }
+  // AP badges are limited to province admins (and the owner) for now.
+  if (me.type !== 'province admin') return null
 
-  const { data: assigned, error: luError } = await admin
-    .from('location_users')
-    .select('location_id')
-    .eq('user_id', me.id)
-  if (luError) throw luError
-  const locations = new Set((assigned ?? []).map((a) => a.location_id))
-  return households.filter((h) => locations.has(h.location_id)).map((h) => h.id)
+  const mine = (me.address ?? '').trim().toUpperCase()
+  return households
+    .filter((h) => (h.address ?? '').trim().toUpperCase() === mine)
+    .map((h) => h.id)
 }
 
 export async function POST(request: NextRequest) {

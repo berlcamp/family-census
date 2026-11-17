@@ -1,5 +1,6 @@
 'use client'
 
+import OwnerMark from '@/components/OwnerMark'
 import { Button } from '@/components/ui/button'
 import { isOwner } from '@/lib/constants'
 import { useAppSelector } from '@/lib/redux/hook'
@@ -87,7 +88,9 @@ export default function ReportsPage() {
     <div className="space-y-4 p-4 pt-6">
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex-1">
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-50">Reports</h1>
+          <h1 className="flex items-center gap-2 text-xl font-semibold text-gray-900 dark:text-gray-50">
+            Reports <OwnerMark />
+          </h1>
           <p className="text-sm text-gray-500">
             AP family summary by municipality and barangay
             {generatedAt &&

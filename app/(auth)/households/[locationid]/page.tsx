@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import VerticalMenu from '@/components/VerticalMenu'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import OwnerMark from '@/components/OwnerMark'
 import { isOwner } from '@/lib/constants'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import {
@@ -799,7 +800,7 @@ export default function HouseholdsPage() {
           page
         })
       )
-      void loadApStatus(
+      if (canSeeAp) void loadApStatus(
         mapped.map((h: any) => h.id),
         requestId
       )
@@ -891,6 +892,8 @@ export default function HouseholdsPage() {
     user?.type === 'province admin' ||
     userHasAccess?.is_editor === true
   const canEdit = enableEdit && enableEdit2
+  // AP badges: province admins and the owner only (for now).
+  const canSeeAp = user?.type === 'province admin' || isOwner(user?.email)
 
   const deleteDescription = () => {
     if (!pendingDelete) return undefined
@@ -1093,10 +1096,11 @@ export default function HouseholdsPage() {
 
       {/* Badge legend + user logs */}
       <div className="mx-4 mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
-        <BadgeLegend />
+        <BadgeLegend showAp={canSeeAp} />
         {/* User logs: owner only */}
         {isOwner(user?.email) && (
           <div className="ml-auto flex items-center gap-2 text-xs text-gray-600">
+            <OwnerMark />
             <span>User logs</span>
             <input
               type="date"
@@ -1188,7 +1192,7 @@ export default function HouseholdsPage() {
                       </button>
                     </div>
                   )}
-                  <div className="text-sm leading-snug text-gray-500">
+                  <div className="text-xs leading-snug text-gray-500">
                     <p className="font-medium text-gray-700">{h.name}</p>
                     <p>Purok: {h.purok}</p>
                     <p>SP: {h.service_provider?.name ?? 'None'}</p>
@@ -1211,8 +1215,10 @@ export default function HouseholdsPage() {
                   <div
                     key={`family-${f.id}-${h.id}`}
                     className={`group mb-2 rounded px-2 py-1.5 ${
-                      f.all_nr ? 'bg-red-100 border border-red-300' : ''
-                    } ${canEdit ? 'cursor-pointer hover:bg-yellow-200/60' : ''}`}
+                      f.all_nr
+                        ? `border border-red-300 bg-red-100 ${canEdit ? 'hover:bg-red-200/70' : ''}`
+                        : `bg-yellow-200/60 ${canEdit ? 'hover:bg-yellow-300/60' : ''}`
+                    } ${canEdit ? 'cursor-pointer' : ''}`}
                     onClick={() => {
                       if (canEdit) openEditor(h.id, f.id)
                     }}

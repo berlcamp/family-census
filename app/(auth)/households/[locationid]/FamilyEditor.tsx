@@ -3,6 +3,7 @@
 
 import { Button } from '@/components/ui/button'
 import { useAppSelector } from '@/lib/redux/hook'
+import OwnerMark from '@/components/OwnerMark'
 import { Check, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
@@ -53,7 +54,7 @@ export function AsensoBadge() {
 }
 
 /** Explains the badges shown after names on the household cards. */
-export function BadgeLegend() {
+export function BadgeLegend({ showAp = true }: { showAp?: boolean }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
       <span className="font-medium text-gray-700">Legend:</span>
@@ -63,9 +64,12 @@ export function BadgeLegend() {
       <span>
         <RegisteredBadge registered={false} /> Not registered
       </span>
-      <span>
-        <ApBadge /> AP member
-      </span>
+      {showAp && (
+        <span className="inline-flex items-center gap-1">
+          <ApBadge /> AP member
+          <OwnerMark title="Only visible to province admins and the owner" />
+        </span>
+      )}
       <span>
         <AsensoBadge /> Asenso
       </span>

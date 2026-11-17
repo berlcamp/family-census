@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/sidebar'
 import { useAppSelector } from '@/lib/redux/hook'
 import Link from 'next/link'
+import OwnerMark from './OwnerMark'
 import { usePathname } from 'next/navigation'
 
 export function AppSidebar() {
@@ -102,15 +103,7 @@ export function AppSidebar() {
                     <Link href={item.url}>
                       <item.icon className="text-gray-400" />
                       <span className="text-gray-300">{item.title}</span>
-                      {item.ownerOnly && (
-                        <span
-                          className="ml-auto flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold leading-none text-white"
-                          title="Only visible to the owner"
-                          aria-label="Owner only"
-                        >
-                          !
-                        </span>
-                      )}
+                      {item.ownerOnly && <OwnerMark className="ml-auto" />}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
