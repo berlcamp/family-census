@@ -40,7 +40,7 @@ export const COUNT_KEYS = REPORT_COLUMNS.filter((c) => c.key !== 'pct').map(
 export const REPORT_NOTE =
   'Families with AP = husband, wife or any member is AP. Pending = not yet AP and at ' +
   'least one name awaits manual review. Ozamiz uses voters.is_ap; other towns use the ' +
-  'AP members list.'
+  'AP members list. Households with no families are not counted.'
 
 export function normalizeRows(raw: Record<string, unknown>[]): ApSummaryRow[] {
   return raw.map((r) => {

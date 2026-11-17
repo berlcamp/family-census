@@ -22,7 +22,7 @@ export default function OverviewBarGraph({
 
   useEffect(() => {
     const fetchStats = async () => {
-      const { data, error } = await supabase.rpc('barangay_overview_stats', {
+      const { data, error } = await supabase.rpc('barangay_overview_stats_fast', {
         location_id_param: locationId
       })
       if (error) {
