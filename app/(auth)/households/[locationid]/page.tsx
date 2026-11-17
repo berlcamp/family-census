@@ -75,6 +75,8 @@ export default function HouseholdsPage() {
     householdId: number
     familyId: number | null
   } | null>(null)
+  // Whether the open family editor has unsaved changes.
+  const editorDirty = useRef(false)
 
   const dispatch = useAppDispatch()
   const location = useAppSelector((state) => state.location.selectedLocation)
@@ -536,7 +538,7 @@ export default function HouseholdsPage() {
       toast.success('Family deleted successfully!')
 
       // 3. Close the inline editor
-      setEditing(null)
+      closeEditor()
     } catch (err) {
       console.error('Failed to delete Family:', err)
       toast.error('❌ Error deleting Family. Please try again.')
@@ -878,6 +880,31 @@ export default function HouseholdsPage() {
     user?.type === 'province admin' ||
     userHasAccess?.is_editor === true
   const canEdit = enableEdit && enableEdit2
+
+  // Open a family editor (familyId null = new family). Only one is open at a
+  // time: opening another closes the current one, asking first if it has
+  // unsaved changes.
+  const openEditor = (householdId: number, familyId: number | null) => {
+    if (editing?.householdId === householdId && editing.familyId === familyId) {
+      return
+    }
+    if (
+      editing &&
+      editorDirty.current &&
+      !window.confirm('Discard the unsaved changes to the family you are editing?')
+    ) {
+      return
+    }
+    editorDirty.current = false
+    setEditing({ householdId, familyId })
+  }
+  const closeEditor = () => {
+    editorDirty.current = false
+    setEditing(null)
+  }
+  const setEditorDirty = (dirty: boolean) => {
+    editorDirty.current = dirty
+  }
   const hasFilters = !!(
     appliedFilters.search ||
     appliedFilters.purok ||
@@ -1118,24 +1145,19 @@ export default function HouseholdsPage() {
                     initialFamily={f}
                     onSave={(family) => handleSaveFamily(h.id, family)}
                     onDelete={() => handleDeleteFamily(h.id, f.id)}
-                    onCancel={() => setEditing(null)}
+                    onCancel={closeEditor}
+                    onDirtyChange={setEditorDirty}
                   />
                 ) : (
                   <div
                     key={`family-${f.id}-${h.id}`}
                     className={`group mb-3 rounded p-2 ${
                       f.all_nr ? 'bg-red-100 border border-red-300' : ''
-                    } ${
-                      canEdit && !editing
-                        ? 'cursor-pointer hover:bg-yellow-200/60'
-                        : ''
-                    }`}
+                    } ${canEdit ? 'cursor-pointer hover:bg-yellow-200/60' : ''}`}
                     onClick={() => {
-                      if (canEdit && !editing) {
-                        setEditing({ householdId: h.id, familyId: f.id })
-                      }
+                      if (canEdit) openEditor(h.id, f.id)
                     }}
-                    title={canEdit && !editing ? 'Click to edit family' : undefined}
+                    title={canEdit ? 'Click to edit family' : undefined}
                   >
                     {f.husband_name && (
                       <PersonLine
@@ -1172,7 +1194,7 @@ export default function HouseholdsPage() {
                         </li>
                       ))}
                     </ul>
-                    {canEdit && !editing && (
+                    {canEdit && (
                       <span className="mt-1 inline-block text-xs text-blue-700 opacity-60 group-hover:opacity-100">
                         ✎ Edit family
                       </span>
@@ -1185,17 +1207,15 @@ export default function HouseholdsPage() {
                   key={`new-${h.id}`}
                   initialFamily={null}
                   onSave={(family) => handleSaveFamily(h.id, family)}
-                  onCancel={() => setEditing(null)}
+                  onCancel={closeEditor}
+                  onDirtyChange={setEditorDirty}
                 />
               ) : (
-                canEdit &&
-                !editing && (
+                canEdit && (
                   <Button
                     size="xs"
                     className="mt-2"
-                    onClick={() =>
-                      setEditing({ householdId: h.id, familyId: null })
-                    }
+                    onClick={() => openEditor(h.id, null)}
                   >
                     + Add Family
                   </Button>

@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button'
 import { useAppSelector } from '@/lib/redux/hook'
 import { Check, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import PersonPicker from './PersonPicker'
 import { useBarangayVoters, VoterOption } from './useBarangayVoters'
@@ -110,12 +110,15 @@ export default function FamilyEditor({
   initialFamily,
   onSave,
   onDelete,
-  onCancel
+  onCancel,
+  onDirtyChange
 }: {
   initialFamily: any | null
   onSave: (family: any) => Promise<boolean>
   onDelete?: () => Promise<void>
   onCancel: () => void
+  /** Told whether the form differs from what it opened with. */
+  onDirtyChange?: (dirty: boolean) => void
 }) {
   const location = useAppSelector((s) => s.location.selectedLocation)
   const voters = useBarangayVoters(true, location?.address, location?.name)
@@ -131,6 +134,20 @@ export default function FamilyEditor({
   const [allowNonRegistered, setAllowNonRegistered] = useState(false)
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  // Unsaved changes? Compared with what the editor opened with.
+  const [initialSnapshot] = useState(() =>
+    JSON.stringify([
+      initialFamily?.husband ?? null,
+      initialFamily?.wife ?? null,
+      initialFamily?.family_members ?? []
+    ])
+  )
+  const dirty =
+    JSON.stringify([husband, wife, members]) !== initialSnapshot
+  useEffect(() => {
+    onDirtyChange?.(dirty)
+  }, [dirty, onDirtyChange])
 
   const anyRegistered =
     !!husband?.voter_id ||
