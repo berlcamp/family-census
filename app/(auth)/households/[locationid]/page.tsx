@@ -28,7 +28,7 @@ import { Family, FamilyMember, Household, LocationUser } from '@/types'
 import { useParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import FamilyEditor, { BadgeLegend, PersonLine } from './FamilyEditor'
-import { Download, MapPin, Pencil, RotateCcw, Search as SearchIcon, UserRound } from 'lucide-react'
+import { Download, MapPin, Pencil, Plus, RotateCcw, Search as SearchIcon, UserRound } from 'lucide-react'
 import { FilterChip, FilterSelect, HouseholdCardSkeleton } from './HouseholdFilters'
 import HouseholdEditor from './HouseholdEditor'
 
@@ -950,11 +950,6 @@ export default function HouseholdsPage() {
     <div className="w-full">
       <div className="app__title flex">
         <h1 className="text-xl font-semibold flex-1">{location.name}</h1>
-        {canEdit && (
-          <Button onClick={() => openHouseholdEditor(null)}>
-            + Add Household
-          </Button>
-        )}
       </div>
 
       <VerticalMenu activeTab="households" />
@@ -1092,6 +1087,17 @@ export default function HouseholdsPage() {
           </div>
         )}
       </div>
+
+      {canEdit && (
+        <div className="mx-4 mt-3">
+          <Button
+            onClick={() => openHouseholdEditor(null)}
+            disabled={isEditingHousehold(null)}
+          >
+            <Plus className="h-4 w-4" /> Add Household
+          </Button>
+        </div>
+      )}
 
       {!listLoading && households.length === 0 && (
         <div className="p-4 text-xl text-gray-600">No households found.</div>
