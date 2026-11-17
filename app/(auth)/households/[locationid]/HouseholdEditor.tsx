@@ -14,13 +14,11 @@ import { useEffect, useState } from 'react'
 export default function HouseholdEditor({
   initialData,
   onSave,
-  onDelete,
   onCancel,
   onDirtyChange
 }: {
   initialData: Household | null
   onSave: (household: Partial<Household>) => Promise<boolean>
-  onDelete?: () => Promise<void>
   onCancel: () => void
   onDirtyChange?: (dirty: boolean) => void
 }) {
@@ -39,7 +37,6 @@ export default function HouseholdEditor({
   const [sp, setSp] = useState(initial.sp)
   const [errors, setErrors] = useState<{ name?: string; purok?: string }>({})
   const [saving, setSaving] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const dirty =
     name !== initial.name || purok !== initial.purok || sp !== initial.sp
@@ -141,41 +138,6 @@ export default function HouseholdEditor({
       </div>
 
       <div className="mt-3 flex items-center gap-2">
-        {initialData && onDelete && !confirmDelete && (
-          <Button
-            size="xs"
-            variant="ghost"
-            className="text-red-600"
-            disabled={saving}
-            onClick={() => setConfirmDelete(true)}
-          >
-            Delete household
-          </Button>
-        )}
-        {confirmDelete && (
-          <span className="flex flex-wrap items-center gap-1 text-xs text-red-700">
-            Delete this household
-            {initialData?.families?.length
-              ? ` and its ${initialData.families.length} famil${initialData.families.length === 1 ? 'y' : 'ies'}`
-              : ''}
-            ?
-            <Button
-              size="xs"
-              variant="destructive"
-              disabled={saving}
-              onClick={async () => {
-                setSaving(true)
-                await onDelete?.()
-                setSaving(false)
-              }}
-            >
-              Yes, delete
-            </Button>
-            <Button size="xs" variant="ghost" onClick={() => setConfirmDelete(false)}>
-              No
-            </Button>
-          </span>
-        )}
         <div className="ml-auto flex gap-2">
           <Button size="xs" variant="outline" disabled={saving} onClick={onCancel}>
             Cancel

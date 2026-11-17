@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import VerticalMenu from '@/components/VerticalMenu'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { isOwner } from '@/lib/constants'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import {
@@ -28,7 +29,7 @@ import { Family, FamilyMember, Household, LocationUser } from '@/types'
 import { useParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import FamilyEditor, { BadgeLegend, PersonLine } from './FamilyEditor'
-import { Download, MapPin, Pencil, Plus, RotateCcw, Search as SearchIcon, UserRound } from 'lucide-react'
+import { Download, MapPin, Pencil, Plus, RotateCcw, Trash2, Search as SearchIcon, UserRound } from 'lucide-react'
 import { FilterChip, FilterSelect, HouseholdCardSkeleton } from './HouseholdFilters'
 import HouseholdEditor from './HouseholdEditor'
 
@@ -77,6 +78,13 @@ export default function HouseholdsPage() {
     | { kind: 'household'; householdId: number | null }
     | null
   >(null)
+  // Household or family waiting for delete confirmation.
+  const [pendingDelete, setPendingDelete] = useState<
+    | { kind: 'household'; household: Household }
+    | { kind: 'family'; householdId: number; family: Family }
+    | null
+  >(null)
+  const [deleting, setDeleting] = useState(false)
   // Whether the open family editor has unsaved changes.
   const editorDirty = useRef(false)
 
@@ -884,6 +892,22 @@ export default function HouseholdsPage() {
     userHasAccess?.is_editor === true
   const canEdit = enableEdit && enableEdit2
 
+  const deleteDescription = () => {
+    if (!pendingDelete) return undefined
+    if (pendingDelete.kind === 'household') {
+      const n = pendingDelete.household.families?.length ?? 0
+      return n > 0
+        ? `This also deletes its ${n} famil${n === 1 ? 'y' : 'ies'}, their members and any Kadiwa claims of this household. This cannot be undone.`
+        : 'This cannot be undone.'
+    }
+    const f = pendingDelete.family
+    const heads = [f.husband_name, f.wife_name].filter(Boolean).join(' & ')
+    const n = f.family_members?.length ?? 0
+    return `${heads ? `Family of ${heads}. ` : ''}${
+      n > 0 ? `Its ${n} member${n === 1 ? '' : 's'} will also be removed. ` : ''
+    }This cannot be undone.`
+  }
+
   // Open a family editor (familyId null = new family). Only one is open at a
   // time: opening another closes the current one, asking first if it has
   // unsaved changes.
@@ -1139,23 +1163,33 @@ export default function HouseholdsPage() {
                 <HouseholdEditor
                   initialData={h}
                   onSave={handleSaveHousehold}
-                  onDelete={() => handleDeleteHousehold(h.id)}
                   onCancel={closeEditor}
                   onDirtyChange={setEditorDirty}
                 />
               ) : (
                 <>
-                  <CardTitle className="mb-1 flex items-start justify-between gap-2">
-                    <span className="text-blue-800 font-bold">{h.name}</span>
-                    {canEdit && (
+                  {canEdit && (
+                    <div className="mb-1 flex items-center gap-3 text-xs">
                       <button
                         type="button"
                         onClick={() => openHouseholdEditor(h.id)}
-                        className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-xs font-normal text-blue-700 hover:underline"
+                        className="inline-flex items-center gap-1 text-blue-700 hover:underline"
                       >
                         <Pencil className="h-3 w-3" /> Edit Household
                       </button>
-                    )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPendingDelete({ kind: 'household', household: h })
+                        }
+                        className="inline-flex items-center gap-1 text-red-600 hover:underline"
+                      >
+                        <Trash2 className="h-3 w-3" /> Delete Household
+                      </button>
+                    </div>
+                  )}
+                  <CardTitle className="mb-1 text-blue-800 font-bold">
+                    {h.name}
                   </CardTitle>
                   <div className="text-sm leading-snug text-gray-500">
                     <p>Purok: {h.purok}</p>
@@ -1172,7 +1206,6 @@ export default function HouseholdsPage() {
                     key={`edit-${f.id}`}
                     initialFamily={f}
                     onSave={(family) => handleSaveFamily(h.id, family)}
-                    onDelete={() => handleDeleteFamily(h.id, f.id)}
                     onCancel={closeEditor}
                     onDirtyChange={setEditorDirty}
                   />
@@ -1223,9 +1256,26 @@ export default function HouseholdsPage() {
                       ))}
                     </ul>
                     {canEdit && (
-                      <span className="mt-1 inline-block text-xs text-blue-700 opacity-60 group-hover:opacity-100">
-                        ✎ Edit family
-                      </span>
+                      <div className="mt-1 flex items-center gap-3 text-xs opacity-70 group-hover:opacity-100">
+                        <span className="inline-flex items-center gap-1 text-blue-700">
+                          <Pencil className="h-3 w-3" /> Edit family
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            // Do not also open the family editor.
+                            e.stopPropagation()
+                            setPendingDelete({
+                              kind: 'family',
+                              householdId: h.id,
+                              family: f
+                            })
+                          }}
+                          className="inline-flex items-center gap-1 text-red-600 hover:underline"
+                        >
+                          <Trash2 className="h-3 w-3" /> Delete family
+                        </button>
+                      </div>
                     )}
                   </div>
                 )
@@ -1274,6 +1324,35 @@ export default function HouseholdsPage() {
         </div>
       </div>
 
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setPendingDelete(null)
+        }}
+        destructive
+        loading={deleting}
+        confirmText="Delete"
+        title={
+          pendingDelete?.kind === 'household'
+            ? `Delete ${pendingDelete.household.name}?`
+            : 'Delete this family?'
+        }
+        description={deleteDescription()}
+        onConfirm={async () => {
+          if (!pendingDelete) return
+          setDeleting(true)
+          if (pendingDelete.kind === 'household') {
+            await handleDeleteHousehold(pendingDelete.household.id)
+          } else {
+            await handleDeleteFamily(
+              pendingDelete.householdId,
+              pendingDelete.family.id
+            )
+          }
+          setDeleting(false)
+          setPendingDelete(null)
+        }}
+      />
     </div>
   )
 }

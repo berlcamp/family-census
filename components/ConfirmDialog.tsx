@@ -19,6 +19,8 @@ type ConfirmDialogProps = {
   cancelText?: string
   onConfirm: () => void
   loading?: boolean
+  /** Red confirm button, for deletes. */
+  destructive?: boolean
 }
 
 export function ConfirmDialog({
@@ -29,7 +31,8 @@ export function ConfirmDialog({
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   onConfirm,
-  loading = false
+  loading = false,
+  destructive = false
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -46,7 +49,11 @@ export function ConfirmDialog({
           >
             {cancelText}
           </Button>
-          <Button onClick={onConfirm} disabled={loading}>
+          <Button
+            onClick={onConfirm}
+            disabled={loading}
+            variant={destructive ? 'destructive' : 'default'}
+          >
             {loading ? 'Processing...' : confirmText}
           </Button>
         </DialogFooter>
