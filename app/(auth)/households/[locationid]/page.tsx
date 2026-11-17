@@ -988,7 +988,7 @@ export default function HouseholdsPage() {
   )
 
   if (user?.type === 'user' && userHasAccess?.is_disabled) {
-    return <NoAccess />
+    return <NoAccess reason="disabled" />
   }
 
   if (loading) {
@@ -998,7 +998,7 @@ export default function HouseholdsPage() {
   // Editing off: encoders are blocked unless the owner allows viewing
   // (then the page is read-only, since canEdit stays false).
   if (!enableEdit && !visibility.allowView && user?.type === 'user') {
-    return <NoAccess />
+    return <NoAccess reason="closed" />
   }
 
   if (!location) {

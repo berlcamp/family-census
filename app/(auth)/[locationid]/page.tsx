@@ -113,11 +113,11 @@ export default function Page() {
   }
 
   if (enableEdit === false && !allowView && user?.type === 'user') {
-    return <NoAccess />
+    return <NoAccess reason="closed" />
   }
 
   if (user?.type === 'user' && !userHasAccess) {
-    return <NoAccess />
+    return <NoAccess reason="not_assigned" />
   }
   if (!location) {
     return <Notfoundpage />

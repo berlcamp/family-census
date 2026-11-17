@@ -213,7 +213,7 @@ export default function ServiceProvidersPage() {
   ])
 
   if (user?.type === 'user' && !userHasAccess) {
-    return <NoAccess />
+    return <NoAccess reason="not_assigned" />
   }
 
   return (
