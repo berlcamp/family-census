@@ -1,6 +1,5 @@
 'use client'
 
-import OwnerMark from '@/components/OwnerMark'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -18,7 +17,6 @@ import {
 } from '@/components/ui/select'
 import {
   MUNICIPALITIES,
-  isOwner,
   OWNER_EMAILS,
   USER_TYPES,
   userManagementScope
@@ -154,11 +152,13 @@ export default function ManageUsersPage() {
 
     // Scope: what this person is allowed to see at all.
     if (scope.municipality) query = query.eq('address', scope.municipality)
-    if (!scope.isOwner) {
-      query = query
-        .in('type', scope.types)
-        .not('email', 'in', `(${OWNER_EMAILS.map((e) => `"${e}"`).join(',')})`)
-    }
+    if (!scope.isOwner) query = query.in('type', scope.types)
+    // The owner account is never listed, not even for the owner.
+    query = query.not(
+      'email',
+      'in',
+      `(${OWNER_EMAILS.map((e) => `"${e}"`).join(',')})`
+    )
 
     // Filters chosen on the page.
     if (typeFilter !== ALL) query = query.eq('type', typeFilter)
@@ -430,7 +430,7 @@ export default function ManageUsersPage() {
     : barangays
 
   const subtitle = scope.isOwner
-    ? 'All users, every type and municipality.'
+    ? 'All users (except the owner), every type and municipality.'
     : scope.municipality
       ? `Viewers and encoders in ${scope.municipality}.`
       : 'Viewers, encoders and super admins in every municipality.'
@@ -550,13 +550,7 @@ export default function ManageUsersPage() {
                     )}
                   </td>
                   <td className="border px-3 py-2 text-sm">
-                    {isOwner(u.email) ? (
-                      <span className="inline-flex items-center gap-1.5">
-                        Owner <OwnerMark />
-                      </span>
-                    ) : (
-                      typeLabel(u.type)
-                    )}
+                    {typeLabel(u.type)}
                   </td>
                   <td className="border px-3 py-2 text-sm">
                     <div>{u.address ?? '—'}</div>
