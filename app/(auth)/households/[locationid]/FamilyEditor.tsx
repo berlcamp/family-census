@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button'
 import { useAppSelector } from '@/lib/redux/hook'
-import { Trash2 } from 'lucide-react'
+import { Check, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import PersonPicker from './PersonPicker'
@@ -214,25 +214,18 @@ export default function FamilyEditor({
         </div>
         <ul className="mt-1 space-y-1">
           {members.map((m, idx) => (
-            <li
-              key={m.member_id ?? `new-${idx}-${m.fullname}`}
-              className="flex items-center gap-2 rounded bg-white/70 px-2 py-1"
-            >
-              <span className="flex-1 font-semibold">
-                {m.fullname}
-                <RegisteredBadge registered={!!m.is_registered} />
-              </span>
-              <AsensoToggle
-                checked={m.asenso === true}
-                onChange={(checked) =>
+            <li key={m.member_id ?? `new-${idx}-${m.fullname}`}>
+              <PersonRow
+                name={m.fullname}
+                registered={!!m.is_registered}
+                asenso={m.asenso === true}
+                onAsensoChange={(checked) =>
                   setMembers((prev) =>
                     prev.map((x, i) => (i === idx ? { ...x, asenso: checked } : x))
                   )
                 }
-              />
-              <RemoveButton
-                label={`Remove ${m.fullname}`}
-                onClick={() =>
+                removeLabel={`Remove ${m.fullname}`}
+                onRemove={() =>
                   setMembers((prev) => prev.filter((_, i) => i !== idx))
                 }
               />
@@ -323,17 +316,14 @@ function SpouseSlot({
     <div className="mb-2">
       <div className="mb-0.5 text-xs font-medium text-gray-600">{label}</div>
       {person ? (
-        <div className="flex items-center gap-2 rounded bg-white/70 px-2 py-1">
-          <span className="flex-1 font-semibold">
-            {person.fullname}
-            <RegisteredBadge registered={!!person.voter_id} />
-          </span>
-          <AsensoToggle
-            checked={person.is_asenso === true}
-            onChange={(checked) => onChange({ ...person, is_asenso: checked })}
-          />
-          <RemoveButton label={`Remove ${label.toLowerCase()}`} onClick={() => onChange(null)} />
-        </div>
+        <PersonRow
+          name={person.fullname}
+          registered={!!person.voter_id}
+          asenso={person.is_asenso === true}
+          onAsensoChange={(checked) => onChange({ ...person, is_asenso: checked })}
+          removeLabel={`Remove ${label.toLowerCase()}`}
+          onRemove={() => onChange(null)}
+        />
       ) : (
         <PersonPicker
           voters={voters}
@@ -346,22 +336,58 @@ function SpouseSlot({
   )
 }
 
-function AsensoToggle({
-  checked,
-  onChange
+/**
+ * One person in the editor: name on top; underneath, the registered badge
+ * and the Asenso switch (a pill you click: orange "A Asenso ✓" when on,
+ * grey "Not Asenso" when off). Trash on the right removes the person.
+ */
+function PersonRow({
+  name,
+  registered,
+  asenso,
+  onAsensoChange,
+  removeLabel,
+  onRemove
 }: {
-  checked: boolean
-  onChange: (checked: boolean) => void
+  name: string
+  registered: boolean
+  asenso: boolean
+  onAsensoChange: (checked: boolean) => void
+  removeLabel: string
+  onRemove: () => void
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-0.5" title="Asenso">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <AsensoBadge />
-    </label>
+    <div className="flex items-start gap-2 rounded bg-white/70 px-2 py-1.5">
+      <div className="min-w-0 flex-1">
+        <div className="font-semibold leading-tight">{name}</div>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          <span className="-ml-1">
+            <RegisteredBadge registered={registered} />
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={asenso}
+            title={asenso ? 'Asenso (click to unset)' : 'Not Asenso (click to set)'}
+            onClick={() => onAsensoChange(!asenso)}
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-px text-[11px] font-semibold leading-tight transition-colors ${
+              asenso
+                ? 'border-orange-500 bg-orange-500 text-white hover:bg-orange-600'
+                : 'border-gray-300 bg-white text-gray-500 hover:border-orange-400 hover:text-orange-600'
+            }`}
+          >
+            {asenso ? (
+              <>
+                A Asenso <Check className="h-3 w-3" />
+              </>
+            ) : (
+              'Not Asenso'
+            )}
+          </button>
+        </div>
+      </div>
+      <RemoveButton label={removeLabel} onClick={onRemove} />
+    </div>
   )
 }
 
