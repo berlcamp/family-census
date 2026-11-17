@@ -23,8 +23,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
     }
 
+    // Same rows as the ap_family_summary view, but run with more work_mem so
+    // it stays under the 8s statement timeout (supabase/ap_family_summary_report.sql).
     const { data, error } = await admin
-      .from('ap_family_summary')
+      .rpc('ap_family_summary_report')
       .select('*')
       .order('municipality')
       .order('barangay')
