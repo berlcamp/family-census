@@ -38,7 +38,13 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
     if (error) throw error
     if (!h) {
-      return NextResponse.json({ error: 'Household not found' }, { status: 404 })
+      return NextResponse.json(
+        {
+          error:
+            'Household not found. It was probably deleted after the AP members list was last refreshed.'
+        },
+        { status: 404 }
+      )
     }
     if (!access.owner && normTown(h.address) !== access.municipality) {
       return NextResponse.json({ error: 'Not allowed' }, { status: 403 })

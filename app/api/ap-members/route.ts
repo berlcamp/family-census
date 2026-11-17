@@ -8,7 +8,8 @@ const PAGE_SIZE = 25
 
 /**
  * GET /api/ap-members?municipality=&barangay=&q=&page=
- * One page of AP people in the census (asenso.ap_members_page), plus the
+ * One page of AP people in the census (asenso.ap_members_page, which reads
+ * the saved list asenso.ap_members_list, refreshed by hand), plus the
  * barangays of that municipality for the filter.
  * Owner: any municipality. Province admin: their own only.
  */
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
       barangay: string | null
       municipality: string | null
       household_id: number
+      refreshed_at?: string | null
       total_count: number
     }[]
 
@@ -62,6 +64,8 @@ export async function GET(request: NextRequest) {
       page,
       pageSize: PAGE_SIZE,
       total: rows.length ? Number(rows[0].total_count) : 0,
+      // When the saved list (asenso.ap_members_list) was last refreshed.
+      refreshedAt: rows[0]?.refreshed_at ?? null,
       rows: rows.map((r) => ({
         person_type: r.person_type,
         person_id: r.person_id,

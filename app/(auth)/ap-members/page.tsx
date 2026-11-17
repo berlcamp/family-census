@@ -94,6 +94,7 @@ export default function ApMembersPage() {
   const [total, setTotal] = useState(0)
   const [pageSize, setPageSize] = useState(25)
   const [barangays, setBarangays] = useState<string[]>([])
+  const [refreshedAt, setRefreshedAt] = useState<Date | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -126,6 +127,8 @@ export default function ApMembersPage() {
       setTotal(body.total ?? 0)
       setPageSize(body.pageSize ?? 25)
       setBarangays(body.barangays ?? [])
+      // Empty results carry no date: keep the last one shown.
+      if (body.refreshedAt) setRefreshedAt(new Date(body.refreshedAt))
       setMunicipality(body.municipality ?? null)
     } catch (e) {
       if (id === request.current) setError((e as Error).message)
@@ -148,6 +151,11 @@ export default function ApMembersPage() {
         <p className="text-sm text-gray-500">
           AP people encoded in the census
           {municipality ? ` · ${municipality}` : ''}. Same AP rule as Reports.
+          {refreshedAt &&
+            ` List as of ${refreshedAt.toLocaleString('en-PH', {
+              dateStyle: 'medium',
+              timeStyle: 'short'
+            })}.`}
         </p>
       </div>
 
