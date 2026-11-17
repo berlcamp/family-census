@@ -68,6 +68,12 @@ export default function HouseholdsPage() {
   })
   const [purok, setPurok] = useState('')
   const [sp, setSp] = useState('')
+  // "AP households only" toggle. The ref is what fetchHouseholds reads, so a
+  // reload right after toggling uses the new value. The ids are cached per
+  // location and refreshed every time the toggle is turned on.
+  const [apOnly, setApOnly] = useState(false)
+  const apOnlyRef = useRef(false)
+  const apIdsCache = useRef<{ locationId: number; ids: number[] } | null>(null)
 
   const [enableEdit, setEnableEdit] = useState(false)
   // Owner-controlled visibility for this municipality (Settings page).
@@ -634,6 +640,41 @@ export default function HouseholdsPage() {
     }
   }
 
+  // Ids of this barangay's households with an AP person, newest first.
+  const getApHouseholdIds = async () => {
+    if (apIdsCache.current?.locationId === locationIdNum) {
+      return apIdsCache.current.ids
+    }
+    const {
+      data: { session }
+    } = await supabase.auth.getSession()
+    const response = await fetch(`/api/ap-households?locationId=${locationIdNum}`, {
+      headers: { Authorization: `Bearer ${session?.access_token ?? ''}` }
+    })
+    const body = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(body.error ?? response.statusText)
+    const ids: number[] = body.ids ?? []
+    apIdsCache.current = { locationId: locationIdNum, ids }
+    return ids
+  }
+
+  const toggleApOnly = async (next: boolean) => {
+    if (next) {
+      apIdsCache.current = null // fresh list each time it is turned on
+      try {
+        await getApHouseholdIds()
+      } catch (err) {
+        toast.error(`Could not load AP households: ${(err as Error).message}`)
+        return
+      }
+    }
+    apOnlyRef.current = next
+    setApOnly(next)
+    if (currentPage !== 1) dispatch(setPage(1))
+    else
+      fetchHouseholds(1, appliedFilters.search, appliedFilters.purok, appliedFilters.sp)
+  }
+
   const applyFilters = (searchText: string, purokText: string, spText: string) => {
     setAppliedFilters({ search: searchText.trim(), purok: purokText, sp: spText })
     // Changing the page reloads the list (with the same filters) by itself.
@@ -695,8 +736,39 @@ export default function HouseholdsPage() {
 
       // 2️⃣ Fetch full household data
       let data: any, count
+      const hasTextFilters = !!(searchText.trim() || purokText.trim() || spText.trim())
 
-      if (searchText.trim() || purokText.trim() || spText.trim()) {
+      if (apOnlyRef.current) {
+        // AP households only (combined with any other filters). The id list
+        // is paged here, so only one page of ids goes into the query.
+        const apIds = await getApHouseholdIds()
+        const keep = new Set(householdIds)
+        const ids = hasTextFilters ? apIds.filter((id) => keep.has(id)) : apIds
+        const pageIds = ids.slice(from, to + 1)
+        if (pageIds.length === 0) {
+          data = []
+        } else {
+          const { data: apData, error: apError } = await supabase
+            .from('households')
+            .select(
+              `
+          id, name, series_number, barangay, sp_id, location_id,purok,
+          service_provider:sp_id(*),
+          families (
+            id, sp, husband_name, wife_name, household_id,all_nr,asenso_husband,asenso_wife,
+            husband:voters!families_husband_id_fkey (id, fullname),
+            wife:voters!families_wife_id_fkey (id, fullname),
+            family_members (id, voter_id, fullname, is_registered, relation,asenso)
+          )
+        `
+            )
+            .in('id', pageIds)
+            .order('id', { ascending: false })
+          if (apError) throw apError
+          data = apData ?? []
+        }
+        count = ids.length
+      } else if (hasTextFilters) {
         if (householdIds.length === 0) {
           data = []
           count = 0
@@ -835,6 +907,9 @@ export default function HouseholdsPage() {
     if (!locationIdNum || !user) return
 
     dispatch(clearLocation()) // 👈 Clear old location when URL changes
+    // The AP toggle is per barangay: start each one with it off.
+    apOnlyRef.current = false
+    setApOnly(false)
     let cancelled = false
 
     const fetchData = async () => {
@@ -984,7 +1059,8 @@ export default function HouseholdsPage() {
   const hasFilters = !!(
     appliedFilters.search ||
     appliedFilters.purok ||
-    appliedFilters.sp
+    appliedFilters.sp ||
+    apOnly
   )
 
   if (user?.type === 'user' && userHasAccess?.is_disabled) {
@@ -1070,6 +1146,35 @@ export default function HouseholdsPage() {
             ]}
           />
 
+          {canSeeAp && (
+            <button
+              type="button"
+              aria-pressed={apOnly}
+              onClick={() => toggleApOnly(!apOnly)}
+              disabled={listLoading}
+              title="Show only households with at least one AP member"
+              className={`inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors disabled:opacity-60 ${
+                apOnly
+                  ? 'border-blue-700 bg-blue-700 text-white'
+                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <span
+                className={`relative inline-block h-4 w-7 rounded-full transition-colors ${
+                  apOnly ? 'bg-white/40' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-all ${
+                    apOnly ? 'left-3.5' : 'left-0.5'
+                  }`}
+                />
+              </span>
+              AP households only
+              {!visibility.showApBadge && <OwnerMark />}
+            </button>
+          )}
+
           <Button type="submit" variant="blue" className="h-9">
             Search
           </Button>
@@ -1082,6 +1187,8 @@ export default function HouseholdsPage() {
                 setSearch('')
                 setPurok('')
                 setSp('')
+                apOnlyRef.current = false
+                setApOnly(false)
                 applyFilters('', '', '')
               }}
             >
@@ -1128,6 +1235,9 @@ export default function HouseholdsPage() {
                 applyFilters(search, purok, '')
               }}
             />
+          )}
+          {apOnly && (
+            <FilterChip label="AP households only" onClear={() => toggleApOnly(false)} />
           )}
         </div>
       </form>
