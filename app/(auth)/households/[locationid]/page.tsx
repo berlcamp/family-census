@@ -897,7 +897,7 @@ export default function HouseholdsPage() {
     if (pendingDelete.kind === 'household') {
       const n = pendingDelete.household.families?.length ?? 0
       return n > 0
-        ? `This also deletes its ${n} famil${n === 1 ? 'y' : 'ies'}, their members and any Kadiwa claims of this household. This cannot be undone.`
+        ? `This also deletes its ${n} famil${n === 1 ? 'y' : 'ies'} and their members. This cannot be undone.`
         : 'This cannot be undone.'
     }
     const f = pendingDelete.family
