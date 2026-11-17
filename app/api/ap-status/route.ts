@@ -9,10 +9,13 @@ export const dynamic = 'force-dynamic'
  * in the given households, for the AP badge on the household cards.
  *
  * The crossmatch tables are server-only, so this route reads them with the
- * service role, after checking the caller may see AP status at all (for now
- * only the owner and province admins) and those households:
+ * service role, after checking the caller may see those households' AP status:
  *   - owner: any household
  *   - province admin: households in their own municipality
+ *   - super admin: households in their own municipality, and
+ *     other users: households in barangays assigned to them,
+ *     but only where the owner turned on "Show AP badges" for that
+ *     municipality (location_settings.show_ap_badge)
  *
  * Response: { families: { [familyId]: { husband, wife } },
  *             members:  { [familyMemberId]: ap } }
@@ -37,7 +40,7 @@ async function allowedHouseholds(admin: Admin, token: string, ids: number[]) {
 
   const { data: me } = await admin
     .from('users')
-    .select('type, address')
+    .select('id, type, address')
     .eq('email', email)
     .eq('is_active', true)
     .maybeSingle()
@@ -51,13 +54,34 @@ async function allowedHouseholds(admin: Admin, token: string, ids: number[]) {
 
   if (isOwner(email)) return households.map((h) => h.id)
 
-  // AP badges are limited to province admins (and the owner) for now.
-  if (me.type !== 'province admin') return null
+  const norm = (v?: string | null) => (v ?? '').trim().toUpperCase()
+  const mine = norm(me.address)
 
-  const mine = (me.address ?? '').trim().toUpperCase()
-  return households
-    .filter((h) => (h.address ?? '').trim().toUpperCase() === mine)
-    .map((h) => h.id)
+  if (me.type === 'province admin') {
+    return households.filter((h) => norm(h.address) === mine).map((h) => h.id)
+  }
+
+  // Everyone else: only municipalities where the owner turned the badges on.
+  const { data: settings, error: setError } = await admin
+    .from('location_settings')
+    .select('address')
+    .eq('show_ap_badge', true)
+  if (setError) throw setError
+  const enabled = new Set((settings ?? []).map((x) => norm(x.address)))
+  const visible = households.filter((h) => enabled.has(norm(h.address)))
+  if (visible.length === 0) return []
+
+  if (me.type === 'super admin') {
+    return visible.filter((h) => norm(h.address) === mine).map((h) => h.id)
+  }
+
+  const { data: assigned, error: luError } = await admin
+    .from('location_users')
+    .select('location_id')
+    .eq('user_id', me.id)
+  if (luError) throw luError
+  const locations = new Set((assigned ?? []).map((a) => a.location_id))
+  return visible.filter((h) => locations.has(h.location_id)).map((h) => h.id)
 }
 
 export async function POST(request: NextRequest) {

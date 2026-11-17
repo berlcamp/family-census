@@ -54,7 +54,14 @@ export function AsensoBadge() {
 }
 
 /** Explains the badges shown after names on the household cards. */
-export function BadgeLegend({ showAp = true }: { showAp?: boolean }) {
+export function BadgeLegend({
+  showAp = true,
+  apRestricted = true
+}: {
+  showAp?: boolean
+  /** AP badges still limited to the owner and province admins. */
+  apRestricted?: boolean
+}) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
       <span className="font-medium text-gray-700">Legend:</span>
@@ -67,7 +74,9 @@ export function BadgeLegend({ showAp = true }: { showAp?: boolean }) {
       {showAp && (
         <span className="inline-flex items-center gap-1">
           <ApBadge /> AP member
-          <OwnerMark title="Only visible to province admins and the owner" />
+          {apRestricted && (
+            <OwnerMark title="Only visible to province admins and the owner" />
+          )}
         </span>
       )}
       <span>

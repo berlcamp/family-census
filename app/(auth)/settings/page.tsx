@@ -15,11 +15,28 @@ interface LocationSetting {
   enable_edit: boolean
   /** The barangays' purok lists (Overview tab) can be edited. */
   enable_purok_edit: boolean
+  /** Everyone on the households pages sees the User logs download. */
+  show_user_logs: boolean
+  /** Everyone on the households pages sees the AP badges. */
+  show_ap_badge: boolean
 }
 
-type SettingKey = 'enable_edit' | 'enable_purok_edit'
+type SettingKey =
+  | 'enable_edit'
+  | 'enable_purok_edit'
+  | 'show_user_logs'
+  | 'show_ap_badge'
 
-const SWITCHES: { key: SettingKey; label: string; hint: string }[] = [
+const COLUMNS =
+  'id, address, enable_edit, enable_purok_edit, show_user_logs, show_ap_badge'
+
+const SWITCHES: {
+  key: SettingKey
+  label: string
+  hint: string
+  /** Owner-level visibility switch (marked with "!"). */
+  owner?: boolean
+}[] = [
   {
     key: 'enable_edit',
     label: 'Household editing',
@@ -29,6 +46,18 @@ const SWITCHES: { key: SettingKey; label: string; hint: string }[] = [
     key: 'enable_purok_edit',
     label: 'Purok editing',
     hint: "Add, rename and delete a barangay's puroks"
+  },
+  {
+    key: 'show_user_logs',
+    label: 'Show user logs',
+    hint: 'Off: only the owner sees them',
+    owner: true
+  },
+  {
+    key: 'show_ap_badge',
+    label: 'Show AP badges',
+    hint: 'Off: only the owner and province admins',
+    owner: true
   }
 ]
 
@@ -53,7 +82,7 @@ export default function SettingsPage() {
     const loadSettings = async () => {
       const { data, error } = await supabase
         .from('location_settings')
-        .select('id, address, enable_edit, enable_purok_edit')
+        .select(COLUMNS)
         .order('address')
 
       if (error) {
@@ -74,7 +103,7 @@ export default function SettingsPage() {
       .from('location_settings')
       .update({ [key]: !setting[key] })
       .eq('id', setting.id)
-      .select('id, address, enable_edit, enable_purok_edit')
+      .select(COLUMNS)
       .single()
     setSaving(null)
 
@@ -99,14 +128,17 @@ export default function SettingsPage() {
         <p className="text-sm text-gray-500">What encoders may change, per municipality.</p>
       </div>
 
-      <section className="overflow-hidden rounded-lg border bg-white shadow-sm lg:w-2/3 dark:border-gray-700 dark:bg-gray-900">
+      <section className="overflow-x-auto rounded-lg border bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
             <tr>
               <th className="px-4 py-2 text-left font-medium">Municipality / City</th>
               {SWITCHES.map((s) => (
                 <th key={s.key} className="px-4 py-2 text-left font-medium">
-                  <div>{s.label}</div>
+                  <div className="flex items-center gap-1.5">
+                    {s.label}
+                    {s.owner && <OwnerMark />}
+                  </div>
                   <div className="text-[11px] font-normal text-gray-400">{s.hint}</div>
                 </th>
               ))}

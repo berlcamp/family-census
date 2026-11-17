@@ -69,6 +69,11 @@ export default function HouseholdsPage() {
   const [sp, setSp] = useState('')
 
   const [enableEdit, setEnableEdit] = useState(false)
+  // Owner-controlled visibility for this municipality (Settings page).
+  const [visibility, setVisibility] = useState({
+    showUserLogs: false,
+    showApBadge: false
+  })
 
 
   // The one family being added or edited inline (familyId null = new).
@@ -800,10 +805,6 @@ export default function HouseholdsPage() {
           page
         })
       )
-      if (canSeeAp) void loadApStatus(
-        mapped.map((h: any) => h.id),
-        requestId
-      )
     } catch (err) {
       console.error('Error fetching households:', err)
       if (requestId === listRequest.current) toast.error('Could not load households.')
@@ -859,18 +860,25 @@ export default function HouseholdsPage() {
       setUserHasAccess(accessRes.data ?? null)
 
       let editSetting = false
+
+      let visibilitySetting = { showUserLogs: false, showApBadge: false }
       if (loc?.address) {
         const { data, error } = await supabase
           .from('location_settings')
-          .select('enable_edit')
+          .select('enable_edit, show_user_logs, show_ap_badge')
           .eq('address', loc.address)
           .maybeSingle()
         // Default: editing disabled unless explicitly enabled
         editSetting = !error && !!data?.enable_edit
+        visibilitySetting = {
+          showUserLogs: !error && !!data?.show_user_logs,
+          showApBadge: !error && !!data?.show_ap_badge
+        }
       }
       if (cancelled) return
 
       setEnableEdit(editSetting)
+      setVisibility(visibilitySetting)
       if (loc) dispatch(setLocation(loc))
       setLoading(false)
     }
@@ -893,7 +901,18 @@ export default function HouseholdsPage() {
     userHasAccess?.is_editor === true
   const canEdit = enableEdit && enableEdit2
   // AP badges: province admins and the owner only (for now).
-  const canSeeAp = user?.type === 'province admin' || isOwner(user?.email)
+  const ownerOrProvince =
+    user?.type === 'province admin' || isOwner(user?.email)
+  const canSeeAp = ownerOrProvince || visibility.showApBadge
+  const canSeeLogs = isOwner(user?.email) || visibility.showUserLogs
+
+  // AP badges for the households on screen, once both the list and the
+  // permission (which may come from this municipality's setting) are known.
+  const shownIds = households.map((h) => h.id).join(',')
+  useEffect(() => {
+    if (!canSeeAp || !shownIds) return
+    void loadApStatus(shownIds.split(',').map(Number), listRequest.current)
+  }, [canSeeAp, shownIds])
 
   const deleteDescription = () => {
     if (!pendingDelete) return undefined
@@ -1096,11 +1115,12 @@ export default function HouseholdsPage() {
 
       {/* Badge legend + user logs */}
       <div className="mx-4 mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
-        <BadgeLegend showAp={canSeeAp} />
+        <BadgeLegend showAp={canSeeAp} apRestricted={!visibility.showApBadge} />
         {/* User logs: owner only */}
-        {isOwner(user?.email) && (
+        {canSeeLogs && (
           <div className="ml-auto flex items-center gap-2 text-xs text-gray-600">
-            <OwnerMark />
+            {/* "!" while the logs are still owner-only for this municipality */}
+            {!visibility.showUserLogs && <OwnerMark />}
             <span>User logs</span>
             <input
               type="date"
