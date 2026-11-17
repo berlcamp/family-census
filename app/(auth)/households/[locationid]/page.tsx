@@ -27,9 +27,9 @@ import { Family, FamilyMember, Household, LocationUser } from '@/types'
 import { useParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import FamilyEditor, { BadgeLegend, PersonLine } from './FamilyEditor'
-import { Download, MapPin, RotateCcw, Search as SearchIcon, UserRound } from 'lucide-react'
+import { Download, MapPin, Pencil, RotateCcw, Search as SearchIcon, UserRound } from 'lucide-react'
 import { FilterChip, FilterSelect } from './HouseholdFilters'
-import HouseholdModal from './HouseholdModal'
+import HouseholdEditor from './HouseholdEditor'
 
 export default function HouseholdsPage() {
   const { locationid } = useParams<{ locationid: string }>()
@@ -67,14 +67,15 @@ export default function HouseholdsPage() {
 
   const [enableEdit, setEnableEdit] = useState(false)
 
-  const [showHouseholdModal, setShowHouseholdModal] = useState(false)
-  const [editHousehold, setEditHousehold] = useState<Household | null>(null)
 
   // The one family being added or edited inline (familyId null = new).
-  const [editing, setEditing] = useState<{
-    householdId: number
-    familyId: number | null
-  } | null>(null)
+  // The one thing being added or edited inline: a family (familyId null =
+  // new family) or a household (householdId null = new household).
+  const [editing, setEditing] = useState<
+    | { kind: 'family'; householdId: number; familyId: number | null }
+    | { kind: 'household'; householdId: number | null }
+    | null
+  >(null)
   // Whether the open family editor has unsaved changes.
   const editorDirty = useRef(false)
 
@@ -83,18 +84,19 @@ export default function HouseholdsPage() {
   const user = useAppSelector((state) => state.user.user)
 
   // Save Household
-  const handleSaveHousehold = async (household: Partial<Household>) => {
-    if (!location) return
+  // Returns true when saved, so the inline editor can close.
+  const handleSaveHousehold = async (
+    household: Partial<Household>
+  ): Promise<boolean> => {
+    if (!location) return false
 
     if (household.id) {
-      console.log('household.sp', household.sp)
       // UPDATE existing household
       const { data, error } = await supabase
         .from('households')
         .update({
           name: household.name,
           purok: household.purok,
-          sitio: household.sitio,
           sp_id: household.sp === '' ? null : Number(household.sp),
           barangay: location.name,
           address: location.address,
@@ -106,7 +108,7 @@ export default function HouseholdsPage() {
 
       if (error) {
         toast.error('Error updating household')
-        return
+        return false
       }
 
       // Preserve existing families in Redux
@@ -139,7 +141,7 @@ export default function HouseholdsPage() {
 
       if (error) {
         toast.error('Error adding household')
-        return
+        return false
       }
 
       dispatch(
@@ -160,7 +162,7 @@ export default function HouseholdsPage() {
     }
 
     toast.success('Household saved successfully!')
-    setShowHouseholdModal(false)
+    return true
   }
 
   // Save Family (Full Replace Strategy)
@@ -506,8 +508,8 @@ export default function HouseholdsPage() {
 
       toast.success('Household deleted successfully!')
 
-      // 3. Close modal
-      setShowHouseholdModal(false)
+      // 3. Close the inline editor
+      closeEditor()
     } catch (err) {
       console.error('Failed to delete household:', err)
       toast.error('❌ Error deleting household. Please try again.')
@@ -884,19 +886,29 @@ export default function HouseholdsPage() {
   // Open a family editor (familyId null = new family). Only one is open at a
   // time: opening another closes the current one, asking first if it has
   // unsaved changes.
-  const openEditor = (householdId: number, familyId: number | null) => {
-    if (editing?.householdId === householdId && editing.familyId === familyId) {
-      return
-    }
+  const isEditingFamily = (householdId: number, familyId: number | null) =>
+    editing?.kind === 'family' &&
+    editing.householdId === householdId &&
+    editing.familyId === familyId
+  const isEditingHousehold = (householdId: number | null) =>
+    editing?.kind === 'household' && editing.householdId === householdId
+
+  const openEditor = (householdId: number, familyId: number | null) =>
+    switchEditor({ kind: 'family', householdId, familyId })
+  const openHouseholdEditor = (householdId: number | null) =>
+    switchEditor({ kind: 'household', householdId })
+
+  const switchEditor = (next: NonNullable<typeof editing>) => {
+    if (JSON.stringify(next) === JSON.stringify(editing)) return
     if (
       editing &&
       editorDirty.current &&
-      !window.confirm('Discard the unsaved changes to the family you are editing?')
+      !window.confirm('Discard the unsaved changes you are editing?')
     ) {
       return
     }
     editorDirty.current = false
-    setEditing({ householdId, familyId })
+    setEditing(next)
   }
   const closeEditor = () => {
     editorDirty.current = false
@@ -937,13 +949,8 @@ export default function HouseholdsPage() {
     <div className="w-full">
       <div className="app__title flex">
         <h1 className="text-xl font-semibold flex-1">{location.name}</h1>
-        {enableEdit && enableEdit2 && (
-          <Button
-            onClick={() => {
-              setEditHousehold(null)
-              setShowHouseholdModal(true)
-            }}
-          >
+        {canEdit && (
+          <Button onClick={() => openHouseholdEditor(null)}>
             + Add Household
           </Button>
         )}
@@ -1103,43 +1110,64 @@ export default function HouseholdsPage() {
           listLoading ? 'hidden' : ''
         }`}
       >
+        {isEditingHousehold(null) && (
+          <Card className="rounded-none border-gray-300 bg-yellow-100">
+            <CardContent className="pt-4">
+              <HouseholdEditor
+                initialData={null}
+                onSave={handleSaveHousehold}
+                onCancel={closeEditor}
+                onDirtyChange={setEditorDirty}
+              />
+            </CardContent>
+          </Card>
+        )}
         {households.map((h) => (
           <Card
             key={`household-${h.id}`}
             className="rounded-none border-gray-300 bg-yellow-100"
           >
             <CardHeader>
-              <CardTitle className="flex justify-between">
-                <span className="text-blue-800 font-bold">{h.name}</span>
-                {enableEdit && enableEdit2 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setEditHousehold(h)
-                      setShowHouseholdModal(true)
-                    }}
-                  >
-                    ✎
-                  </Button>
-                )}
-              </CardTitle>
-              <p className="text-sm text-gray-500">
-                Household No: HH-{h.series_number}
-              </p>
-              <p className="text-sm text-gray-500">Purok: {h.purok}</p>
+              {isEditingHousehold(h.id) ? (
+                <HouseholdEditor
+                  initialData={h}
+                  onSave={handleSaveHousehold}
+                  onDelete={() => handleDeleteHousehold(h.id)}
+                  onCancel={closeEditor}
+                  onDirtyChange={setEditorDirty}
+                />
+              ) : (
+                <>
+                  <CardTitle className="flex items-start justify-between gap-2">
+                    <span className="text-blue-800 font-bold">{h.name}</span>
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => openHouseholdEditor(h.id)}
+                        className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-xs font-normal text-blue-700 hover:underline"
+                      >
+                        <Pencil className="h-3 w-3" /> Edit Household
+                      </button>
+                    )}
+                  </CardTitle>
+                  <p className="text-sm text-gray-500">
+                    Household No: HH-{h.series_number}
+                  </p>
+                  <p className="text-sm text-gray-500">Purok: {h.purok}</p>
 
-              <p className="text-sm text-gray-500">
-                SP: {h.service_provider?.name ?? 'None'}
-              </p>
+                  <p className="text-sm text-gray-500">
+                    SP: {h.service_provider?.name ?? 'None'}
+                  </p>
 
-              {h.sitio && (
-                <p className="text-sm text-gray-500">Sitio: {h.sitio}</p>
+                  {h.sitio && (
+                    <p className="text-sm text-gray-500">Sitio: {h.sitio}</p>
+                  )}
+                </>
               )}
             </CardHeader>
             <CardContent>
               {h.families?.map((f) =>
-                editing?.householdId === h.id && editing.familyId === f.id ? (
+                isEditingFamily(h.id, f.id) ? (
                   <FamilyEditor
                     key={`edit-${f.id}`}
                     initialFamily={f}
@@ -1202,7 +1230,7 @@ export default function HouseholdsPage() {
                   </div>
                 )
               )}
-              {editing?.householdId === h.id && editing.familyId === null ? (
+              {isEditingFamily(h.id, null) ? (
                 <FamilyEditor
                   key={`new-${h.id}`}
                   initialFamily={null}
@@ -1245,16 +1273,6 @@ export default function HouseholdsPage() {
           ))}
         </div>
       </div>
-
-      {/* Modals */}
-      <HouseholdModal
-        open={showHouseholdModal}
-        onClose={() => setShowHouseholdModal(false)}
-        onSave={handleSaveHousehold}
-        initialData={editHousehold}
-        onDelete={handleDeleteHousehold} // ✅ wired to slice
-      />
-
 
     </div>
   )
