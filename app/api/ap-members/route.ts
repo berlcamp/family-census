@@ -4,14 +4,20 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-const PAGE_SIZE = 25
+const MAX_LIMIT = 50
 
 /**
- * GET /api/ap-members?municipality=&barangay=&q=&page=
- * One page of AP people in the census (asenso.ap_members_page, which reads
- * the saved list asenso.ap_members_list, refreshed by hand), plus the
- * barangays of that municipality for the filter.
- * Owner: any municipality. Province admin: their own only.
+ * GET /api/ap-members?group=census|list&q=&municipality=&barangay=&page=&limit=&notInCensus=1
+ *
+ * AP Members search, one result group per call:
+ *   census: AP people in the family census (asenso.ap_members_page over the
+ *           saved list asenso.ap_members_list)
+ *   list:   people on the AP lists — existing_members, members, voters is_ap
+ *           (asenso.ap_list_members_page over asenso.ap_list_members)
+ * Both saved lists are refreshed by hand (supabase/ap_search.sql).
+ *
+ * Owner: any municipality, or municipality=ALL for every one.
+ * Province admin: their own municipality only.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -22,58 +28,87 @@ export async function GET(request: NextRequest) {
     }
 
     const params = request.nextUrl.searchParams
-    const town = allowedTown(access, params.get('municipality'))
-    if (!town) {
+    const group = params.get('group') === 'list' ? 'list' : 'census'
+    const wantsAll = access.owner && params.get('municipality') === 'ALL'
+    const town = wantsAll ? null : allowedTown(access, params.get('municipality'))
+    if (!wantsAll && !town) {
       return NextResponse.json(
         { error: 'Your account has no municipality assigned.' },
         { status: 400 }
       )
     }
-    const barangay = params.get('barangay')?.trim() || null
-    const q = params.get('q')?.trim().slice(0, 100) || null
+    const barangay = town ? params.get('barangay')?.trim() || null : null
+    // Letters, numbers, spaces and hyphens only; at most 5 words.
+    const q =
+      (params.get('q') ?? '')
+        .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 5)
+        .join(' ')
+        .slice(0, 100) || null
+    const limit = Math.min(
+      MAX_LIMIT,
+      Math.max(1, Number.parseInt(params.get('limit') ?? '25', 10) || 25)
+    )
     const page = Math.max(0, Number.parseInt(params.get('page') ?? '0', 10) || 0)
 
-    const [list, brgys] = await Promise.all([
-      admin.rpc('ap_members_page', {
-        p_town: town,
-        p_barangay: barangay,
-        p_q: q,
-        p_limit: PAGE_SIZE,
-        p_offset: page * PAGE_SIZE
-      }),
-      admin.from('locations').select('name').eq('address', town).order('name')
-    ])
-    if (list.error) throw list.error
-    if (brgys.error) throw brgys.error
+    const list =
+      group === 'census'
+        ? admin.rpc('ap_members_page', {
+            p_town: town,
+            p_barangay: barangay,
+            p_q: q,
+            p_limit: limit,
+            p_offset: page * limit
+          })
+        : admin.rpc('ap_list_members_page', {
+            p_town: town,
+            p_barangay: barangay,
+            p_q: q,
+            p_not_in_census: params.get('notInCensus') === '1',
+            p_limit: limit,
+            p_offset: page * limit
+          })
+    const brgys = town
+      ? admin.from('locations').select('name').eq('address', town).order('name')
+      : Promise.resolve({ data: [] as { name: string }[], error: null })
 
-    const rows = (list.data ?? []) as {
-      person_type: string
-      person_id: number
-      fullname: string
-      barangay: string | null
-      municipality: string | null
-      household_id: number
-      refreshed_at?: string | null
-      total_count: number
-    }[]
+    const [res, brgyRes] = await Promise.all([list, brgys])
+    if (res.error) throw res.error
+    if (brgyRes.error) throw brgyRes.error
 
+    const rows = (res.data ?? []) as Record<string, unknown>[]
     return NextResponse.json({
-      municipality: town,
+      group,
+      municipality: town ?? 'ALL',
       canChooseMunicipality: access.owner,
-      barangays: [...new Set((brgys.data ?? []).map((b) => b.name as string))],
+      barangays: [...new Set((brgyRes.data ?? []).map((b) => b.name as string))],
       page,
-      pageSize: PAGE_SIZE,
+      limit,
       total: rows.length ? Number(rows[0].total_count) : 0,
-      // When the saved list (asenso.ap_members_list) was last refreshed.
-      refreshedAt: rows[0]?.refreshed_at ?? null,
-      rows: rows.map((r) => ({
-        person_type: r.person_type,
-        person_id: r.person_id,
-        fullname: r.fullname,
-        barangay: r.barangay,
-        municipality: r.municipality,
-        household_id: r.household_id
-      }))
+      refreshedAt: (rows[0]?.refreshed_at as string | undefined) ?? null,
+      rows: rows.map((r) =>
+        group === 'census'
+          ? {
+              key: `${r.person_type}-${r.person_id}`,
+              person_type: r.person_type,
+              person_id: r.person_id,
+              fullname: r.fullname,
+              barangay: r.barangay,
+              municipality: r.municipality,
+              household_id: r.household_id
+            }
+          : {
+              key: `${r.municipality}-${r.barangay}-${r.fullname}`,
+              fullname: r.fullname,
+              barangay: r.barangay,
+              municipality: r.municipality,
+              sources: r.sources ?? [],
+              details: r.details ?? [],
+              household_id: r.household_id ?? null
+            }
+      )
     })
   } catch (error) {
     console.error('ap-members failed', error)
