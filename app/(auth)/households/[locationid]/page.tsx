@@ -651,6 +651,13 @@ export default function HouseholdsPage() {
     const to = from + pageSize - 1
     const requestId = ++listRequest.current
     setListLoading(true)
+    // Hide households with no families, unless just created (< 10 minutes
+    // ago) so a new household stays visible while its families are added.
+    // created_at is stored as UTC without a time zone.
+    const recentCutoff = new Date(Date.now() - 10 * 60 * 1000)
+      .toISOString()
+      .replace('Z', '')
+    const notEmptyOrRecent = `families.not.is.null,created_at.gte.${recentCutoff}`
 
     try {
       let householdIds: number[] = []
@@ -713,6 +720,7 @@ export default function HouseholdsPage() {
               { count: 'exact' }
             )
             .in('id', householdIds)
+            .or(notEmptyOrRecent)
             .range(from, to)
             .order('id', { ascending: false })
 
@@ -742,6 +750,7 @@ export default function HouseholdsPage() {
             { count: 'exact' }
           )
           .eq('location_id', locationIdNum)
+          .or(notEmptyOrRecent)
           .range(from, to)
           .order('id', { ascending: false })
 
