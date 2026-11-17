@@ -1,4 +1,4 @@
-import { BarChart, CogIcon, FileSpreadsheet, Home, ListChecks, Users } from 'lucide-react'
+import { BadgeCheck, BarChart, CogIcon, FileSpreadsheet, Home, ListChecks, Users } from 'lucide-react'
 import { isOwner, userManagementScope } from '@/lib/constants'
 
 import {
@@ -40,6 +40,15 @@ export function AppSidebar() {
             title: 'Dashboard',
             url: '/dashboard',
             icon: BarChart
+          }
+        ]
+      : []),
+    ...(isOwner(user?.email) || user?.type === 'province admin'
+      ? [
+          {
+            title: 'AP Members',
+            url: '/ap-members',
+            icon: BadgeCheck
           }
         ]
       : []),
