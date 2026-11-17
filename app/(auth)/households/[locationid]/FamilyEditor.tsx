@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button'
 import { useAppSelector } from '@/lib/redux/hook'
-import { X } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import PersonPicker from './PersonPicker'
@@ -117,7 +117,6 @@ export default function FamilyEditor({
   onDelete?: () => Promise<void>
   onCancel: () => void
 }) {
-  const user = useAppSelector((s) => s.user.user)
   const location = useAppSelector((s) => s.location.selectedLocation)
   const voters = useBarangayVoters(true, location?.address, location?.name)
 
@@ -126,13 +125,12 @@ export default function FamilyEditor({
   const [members, setMembers] = useState<VoterOption[]>(
     initialFamily?.family_members ?? []
   )
-  const [sp, setSp] = useState<string>(initialFamily?.sp ?? '')
+  // families.sp (old "Family of SP" tag): no longer edited here, but an
+  // existing value is kept as is when the family is saved.
+  const sp: string = initialFamily?.sp ?? ''
   const [allowNonRegistered, setAllowNonRegistered] = useState(false)
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
-
-  const showSp =
-    user?.type === 'province admin' && location?.address !== 'OZAMIZ CITY'
 
   const anyRegistered =
     !!husband?.voter_id ||
@@ -250,25 +248,6 @@ export default function FamilyEditor({
         </div>
       </div>
 
-      {showSp && (
-        <div className="mt-2">
-          <label className="text-xs font-medium text-gray-600">Family of SP</label>
-          <select
-            value={sp}
-            onChange={(e) => setSp(e.target.value)}
-            className="w-full rounded border border-yellow-300 bg-white p-1 text-sm"
-          >
-            <option value="">-- Select SP --</option>
-            {Array.isArray(location?.sps) &&
-              location.sps.map((p, i) => (
-                <option key={i} value={p}>
-                  {p}
-                </option>
-              ))}
-          </select>
-        </div>
-      )}
-
       {!anyRegistered && !nobodyEncoded && (
         <label className="mt-2 flex items-center gap-2 text-xs text-red-700">
           <input
@@ -375,13 +354,13 @@ function AsensoToggle({
   onChange: (checked: boolean) => void
 }) {
   return (
-    <label className="flex items-center gap-1 text-xs" title="Asenso">
+    <label className="flex cursor-pointer items-center gap-0.5" title="Asenso">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
       />
-      A
+      <AsensoBadge />
     </label>
   )
 }
@@ -395,7 +374,7 @@ function RemoveButton({ label, onClick }: { label: string; onClick: () => void }
       className="text-red-500 hover:text-red-700"
       onClick={onClick}
     >
-      <X className="h-4 w-4" />
+      <Trash2 className="h-4 w-4" />
     </button>
   )
 }
