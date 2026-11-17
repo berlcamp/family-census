@@ -1,4 +1,4 @@
-import { BarChart, CogIcon, Home, ListChecks, Users } from 'lucide-react'
+import { BarChart, CogIcon, FileSpreadsheet, Home, ListChecks, Users } from 'lucide-react'
 import { isOwner, userManagementScope } from '@/lib/constants'
 
 import {
@@ -48,6 +48,11 @@ export function AppSidebar() {
             title: 'AP Review',
             url: '/ap-review',
             icon: ListChecks
+          },
+          {
+            title: 'Reports',
+            url: '/reports',
+            icon: FileSpreadsheet
           }
         ]
       : []),
