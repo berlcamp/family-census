@@ -33,6 +33,7 @@ import FamilyEditor, { BadgeLegend, PersonLine } from './FamilyEditor'
 import { Download, MapPin, Pencil, Plus, RotateCcw, Trash2, Search as SearchIcon, UserRound } from 'lucide-react'
 import { FilterChip, FilterSelect, HouseholdCardSkeleton } from './HouseholdFilters'
 import HouseholdEditor from './HouseholdEditor'
+import HouseholdTrash from './HouseholdTrash'
 
 export default function HouseholdsPage() {
   const { locationid } = useParams<{ locationid: string }>()
@@ -91,6 +92,8 @@ export default function HouseholdsPage() {
     | null
   >(null)
   const [deleting, setDeleting] = useState(false)
+  // Bumped when a household goes to the trash, so the Trash count refreshes.
+  const [trashVersion, setTrashVersion] = useState(0)
   // Whether the open family editor has unsaved changes.
   const editorDirty = useRef(false)
 
@@ -501,13 +504,16 @@ export default function HouseholdsPage() {
 
   const handleDeleteHousehold = async (householdId: number) => {
     try {
-      // 1. Call Supabase to delete from DB
-      const { error } = await supabase
-        .from('households')
-        .delete()
-        .eq('id', householdId)
+      // 1. Move it to the trash (with its families, members and Kadiwa
+      //    claims); it can be restored from there.
+      const { error } = await supabase.rpc('trash_household', {
+        p_household_id: householdId,
+        p_deleted_by: user?.name ?? user?.email ?? null,
+        p_deleted_by_user_id: user?.system_user_id ?? null
+      })
 
       if (error) throw error
+      setTrashVersion((v) => v + 1)
 
       // 2. Update Redux state
       dispatch(deleteHousehold(householdId))
@@ -517,11 +523,11 @@ export default function HouseholdsPage() {
         p_location_id: locationIdNum,
         p_system_user_id: user?.system_user_id,
         p_user_name: user?.name,
-        p_action: 'Deleted Household',
-        p_details: `Deleted household ID:${householdId}`
+        p_action: 'Moved Household to Trash',
+        p_details: `Moved household ID:${householdId} to trash`
       })
 
-      toast.success('Household deleted successfully!')
+      toast.success('Household moved to the trash. You can restore it from Trash.')
 
       // 3. Close the inline editor
       closeEditor()
@@ -918,9 +924,9 @@ export default function HouseholdsPage() {
     if (!pendingDelete) return undefined
     if (pendingDelete.kind === 'household') {
       const n = pendingDelete.household.families?.length ?? 0
-      return n > 0
-        ? `This also deletes its ${n} famil${n === 1 ? 'y' : 'ies'} and their members. This cannot be undone.`
-        : 'This cannot be undone.'
+      return `${
+        n > 0 ? `Its ${n} famil${n === 1 ? 'y' : 'ies'} and their members go with it. ` : ''
+      }You can restore it from Trash.`
     }
     const f = pendingDelete.family
     const heads = [f.husband_name, f.wife_name].filter(Boolean).join(' & ')
@@ -1137,13 +1143,18 @@ export default function HouseholdsPage() {
       </div>
 
       {canEdit && (
-        <div className="mx-4 mt-3">
+        <div className="mx-4 mt-3 flex items-center justify-between gap-2">
           <Button
             onClick={() => openHouseholdEditor(null)}
             disabled={isEditingHousehold(null)}
           >
             <Plus className="h-4 w-4" /> Add Household
           </Button>
+          <HouseholdTrash
+            locationId={locationIdNum}
+            version={trashVersion}
+            onRestored={() => fetchHouseholds(currentPage, search, purok, sp)}
+          />
         </div>
       )}
 
