@@ -73,7 +73,8 @@ export default function HouseholdsPage() {
   // Owner-controlled visibility for this municipality (Settings page).
   const [visibility, setVisibility] = useState({
     showUserLogs: false,
-    showApBadge: false
+    showApBadge: false,
+    allowView: false
   })
 
 
@@ -876,18 +877,19 @@ export default function HouseholdsPage() {
 
       let editSetting = false
 
-      let visibilitySetting = { showUserLogs: false, showApBadge: false }
+      let visibilitySetting = { showUserLogs: false, showApBadge: false, allowView: false }
       if (loc?.address) {
         const { data, error } = await supabase
           .from('location_settings')
-          .select('enable_edit, show_user_logs, show_ap_badge')
+          .select('enable_edit, show_user_logs, show_ap_badge, allow_view')
           .eq('address', loc.address)
           .maybeSingle()
         // Default: editing disabled unless explicitly enabled
         editSetting = !error && !!data?.enable_edit
         visibilitySetting = {
           showUserLogs: !error && !!data?.show_user_logs,
-          showApBadge: !error && !!data?.show_ap_badge
+          showApBadge: !error && !!data?.show_ap_badge,
+          allowView: !error && !!data?.allow_view
         }
       }
       if (cancelled) return
@@ -993,7 +995,9 @@ export default function HouseholdsPage() {
     return <LoadingSkeleton />
   }
 
-  if (!enableEdit && user?.type === 'user') {
+  // Editing off: encoders are blocked unless the owner allows viewing
+  // (then the page is read-only, since canEdit stays false).
+  if (!enableEdit && !visibility.allowView && user?.type === 'user') {
     return <NoAccess />
   }
 

@@ -19,6 +19,7 @@ interface LocationSetting {
   show_user_logs: boolean
   /** Everyone on the households pages sees the AP badges. */
   show_ap_badge: boolean
+  allow_view: boolean
 }
 
 type SettingKey =
@@ -28,7 +29,7 @@ type SettingKey =
   | 'show_ap_badge'
 
 const COLUMNS =
-  'id, address, enable_edit, enable_purok_edit, show_user_logs, show_ap_badge'
+  'id, address, enable_edit, enable_purok_edit, show_user_logs, show_ap_badge, allow_view'
 
 const SWITCHES: {
   key: SettingKey
@@ -68,6 +69,9 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<LocationSetting[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
+  // One switch for every municipality (location_settings.allow_view).
+  const [allowView, setAllowView] = useState(false)
+  const [savingView, setSavingView] = useState(false)
 
   // Only the owner (OWNER_EMAILS, i.e. berlcamp@gmail.com) can access
   const allowed = isOwner(user?.email)
@@ -90,11 +94,30 @@ export default function SettingsPage() {
         console.error(error)
       } else {
         setSettings(data)
+        // On only when every municipality has it on.
+        setAllowView(data.length > 0 && data.every((d) => d.allow_view))
       }
       setLoading(false)
     }
     loadSettings()
   }, [allowed])
+
+  const toggleAllowView = async () => {
+    const next = !allowView
+    setSavingView(true)
+    const { error } = await supabase
+      .from('location_settings')
+      .update({ allow_view: next })
+      .gte('id', 0) // every municipality
+    setSavingView(false)
+    if (error) {
+      toast.error('Failed to update setting')
+      console.error(error)
+      return
+    }
+    setAllowView(next)
+    toast.success(next ? 'Viewing allowed for all users' : 'Viewing turned off')
+  }
 
   const toggle = async (setting: LocationSetting, key: SettingKey) => {
     const id = `${setting.id}-${key}`
@@ -127,6 +150,25 @@ export default function SettingsPage() {
         </h1>
         <p className="text-sm text-gray-500">What encoders may change, per municipality.</p>
       </div>
+
+      <section className="flex flex-wrap items-center gap-4 rounded-lg border bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-gray-900 dark:text-gray-50">
+            Allow viewing
+          </div>
+          <p className="text-xs text-gray-500">
+            All users can open their barangays&apos; Overview and Households pages
+            (read-only) even where household editing is off. Off: they see
+            &ldquo;limited permission&rdquo; there. Applies to every municipality.
+          </p>
+        </div>
+        <Switch
+          checked={allowView}
+          disabled={loading || savingView}
+          label="Allow viewing for all users"
+          onChange={toggleAllowView}
+        />
+      </section>
 
       <section className="overflow-x-auto rounded-lg border bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
         <table className="w-full text-sm">

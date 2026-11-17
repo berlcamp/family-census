@@ -89,16 +89,20 @@ export default function Page() {
   // Same source of truth as the households page: Settings > Edit Settings
   // (location_settings.enable_edit). null = not loaded yet.
   const [enableEdit, setEnableEdit] = useState<boolean | null>(null)
+  // Owner's "Allow viewing" switch: encoders may open the page read-only
+  // even while editing is off.
+  const [allowView, setAllowView] = useState(false)
 
   useEffect(() => {
     if (!location?.address) return
     const loadSetting = async () => {
       const { data, error } = await supabase
         .from('location_settings')
-        .select('enable_edit')
+        .select('enable_edit, allow_view')
         .eq('address', location.address)
         .single()
       // Default: editing disabled unless explicitly enabled
+      setAllowView(!error && data ? data.allow_view === true : false)
       setEnableEdit(!error && data ? data.enable_edit === true : false)
     }
     void loadSetting()
@@ -108,7 +112,7 @@ export default function Page() {
     return <LoadingSkeleton />
   }
 
-  if (enableEdit === false && user?.type === 'user') {
+  if (enableEdit === false && !allowView && user?.type === 'user') {
     return <NoAccess />
   }
 
