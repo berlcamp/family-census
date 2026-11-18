@@ -10,22 +10,68 @@ import toast from 'react-hot-toast'
 import PersonPicker from './PersonPicker'
 import { useBarangayVoters, VoterOption } from './useBarangayVoters'
 
+/** Status of an NR person's proof of registration (asenso.nr_proofs). */
+export type NrProofStatus = 'pending' | 'approved' | 'rejected'
+
+const badgeClass =
+  'ml-1 inline-block rounded px-1 py-px text-[10px] font-semibold leading-tight text-white align-middle'
+
 /** Small badge shown after a person's name. */
-export function RegisteredBadge({ registered }: { registered: boolean }) {
-  return registered ? (
-    <span
-      className="ml-1 inline-block rounded bg-green-600 px-1 py-px text-[10px] font-semibold leading-tight text-white align-middle"
-      title="Registered voter"
+export function RegisteredBadge({
+  registered,
+  proof,
+  onNrClick
+}: {
+  registered: boolean
+  /** NR people only: status of their Voter's Certificate proof. */
+  proof?: NrProofStatus | null
+  /** Makes the NR badge a button (upload a proof). */
+  onNrClick?: () => void
+}) {
+  if (registered) {
+    return (
+      <span className={`${badgeClass} bg-green-600`} title="Registered voter">
+        R
+      </span>
+    )
+  }
+  if (proof === 'approved') {
+    return (
+      <span
+        className={`${badgeClass} bg-teal-600`}
+        title="Registered — from NR (Voter's Certificate approved)"
+      >
+        R*
+      </span>
+    )
+  }
+  const pending = proof === 'pending'
+  const title = pending
+    ? "Not registered — Voter's Certificate waiting for approval"
+    : proof === 'rejected'
+      ? "Not registered — Voter's Certificate was rejected"
+      : 'Not registered'
+  const color = pending ? 'bg-amber-500' : 'bg-gray-400'
+  if (!onNrClick) {
+    return (
+      <span className={`${badgeClass} ${color}`} title={title}>
+        NR{pending && '…'}
+      </span>
+    )
+  }
+  return (
+    <button
+      type="button"
+      className={`${badgeClass} ${color} cursor-pointer underline decoration-dotted underline-offset-2 hover:brightness-110`}
+      title={`${title}. Click to upload a Voter's Certificate.`}
+      onClick={(e) => {
+        // Do not also open the family editor.
+        e.stopPropagation()
+        onNrClick()
+      }}
     >
-      R
-    </span>
-  ) : (
-    <span
-      className="ml-1 inline-block rounded bg-gray-400 px-1 py-px text-[10px] font-semibold leading-tight text-white align-middle"
-      title="Not registered"
-    >
-      NR
-    </span>
+      NR{pending && '…'}
+    </button>
   )
 }
 
@@ -71,6 +117,12 @@ export function BadgeLegend({
       <span>
         <RegisteredBadge registered={false} /> Not registered
       </span>
+      <span>
+        <RegisteredBadge registered={false} proof="pending" /> Proof waiting
+      </span>
+      <span>
+        <RegisteredBadge registered={false} proof="approved" /> Registered (from NR)
+      </span>
       {showAp && (
         <span className="inline-flex items-center gap-1">
           <ApBadge /> AP member
@@ -92,12 +144,16 @@ export function PersonLine({
   registered,
   ap,
   asenso,
+  proof,
+  onNrClick,
   className = ''
 }: {
   name: string
   registered: boolean
   ap?: boolean | null
   asenso?: boolean | null
+  proof?: NrProofStatus | null
+  onNrClick?: () => void
   className?: string
 }) {
   return (
@@ -105,7 +161,11 @@ export function PersonLine({
       {name}
       {/* Badges wrap to the next line together, never one by one. */}
       <span className="whitespace-nowrap">
-        <RegisteredBadge registered={registered} />
+        <RegisteredBadge
+          registered={registered}
+          proof={proof}
+          onNrClick={onNrClick}
+        />
         {ap === true && <ApBadge />}
         {asenso === true && <AsensoBadge />}
       </span>
@@ -123,9 +183,12 @@ export default function FamilyEditor({
   initialFamily,
   onSave,
   onCancel,
-  onDirtyChange
+  onDirtyChange,
+  hasRegisteredFromNr = false
 }: {
   initialFamily: any | null
+  /** Someone in it has an approved Voter's Certificate (counts as registered). */
+  hasRegisteredFromNr?: boolean
   onSave: (family: any) => Promise<boolean>
   onCancel: () => void
   /** Told whether the form differs from what it opened with. */
@@ -160,6 +223,7 @@ export default function FamilyEditor({
   }, [dirty, onDirtyChange])
 
   const anyRegistered =
+    hasRegisteredFromNr ||
     !!husband?.voter_id ||
     !!wife?.voter_id ||
     members.some((m) => m.is_registered && !!m.voter_id)

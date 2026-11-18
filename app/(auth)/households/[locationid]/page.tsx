@@ -29,7 +29,8 @@ import { supabase } from '@/lib/supabase/client'
 import { Family, FamilyMember, Household, LocationUser } from '@/types'
 import { useParams } from 'next/navigation'
 import toast from 'react-hot-toast'
-import FamilyEditor, { BadgeLegend, PersonLine } from './FamilyEditor'
+import FamilyEditor, { BadgeLegend, NrProofStatus, PersonLine } from './FamilyEditor'
+import NrProofModal, { NrProofTarget, SavedProof } from './NrProofModal'
 import { Download, MapPin, Pencil, Plus, RotateCcw, Trash2, Search as SearchIcon, UserRound } from 'lucide-react'
 import { FilterChip, FilterSelect, HouseholdCardSkeleton } from './HouseholdFilters'
 import HouseholdEditor from './HouseholdEditor'
@@ -49,6 +50,12 @@ export default function HouseholdsPage() {
     members: Record<number, boolean | null>
   }>({ families: {}, members: {} })
   const [userHasAccess, setUserHasAccess] = useState<LocationUser | null>(null)
+  // Latest Voter's Certificate proof per NR person on screen (asenso.nr_proofs),
+  // keyed h:<familyId>, w:<familyId> or m:<memberId>.
+  const [proofs, setProofs] = useState<
+    Record<string, { status: NrProofStatus; fullname: string; note: string | null }>
+  >({})
+  const [proofTarget, setProofTarget] = useState<NrProofTarget | null>(null)
 
   const [selectedDate, setSelectedDate] = useState('')
 
@@ -190,12 +197,49 @@ export default function HouseholdsPage() {
     return true
   }
 
+  /**
+   * Whether anyone in this (existing) family has an approved proof of
+   * registration and is still the same person on the card. null = could not
+   * check.
+   */
+  const approvedFromNr = async (family: Partial<Family>): Promise<boolean | null> => {
+    if (!family.id) return false
+    const { data, error } = await supabase
+      .from('nr_proofs')
+      .select('person_type, member_id, fullname')
+      .eq('family_id', family.id)
+      .eq('status', 'approved')
+    if (error) {
+      // Table not created yet (supabase/nr_proofs.sql): nobody is from NR.
+      if (error.code === '42P01' || error.code === 'PGRST205') return false
+      console.error('Error loading NR proofs:', error)
+      return null
+    }
+    const norm = (v?: string | null) => (v ?? '').trim().replace(/\s+/g, ' ').toUpperCase()
+    return (data ?? []).some((p) => {
+      if (p.person_type === 'member') {
+        return (family.family_members ?? []).some((m) => m.member_id === p.member_id)
+      }
+      const person = p.person_type === 'husband' ? family.husband : family.wife
+      return !!person && !person.voter_id && norm(person.fullname) === norm(p.fullname)
+    })
+  }
+
   // Save Family (Full Replace Strategy)
   // Returns true when saved, so the inline editor can close.
   const handleSaveFamily = async (
     householdId: number,
     family: Partial<Family>
   ): Promise<boolean> => {
+
+    // 0. People of this family registered from NR (approved Voter's
+    //    Certificate, asenso.nr_proofs). Read fresh: one may have been approved
+    //    since the page loaded. They count as registered below.
+    const fromNr = await approvedFromNr(family)
+    if (fromNr === null) {
+      toast.error('Could not check the proofs of registration. Please try again.')
+      return false
+    }
 
     // 1. Check if husband, wife, or any member is registered
     const hasHusband = !!family.husband?.voter_id
@@ -208,6 +252,7 @@ export default function HouseholdsPage() {
       !hasHusband &&
       !hasWife &&
       !hasRegisteredMember &&
+      !fromNr &&
       !family.allowNonRegistered
     ) {
       toast.error(
@@ -302,8 +347,10 @@ export default function HouseholdsPage() {
     let familyId = family.id
     let savedFamily: Family | null = null
 
-    // 🔍 Check if absolutely everyone is non-registered
+    // 🔍 Check if absolutely everyone is non-registered (people registered
+    // from NR count as registered)
     const isAllNonRegistered =
+      !fromNr &&
       !family.husband?.voter_id &&
       !family.wife?.voter_id &&
       (family.family_members?.every((m) => !m.is_registered || !m.voter_id) ??
@@ -1006,6 +1053,94 @@ export default function HouseholdsPage() {
     void loadApStatus(shownIds.split(',').map(Number), listRequest.current)
   }, [canSeeAp, shownIds])
 
+  // Proof badges for the families on screen. Everyone who can see the card
+  // sees them; only editors can upload (the NR badge is a button for them).
+  const shownFamilyIds = households
+    .flatMap((h) => h.families?.map((f) => f.id) ?? [])
+    .join(',')
+  useEffect(() => {
+    if (!shownFamilyIds) {
+      setProofs({})
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      const { data, error } = await supabase
+        .from('nr_proofs')
+        .select('family_id, person_type, member_id, fullname, status, review_note')
+        .in('family_id', shownFamilyIds.split(',').map(Number))
+        .in('status', ['pending', 'approved', 'rejected'])
+        .order('submitted_at', { ascending: true })
+      if (cancelled) return
+      if (error) {
+        // Table not there yet (supabase/nr_proofs.sql not run): no badges.
+        console.error('Error loading NR proofs:', error)
+        return
+      }
+      const map: typeof proofs = {}
+      for (const p of data ?? []) {
+        const key =
+          p.person_type === 'member'
+            ? `m:${p.member_id}`
+            : `${p.person_type === 'husband' ? 'h' : 'w'}:${p.family_id}`
+        // Newest last, so it wins.
+        map[key] = { status: p.status, fullname: p.fullname, note: p.review_note }
+      }
+      setProofs(map)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [shownFamilyIds])
+
+  const sameName = (a?: string | null, b?: string | null) =>
+    (a ?? '').trim().replace(/\s+/g, ' ').toUpperCase() ===
+    (b ?? '').trim().replace(/\s+/g, ' ').toUpperCase()
+
+  /** Proof of a husband/wife, only while the same person is on the card. */
+  const headProof = (f: Family, type: 'husband' | 'wife') => {
+    const p = proofs[`${type === 'husband' ? 'h' : 'w'}:${f.id}`]
+    const name = type === 'husband' ? f.husband_name : f.wife_name
+    return p && sameName(p.fullname, name) ? p : undefined
+  }
+  const memberProof = (memberId?: number | null) =>
+    memberId ? proofs[`m:${memberId}`] : undefined
+
+  /** Someone in the family is registered from NR (approved proof). */
+  const familyHasApproved = (f: Family) =>
+    headProof(f, 'husband')?.status === 'approved' ||
+    headProof(f, 'wife')?.status === 'approved' ||
+    (f.family_members ?? []).some(
+      (m) => memberProof(m.member_id)?.status === 'approved'
+    )
+  /** Every person in the family is NR (all_nr is also cleared on approval). */
+  const familyAllNr = (f: Family) => !!f.all_nr && !familyHasApproved(f)
+
+  /** Click handler for an NR badge (editors only; approved proofs stay put). */
+  const nrClick = (
+    target: Omit<NrProofTarget, 'status' | 'reviewNote'>,
+    proof?: { status: NrProofStatus; note: string | null }
+  ) =>
+    canEdit && proof?.status !== 'approved'
+      ? () =>
+          setProofTarget({
+            ...target,
+            status: proof?.status ?? null,
+            reviewNote: proof?.note ?? null
+          })
+      : undefined
+
+  const onProofSaved = (p: SavedProof) => {
+    const key =
+      p.person_type === 'member'
+        ? `m:${p.member_id}`
+        : `${p.person_type === 'husband' ? 'h' : 'w'}:${p.family_id}`
+    setProofs((old) => ({
+      ...old,
+      [key]: { status: 'pending', fullname: p.fullname, note: null }
+    }))
+  }
+
   const deleteDescription = () => {
     if (!pendingDelete) return undefined
     if (pendingDelete.kind === 'household') {
@@ -1361,6 +1496,7 @@ export default function HouseholdsPage() {
                   <FamilyEditor
                     key={`edit-${f.id}`}
                     initialFamily={f}
+                    hasRegisteredFromNr={familyHasApproved(f)}
                     onSave={(family) => handleSaveFamily(h.id, family)}
                     onCancel={closeEditor}
                     onDirtyChange={setEditorDirty}
@@ -1369,7 +1505,7 @@ export default function HouseholdsPage() {
                   <div
                     key={`family-${f.id}-${h.id}`}
                     className={`group mb-2 rounded px-2 py-1.5 ${
-                      f.all_nr
+                      familyAllNr(f)
                         ? `border border-red-300 bg-red-100 ${canEdit ? 'hover:bg-red-200/70' : ''}`
                         : `bg-yellow-200/60 ${canEdit ? 'hover:bg-yellow-300/60' : ''}`
                     } ${canEdit ? 'cursor-pointer' : ''}`}
@@ -1385,6 +1521,16 @@ export default function HouseholdsPage() {
                         registered={!!f.husband?.voter_id}
                         ap={apStatus.families[f.id]?.husband}
                         asenso={f.asenso_husband}
+                        proof={headProof(f, 'husband')?.status}
+                        onNrClick={nrClick(
+                          {
+                            personType: 'husband',
+                            familyId: f.id,
+                            memberId: null,
+                            name: f.husband_name
+                          },
+                          headProof(f, 'husband')
+                        )}
                       />
                     )}
                     {f.wife_name && (
@@ -1394,6 +1540,16 @@ export default function HouseholdsPage() {
                         registered={!!f.wife?.voter_id}
                         ap={apStatus.families[f.id]?.wife}
                         asenso={f.asenso_wife}
+                        proof={headProof(f, 'wife')?.status}
+                        onNrClick={nrClick(
+                          {
+                            personType: 'wife',
+                            familyId: f.id,
+                            memberId: null,
+                            name: f.wife_name
+                          },
+                          headProof(f, 'wife')
+                        )}
                       />
                     )}
                     <ul className="ml-4 list-disc text-sm text-gray-700">
@@ -1402,13 +1558,30 @@ export default function HouseholdsPage() {
                           <PersonLine
                             className="font-semibold"
                             name={m.fullname}
-                            registered={!!m.is_registered}
+                            registered={
+                              !!m.is_registered &&
+                              memberProof(m.member_id)?.status !== 'approved'
+                            }
                             ap={
                               m.member_id
                                 ? apStatus.members[m.member_id]
                                 : undefined
                             }
                             asenso={m.asenso}
+                            proof={memberProof(m.member_id)?.status}
+                            onNrClick={
+                              m.member_id
+                                ? nrClick(
+                                    {
+                                      personType: 'member',
+                                      familyId: f.id,
+                                      memberId: m.member_id,
+                                      name: m.fullname
+                                    },
+                                    memberProof(m.member_id)
+                                  )
+                                : undefined
+                            }
                           />
                         </li>
                       ))}
@@ -1481,6 +1654,12 @@ export default function HouseholdsPage() {
           ))}
         </div>
       </div>
+
+      <NrProofModal
+        target={proofTarget}
+        onClose={() => setProofTarget(null)}
+        onSaved={onProofSaved}
+      />
 
       <ConfirmDialog
         open={pendingDelete !== null}
