@@ -399,7 +399,11 @@ function ApMembersSearch() {
               />
               <Section
                 title="On AP lists"
-                hint="AP member lists and the voters list. Some are not in the census yet."
+                hint={
+                  shownTown === 'OZAMIZ CITY'
+                    ? 'Ozamiz City: from the voters list (AP) only. Some are not in the census yet.'
+                    : 'AP member lists and the voters list (Ozamiz City: voters list only). Some are not in the census yet.'
+                }
                 icon={<ListChecks className="size-4" />}
                 group={list}
                 onRetry={() => setRetry((n) => n + 1)}

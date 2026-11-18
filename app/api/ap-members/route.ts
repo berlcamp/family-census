@@ -13,6 +13,7 @@ const MAX_LIMIT = 50
  *   census: AP people in the family census (asenso.ap_members_page over the
  *           saved list asenso.ap_members_list)
  *   list:   people on the AP lists — existing_members, members, voters is_ap
+ *           (Ozamiz City: voters is_ap only — supabase/ap_members_ozamiz_voters.sql)
  *           (asenso.ap_list_members_page over asenso.ap_list_members)
  * Both saved lists are refreshed by hand (supabase/ap_search.sql).
  *
