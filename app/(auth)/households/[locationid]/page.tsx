@@ -1306,7 +1306,7 @@ export default function HouseholdsPage() {
                 />
               </span>
               AP households only
-              {!visibility.showApBadge && <OwnerMark />}
+              {!visibility.showApBadge && <OwnerMark tone="blue" />}
             </button>
           )}
 

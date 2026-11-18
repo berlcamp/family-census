@@ -127,7 +127,7 @@ export function BadgeLegend({
         <span className="inline-flex items-center gap-1">
           <ApBadge /> AP member
           {apRestricted && (
-            <OwnerMark title="Only visible to province admins and the owner" />
+            <OwnerMark tone="blue" />
           )}
         </span>
       )}

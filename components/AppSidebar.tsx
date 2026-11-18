@@ -22,12 +22,13 @@ export function AppSidebar() {
 
   const pathname = usePathname()
 
-  // Menu items. ownerOnly items (berlcamp@gmail.com only) get a red "!".
+  // Menu items. Restricted ones get a "!" (seen by the owner only):
+  // red = owner only, blue = owner and province admins.
   const items: {
     title: string
     url: string
     icon: typeof Home
-    ownerOnly?: boolean
+    mark?: 'red' | 'blue'
   }[] = [
     {
       title: 'Home',
@@ -47,6 +48,7 @@ export function AppSidebar() {
       ? [
           {
             title: 'AP Members',
+            mark: 'blue' as const,
             url: '/ap-members',
             icon: BadgeCheck
           }
@@ -67,19 +69,19 @@ export function AppSidebar() {
       ? [
           {
             title: 'Settings',
-            ownerOnly: true,
+            mark: 'red' as const,
             url: '/settings',
             icon: CogIcon
           },
           {
             title: 'AP Review',
-            ownerOnly: true,
+            mark: 'red' as const,
             url: '/ap-review',
             icon: ListChecks
           },
           {
             title: 'Reports',
-            ownerOnly: true,
+            mark: 'red' as const,
             url: '/reports',
             icon: FileSpreadsheet
           }
@@ -123,7 +125,7 @@ export function AppSidebar() {
                     <Link href={item.url}>
                       <item.icon className="text-gray-400" />
                       <span className="text-gray-300">{item.title}</span>
-                      {item.ownerOnly && <OwnerMark className="ml-auto" />}
+                      {item.mark && <OwnerMark tone={item.mark} className="ml-auto" />}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
