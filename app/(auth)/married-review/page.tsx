@@ -3,13 +3,21 @@
 import OwnerMark from '@/components/OwnerMark'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { isOwner } from '@/lib/constants'
 import { useAppSelector } from '@/lib/redux/hook'
 import { supabase } from '@/lib/supabase/client'
-import { Check, RefreshCw, Undo2, X } from 'lucide-react'
+import { Check, Download, RefreshCw, Undo2, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
+import * as XLSX from 'xlsx'
 
 type Status = 'pending' | 'confirmed' | 'rejected' | 'superseded'
 type Decision = 'confirm' | 'reject' | 'undo'
@@ -51,6 +59,52 @@ const STATUS_TABS: { key: Status | 'all'; label: string }[] = [
 ]
 
 const fmt = (n: number) => new Intl.NumberFormat().format(n)
+
+const SUMMARY_HEADERS = ['People', 'AP voter', 'Pending', 'Confirmed', 'Confirmed AP', 'Rejected']
+
+const summaryValues = (t: Omit<TownSummary, 'town'>) => [
+  t.people,
+  t.apVoter,
+  t.pending,
+  t.confirmed,
+  t.confirmedAp,
+  t.rejected
+]
+
+/** One sheet: title, note, header, a row per municipality, TOTAL as SUM formulas. */
+function downloadSummaryExcel(summary: TownSummary[], total: Omit<TownSummary, 'town'>) {
+  const now = new Date()
+  const generated = now.toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })
+  const aoa: (string | number)[][] = [
+    ['Married-name Review — Summary per Municipality'],
+    [
+      'NR people whose voter record may still have their maiden name (middle name = voter last name). ' +
+        `Counted per person. Generated ${generated}.`
+    ],
+    [],
+    ['Municipality', ...SUMMARY_HEADERS],
+    ...summary.map((t) => [t.town, ...summaryValues(t)]),
+    ['TOTAL', ...summaryValues(total)]
+  ]
+  const ws = XLSX.utils.aoa_to_sheet(aoa)
+  const headerRow = 4
+  const firstData = headerRow + 1
+  const lastData = headerRow + summary.length
+  const totalRow = lastData + 1
+  SUMMARY_HEADERS.forEach((_, i) => {
+    const col = XLSX.utils.encode_col(i + 1)
+    for (let r = firstData; r <= totalRow; r++) {
+      const cell = ws[`${col}${r}`]
+      if (!cell) continue
+      cell.z = '#,##0'
+      if (r === totalRow && summary.length > 0) cell.f = `SUM(${col}${firstData}:${col}${lastData})`
+    }
+  })
+  ws['!cols'] = [{ wch: 30 }, ...SUMMARY_HEADERS.map(() => ({ wch: 13 }))]
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Summary')
+  XLSX.writeFile(wb, `married-name-review-summary-${now.toISOString().slice(0, 10)}.xlsx`)
+}
 
 /**
  * One summary row per town, counted per person (a person can have more than
@@ -219,7 +273,7 @@ export default function MarriedReviewPage() {
   if (!allowed) return null
 
   const summaryCells = (t: Omit<TownSummary, 'town'>) =>
-    [t.people, t.apVoter, t.pending, t.confirmed, t.confirmedAp, t.rejected].map((n, i) => (
+    summaryValues(t).map((n, i) => (
       <td key={i} className="px-3 py-1.5 text-right tabular-nums">
         {fmt(n)}
       </td>
@@ -240,6 +294,19 @@ export default function MarriedReviewPage() {
         </div>
         <Button variant="outline" onClick={load} disabled={loading}>
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+        </Button>
+        <Button
+          variant="blue"
+          disabled={loading || summary.length === 0}
+          onClick={() => {
+            try {
+              downloadSummaryExcel(summary, total)
+            } catch (e) {
+              toast.error(`Could not build the Excel file: ${(e as Error).message}`)
+            }
+          }}
+        >
+          <Download className="h-4 w-4" /> Download Excel
         </Button>
       </div>
 
@@ -268,7 +335,7 @@ export default function MarriedReviewPage() {
               <thead className="bg-gray-50 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                 <tr>
                   <th className="px-3 py-2 text-left font-medium">Municipality</th>
-                  {['People', 'AP voter', 'Pending', 'Confirmed', 'Confirmed AP', 'Rejected'].map((h) => (
+                  {SUMMARY_HEADERS.map((h) => (
                     <th key={h} className="px-3 py-2 text-right font-medium">
                       {h}
                     </th>
@@ -303,15 +370,22 @@ export default function MarriedReviewPage() {
       {!loading && !error && rows.length > 0 && (
         <section className="rounded-lg border bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
           <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3 dark:border-gray-700">
-            <h2 className="mr-2 text-sm font-semibold">
-              {town ?? 'All municipalities'}{' '}
-              <span className="font-normal text-gray-500">· {fmt(list.length)}</span>
-            </h2>
-            {town && (
-              <Button size="sm" variant="ghost" onClick={() => setTown(null)}>
-                Show all
-              </Button>
-            )}
+            <Select value={town ?? 'all'} onValueChange={(v) => setTown(v === 'all' ? null : v)}>
+              <SelectTrigger className="h-8 w-full sm:w-60">
+                <SelectValue placeholder="Municipality" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All municipalities</SelectItem>
+                {[...summary]
+                  .sort((a, b) => a.town.localeCompare(b.town))
+                  .map((t) => (
+                    <SelectItem key={t.town} value={t.town}>
+                      {t.town} ({fmt(t.people)})
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <span className="mr-2 text-sm text-gray-500">{fmt(list.length)} shown</span>
             <div className="flex gap-1">
               {STATUS_TABS.map((s) => (
                 <Button
