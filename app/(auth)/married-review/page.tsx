@@ -173,11 +173,11 @@ function VoterName({ name }: { name: string }) {
   )
 }
 
-/** Owner-only review of NR people whose voter record may have their maiden name. */
+/** Owner (every municipality) and province admins (own municipality): review of NR people whose voter record may have their maiden name. */
 export default function MarriedReviewPage() {
   const user = useAppSelector((s) => s.user.user)
   const router = useRouter()
-  const allowed = isOwner(user?.email)
+  const allowed = isOwner(user?.email) || user?.type === 'province admin'
 
   const [rows, setRows] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)
@@ -284,7 +284,7 @@ export default function MarriedReviewPage() {
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex-1">
           <h1 className="flex items-center gap-2 text-xl font-semibold text-gray-900 dark:text-gray-50">
-            Married-name Review <OwnerMark />
+            Married-name Review <OwnerMark tone="blue" />
           </h1>
           <p className="text-sm text-gray-500">
             NR people whose voter record may still have their maiden name: same first name, and

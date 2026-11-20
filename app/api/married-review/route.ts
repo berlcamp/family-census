@@ -1,4 +1,4 @@
-import { isOwner } from '@/lib/constants'
+import { apMembersAccess } from '@/lib/server/apMembersAccess'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -13,7 +13,9 @@ export const dynamic = 'force-dynamic'
  * one through asenso.married_review_decide, which links the person to the
  * voter (registered, and AP in Ozamiz when the voter is AP).
  *
- * Owner only. The table and the function are server-only (service role).
+ * Owner: every municipality. Province admin: their own municipality only
+ * (same access rule as AP Members, lib/server/apMembersAccess).
+ * The table and the function are server-only (service role).
  */
 
 type Admin = ReturnType<typeof getSupabaseAdmin>
@@ -25,30 +27,24 @@ const COLUMNS =
 
 const DECISIONS = ['confirm', 'reject', 'undo'] as const
 
-async function requireOwner(request: NextRequest, admin: Admin) {
-  const token = request.headers
-    .get('authorization')
-    ?.replace(/^Bearer\s+/i, '')
-  if (!token) return null
-  const { data, error } = await admin.auth.getUser(token)
-  const email = data.user?.email?.toLowerCase()
-  if (error || !email || !isOwner(email)) return null
-  return email
+/** Every candidate the caller may see: all for the owner, own town otherwise. */
+function listCandidates(admin: Admin, town: string | null) {
+  let query = admin.from('married_name_candidates').select(COLUMNS)
+  if (town) query = query.eq('town', town)
+  return query.order('town').order('barangay').order('census_name').limit(10000)
 }
 
 export async function GET(request: NextRequest) {
   try {
     const admin = getSupabaseAdmin()
-    if (!(await requireOwner(request, admin))) {
+    const access = await apMembersAccess(request, admin)
+    if (!access) {
       return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
     }
-    const { data, error } = await admin
-      .from('married_name_candidates')
-      .select(COLUMNS)
-      .order('town')
-      .order('barangay')
-      .order('census_name')
-      .limit(10000)
+    const { data, error } = await listCandidates(
+      admin,
+      access.owner ? null : access.municipality
+    )
     if (error) throw error
     return NextResponse.json({ rows: data ?? [], generatedAt: new Date().toISOString() })
   } catch (error) {
@@ -63,10 +59,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const admin = getSupabaseAdmin()
-    const email = await requireOwner(request, admin)
-    if (!email) {
+    const access = await apMembersAccess(request, admin)
+    if (!access) {
       return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
     }
+    const scopeTown = access.owner ? null : access.municipality
     const body = (await request.json().catch(() => null)) as {
       id?: unknown
       decision?: unknown
@@ -80,22 +77,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid decision' }, { status: 400 })
     }
 
+    // Province admins may only decide on candidates in their own municipality.
+    if (scopeTown) {
+      const { data: row, error: rowError } = await admin
+        .from('married_name_candidates')
+        .select('town')
+        .eq('id', id as number)
+        .maybeSingle()
+      if (rowError) throw rowError
+      if (!row || row.town !== scopeTown) {
+        return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
+      }
+    }
+
     const { error } = await admin.rpc('married_review_decide', {
       p_id: id,
       p_decision: decision,
-      p_by: email
+      p_by: access.email
     })
     // Raised by the function (already linked, voter taken, …): show as is.
     if (error) return NextResponse.json({ error: error.message }, { status: 409 })
 
     // Return the whole list again: a confirm can supersede other rows.
-    const { data, error: listError } = await admin
-      .from('married_name_candidates')
-      .select(COLUMNS)
-      .order('town')
-      .order('barangay')
-      .order('census_name')
-      .limit(10000)
+    const { data, error: listError } = await listCandidates(admin, scopeTown)
     if (listError) throw listError
     return NextResponse.json({ rows: data ?? [] })
   } catch (error) {

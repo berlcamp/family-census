@@ -54,6 +54,16 @@ export function AppSidebar() {
           }
         ]
       : []),
+    ...(isOwner(user?.email) || user?.type === 'province admin'
+      ? [
+          {
+            title: 'Married-name Review',
+            mark: 'blue' as const,
+            url: '/married-review',
+            icon: HeartHandshake
+          }
+        ]
+      : []),
     ...(isOwner(user?.email) ||
     user?.type === 'province admin' ||
     user?.type === 'super admin'
@@ -84,12 +94,6 @@ export function AppSidebar() {
             mark: 'red' as const,
             url: '/reports',
             icon: FileSpreadsheet
-          },
-          {
-            title: 'Married-name Review',
-            mark: 'red' as const,
-            url: '/married-review',
-            icon: HeartHandshake
           }
         ]
       : []),

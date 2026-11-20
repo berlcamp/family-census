@@ -16,7 +16,7 @@ export const normTown = (v?: string | null) => (v ?? '').trim().toUpperCase()
 export async function apMembersAccess(
   request: NextRequest,
   admin: Admin
-): Promise<{ owner: boolean; municipality: string | null } | null> {
+): Promise<{ owner: boolean; municipality: string | null; email: string } | null> {
   const token = request.headers
     .get('authorization')
     ?.replace(/^Bearer\s+/i, '')
@@ -33,10 +33,10 @@ export async function apMembersAccess(
     .maybeSingle()
 
   if (isOwner(email)) {
-    return { owner: true, municipality: normTown(me?.address) || null }
+    return { owner: true, municipality: normTown(me?.address) || null, email }
   }
   if (me?.type === 'province admin' && normTown(me.address)) {
-    return { owner: false, municipality: normTown(me.address) }
+    return { owner: false, municipality: normTown(me.address), email }
   }
   return null
 }
