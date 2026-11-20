@@ -1,4 +1,4 @@
-import { BadgeCheck, BarChart, CogIcon, FileCheck2, FileSpreadsheet, Home, ListChecks, Users } from 'lucide-react'
+import { BadgeCheck, BarChart, CogIcon, FileCheck2, FileSpreadsheet, HeartHandshake, Home, ListChecks, Users } from 'lucide-react'
 import { isOwner, userManagementScope } from '@/lib/constants'
 
 import {
@@ -84,6 +84,12 @@ export function AppSidebar() {
             mark: 'red' as const,
             url: '/reports',
             icon: FileSpreadsheet
+          },
+          {
+            title: 'Married-name Review',
+            mark: 'red' as const,
+            url: '/married-review',
+            icon: HeartHandshake
           }
         ]
       : []),
