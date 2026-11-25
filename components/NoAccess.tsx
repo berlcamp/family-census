@@ -11,9 +11,7 @@ const MESSAGES: Record<
   closed: {
     icon: CalendarX,
     title: 'Encoding is closed for now',
-    body:
-      'Adding and viewing households is turned off for your municipality at the moment. ' +
-      'You will be able to open this page again once your administrator reopens it.'
+    body: 'Adding and viewing households is turned off for now.'
   },
   not_assigned: {
     icon: Lock,
