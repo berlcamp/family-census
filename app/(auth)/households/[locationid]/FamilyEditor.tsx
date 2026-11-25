@@ -102,11 +102,13 @@ export function AsensoBadge() {
 /** Explains the badges shown after names on the household cards. */
 export function BadgeLegend({
   showAp = true,
-  apRestricted = true
+  apRestricted = true,
+  showAsenso = true
 }: {
   showAp?: boolean
   /** AP badges still limited to the owner and province admins. */
   apRestricted?: boolean
+  showAsenso?: boolean
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
@@ -131,9 +133,11 @@ export function BadgeLegend({
           )}
         </span>
       )}
-      <span>
-        <AsensoBadge /> Asenso
-      </span>
+      {showAsenso && (
+        <span>
+          <AsensoBadge /> Asenso
+        </span>
+      )}
     </div>
   )
 }

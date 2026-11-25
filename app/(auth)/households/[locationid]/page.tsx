@@ -1043,6 +1043,8 @@ export default function HouseholdsPage() {
   const ownerOrProvince =
     user?.type === 'province admin' || isOwner(user?.email)
   const canSeeAp = ownerOrProvince || visibility.showApBadge
+  // Asenso ("A") badges are hidden for everyone in Ozamiz City.
+  const showAsenso = location?.address?.trim().toUpperCase() !== 'OZAMIZ CITY'
   const canSeeLogs = isOwner(user?.email) || visibility.showUserLogs
 
   // AP badges for the households on screen, once both the list and the
@@ -1379,7 +1381,11 @@ export default function HouseholdsPage() {
 
       {/* Badge legend + user logs */}
       <div className="mx-4 mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
-        <BadgeLegend showAp={canSeeAp} apRestricted={!visibility.showApBadge} />
+        <BadgeLegend
+          showAp={canSeeAp}
+          apRestricted={!visibility.showApBadge}
+          showAsenso={showAsenso}
+        />
         {/* User logs: owner only */}
         {canSeeLogs && (
           <div className="ml-auto flex items-center gap-2 text-xs text-gray-600">
@@ -1520,7 +1526,7 @@ export default function HouseholdsPage() {
                         name={f.husband_name}
                         registered={!!f.husband?.voter_id}
                         ap={apStatus.families[f.id]?.husband}
-                        asenso={f.asenso_husband}
+                        asenso={showAsenso && f.asenso_husband}
                         proof={headProof(f, 'husband')?.status}
                         onNrClick={nrClick(
                           {
@@ -1539,7 +1545,7 @@ export default function HouseholdsPage() {
                         name={f.wife_name}
                         registered={!!f.wife?.voter_id}
                         ap={apStatus.families[f.id]?.wife}
-                        asenso={f.asenso_wife}
+                        asenso={showAsenso && f.asenso_wife}
                         proof={headProof(f, 'wife')?.status}
                         onNrClick={nrClick(
                           {
@@ -1567,7 +1573,7 @@ export default function HouseholdsPage() {
                                 ? apStatus.members[m.member_id]
                                 : undefined
                             }
-                            asenso={m.asenso}
+                            asenso={showAsenso && m.asenso}
                             proof={memberProof(m.member_id)?.status}
                             onNrClick={
                               m.member_id
