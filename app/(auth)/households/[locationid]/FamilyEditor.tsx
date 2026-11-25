@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
+import { isOzamiz } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { useAppSelector } from '@/lib/redux/hook'
 import OwnerMark from '@/components/OwnerMark'
@@ -199,6 +200,7 @@ export default function FamilyEditor({
   onDirtyChange?: (dirty: boolean) => void
 }) {
   const location = useAppSelector((s) => s.location.selectedLocation)
+  const showAsenso = !isOzamiz(location?.address)
   const voters = useBarangayVoters(true, location?.address, location?.name)
 
   const [husband, setHusband] = useState<Slot>(initialFamily?.husband ?? null)
@@ -291,6 +293,7 @@ export default function FamilyEditor({
         label="Husband/Head #1"
         placeholder="Husband / Head #1: Lastname, Firstname"
         person={husband}
+        showAsenso={showAsenso}
         voters={voters}
         autoFocus={!initialFamily}
         onChange={setHusband}
@@ -299,6 +302,7 @@ export default function FamilyEditor({
         label="Wife/Head #2"
         placeholder="Wife / Head #2: Lastname, Firstname"
         person={wife}
+        showAsenso={showAsenso}
         voters={voters}
         onChange={setWife}
       />
@@ -313,6 +317,7 @@ export default function FamilyEditor({
               <PersonRow
                 name={m.fullname}
                 registered={!!m.is_registered}
+                showAsenso={showAsenso}
                 asenso={m.asenso === true}
                 onAsensoChange={(checked) =>
                   setMembers((prev) =>
@@ -366,6 +371,7 @@ function SpouseSlot({
   placeholder,
   person,
   voters,
+  showAsenso,
   autoFocus,
   onChange
 }: {
@@ -373,6 +379,7 @@ function SpouseSlot({
   placeholder: string
   person: Slot
   voters: VoterOption[]
+  showAsenso: boolean
   autoFocus?: boolean
   onChange: (p: Slot) => void
 }) {
@@ -383,6 +390,7 @@ function SpouseSlot({
         <PersonRow
           name={person.fullname}
           registered={!!person.voter_id}
+          showAsenso={showAsenso}
           asenso={person.is_asenso === true}
           onAsensoChange={(checked) => onChange({ ...person, is_asenso: checked })}
           removeLabel={`Remove ${label.toLowerCase()}`}
@@ -408,6 +416,7 @@ function SpouseSlot({
 function PersonRow({
   name,
   registered,
+  showAsenso,
   asenso,
   onAsensoChange,
   removeLabel,
@@ -415,6 +424,8 @@ function PersonRow({
 }: {
   name: string
   registered: boolean
+  /** Show the Asenso switch (off in Ozamiz City; saved values are kept). */
+  showAsenso: boolean
   asenso: boolean
   onAsensoChange: (checked: boolean) => void
   removeLabel: string
@@ -428,26 +439,28 @@ function PersonRow({
           <span className="-ml-1">
             <RegisteredBadge registered={registered} />
           </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={asenso}
-            title={asenso ? 'Asenso (click to unset)' : 'Not Asenso (click to set)'}
-            onClick={() => onAsensoChange(!asenso)}
-            className={`inline-flex items-center gap-1 rounded-full border px-2 py-px text-[11px] font-semibold leading-tight transition-colors ${
-              asenso
-                ? 'border-orange-500 bg-orange-500 text-white hover:bg-orange-600'
-                : 'border-gray-300 bg-white text-gray-500 hover:border-orange-400 hover:text-orange-600'
-            }`}
-          >
-            {asenso ? (
-              <>
-                A Asenso <Check className="h-3 w-3" />
-              </>
-            ) : (
-              'Not Asenso'
-            )}
-          </button>
+          {showAsenso && (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={asenso}
+              title={asenso ? 'Asenso (click to unset)' : 'Not Asenso (click to set)'}
+              onClick={() => onAsensoChange(!asenso)}
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-px text-[11px] font-semibold leading-tight transition-colors ${
+                asenso
+                  ? 'border-orange-500 bg-orange-500 text-white hover:bg-orange-600'
+                  : 'border-gray-300 bg-white text-gray-500 hover:border-orange-400 hover:text-orange-600'
+              }`}
+            >
+              {asenso ? (
+                <>
+                  A Asenso <Check className="h-3 w-3" />
+                </>
+              ) : (
+                'Not Asenso'
+              )}
+            </button>
+          )}
         </div>
       </div>
       <RemoveButton label={removeLabel} onClick={onRemove} />

@@ -48,6 +48,13 @@ export const OWNER_EMAILS = ['berlcamp@gmail.com']
 export const isOwner = (email?: string | null) =>
   !!email && OWNER_EMAILS.includes(email.trim().toLowerCase())
 
+/**
+ * Ozamiz City household cards: Asenso ("A") is hidden and the AP badge is
+ * shown to everyone who can open the barangay, whatever show_ap_badge says.
+ */
+export const isOzamiz = (address?: string | null) =>
+  (address ?? '').trim().toUpperCase() === 'OZAMIZ CITY'
+
 export const MUNICIPALITIES = [
   'ALORAN',
   'BALIANGAO',

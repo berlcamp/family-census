@@ -1,4 +1,4 @@
-import { isOwner } from '@/lib/constants'
+import { isOwner, isOzamiz } from '@/lib/constants'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic'
  *   - super admin: households in their own municipality, and
  *     other users: households in barangays assigned to them,
  *     but only where the owner turned on "Show AP badges" for that
- *     municipality (location_settings.show_ap_badge)
+ *     municipality (location_settings.show_ap_badge); always on in Ozamiz City
  *
  * Response: { families: { [familyId]: { husband, wife } },
  *             members:  { [familyMemberId]: ap } }
@@ -61,14 +61,17 @@ async function allowedHouseholds(admin: Admin, token: string, ids: number[]) {
     return households.filter((h) => norm(h.address) === mine).map((h) => h.id)
   }
 
-  // Everyone else: only municipalities where the owner turned the badges on.
+  // Everyone else: municipalities where the owner turned the badges on, and
+  // Ozamiz City (always on).
   const { data: settings, error: setError } = await admin
     .from('location_settings')
     .select('address')
     .eq('show_ap_badge', true)
   if (setError) throw setError
   const enabled = new Set((settings ?? []).map((x) => norm(x.address)))
-  const visible = households.filter((h) => enabled.has(norm(h.address)))
+  const visible = households.filter(
+    (h) => enabled.has(norm(h.address)) || isOzamiz(h.address)
+  )
   if (visible.length === 0) return []
 
   if (me.type === 'super admin') {

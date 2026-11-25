@@ -9,7 +9,7 @@ type Admin = ReturnType<typeof getSupabaseAdmin>
 
 /**
  * May this caller see AP status for this location? Same rules as the AP
- * badges (app/api/ap-status):
+ * badges (app/api/ap-status), except Ozamiz City is not always on here:
  *   - owner: any location
  *   - province admin: locations in their municipality
  *   - super admin: their municipality, and other users: locations assigned

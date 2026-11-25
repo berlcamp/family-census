@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import VerticalMenu from '@/components/VerticalMenu'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import OwnerMark from '@/components/OwnerMark'
-import { isOwner } from '@/lib/constants'
+import { isOwner, isOzamiz } from '@/lib/constants'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import {
   addFamily,
@@ -1039,21 +1039,23 @@ export default function HouseholdsPage() {
     user?.type === 'province admin' ||
     userHasAccess?.is_editor === true
   const canEdit = enableEdit && enableEdit2
-  // AP badges: province admins and the owner only (for now).
+  // AP households filter: owner, province admins, or the municipality's setting.
   const ownerOrProvince =
     user?.type === 'province admin' || isOwner(user?.email)
   const canSeeAp = ownerOrProvince || visibility.showApBadge
-  // Asenso ("A") badges are hidden for everyone in Ozamiz City.
-  const showAsenso = location?.address?.trim().toUpperCase() !== 'OZAMIZ CITY'
+  // Ozamiz City: AP badges for everyone, no Asenso ("A") badge or switch.
+  const inOzamiz = isOzamiz(location?.address)
+  const canSeeApBadge = canSeeAp || inOzamiz
+  const showAsenso = !inOzamiz
   const canSeeLogs = isOwner(user?.email) || visibility.showUserLogs
 
   // AP badges for the households on screen, once both the list and the
   // permission (which may come from this municipality's setting) are known.
   const shownIds = households.map((h) => h.id).join(',')
   useEffect(() => {
-    if (!canSeeAp || !shownIds) return
+    if (!canSeeApBadge || !shownIds) return
     void loadApStatus(shownIds.split(',').map(Number), listRequest.current)
-  }, [canSeeAp, shownIds])
+  }, [canSeeApBadge, shownIds])
 
   // Proof badges for the families on screen. Everyone who can see the card
   // sees them; only editors can upload (the NR badge is a button for them).
@@ -1382,8 +1384,8 @@ export default function HouseholdsPage() {
       {/* Badge legend + user logs */}
       <div className="mx-4 mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
         <BadgeLegend
-          showAp={canSeeAp}
-          apRestricted={!visibility.showApBadge}
+          showAp={canSeeApBadge}
+          apRestricted={!visibility.showApBadge && !inOzamiz}
           showAsenso={showAsenso}
         />
         {/* User logs: owner only */}
