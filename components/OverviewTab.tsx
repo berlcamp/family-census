@@ -1,6 +1,6 @@
 'use client'
 
-import { district1, district2 } from '@/lib/constants'
+import { district1, district2, isOwner } from '@/lib/constants'
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hook'
 import { setLocation } from '@/lib/redux/locationSlice'
 import { updateList } from '@/lib/redux/locationsSlice'
@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import LocationUsers from './LocationUsers'
 import OverviewBarGraph from './OverviewBarGraph'
+import OwnerMark from './OwnerMark'
 import PurokManager from './PurokManager'
 import { generateFamilyBySP } from './Printables/generateFamilyBySP'
 import { generateFamilyBySPCong } from './Printables/generateFamilyBySPCong'
@@ -37,6 +38,8 @@ const COLORS = [
 export const OverviewTab = () => {
   const location = useAppSelector((state) => state.location.selectedLocation)
   const user = useAppSelector((state) => state.user.user)
+  // Downloadables: owner only.
+  const owner = isOwner(user?.email)
 
   const [enableEdit, setEnableEdit] = useState(false)
   const [enablePurokEdit, setEnablePurokEdit] = useState(false)
@@ -190,8 +193,9 @@ export const OverviewTab = () => {
       {/* Users Section */}
       <div className="col-span-2">
         <div
-          className={`${user?.type === 'province admin' ? '' : 'hidden'} p-4 w-full space-x-2 space-y-2`}
+          className={`${owner ? '' : 'hidden'} p-4 w-full space-x-2 space-y-2`}
         >
+          <OwnerMark />
           {/* {location?.name && location?.address && (
             <Button
               onClick={() =>
@@ -222,7 +226,7 @@ export const OverviewTab = () => {
                 Download Family Composition
               </Button>
             )} */}
-          {location?.name && location?.address && (
+          {owner && location?.name && location?.address && (
             <>
               {district1.includes(location.address) && (
                 <>
@@ -257,7 +261,7 @@ export const OverviewTab = () => {
                   >
                     AR (D2 Province)
                   </Button>
-                  {user?.system_user_id === 2 && (
+                  {owner && (
                     <>
                       <Button
                         onClick={() =>
@@ -309,7 +313,7 @@ export const OverviewTab = () => {
                       </Button>
                     </>
                   )}
-                  {user?.system_user_id === 2 && (
+                  {owner && (
                     <Button
                       onClick={() =>
                         generateFamilyBySPCong(

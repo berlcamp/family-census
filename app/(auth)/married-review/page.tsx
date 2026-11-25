@@ -177,7 +177,8 @@ function VoterName({ name }: { name: string }) {
 export default function MarriedReviewPage() {
   const user = useAppSelector((s) => s.user.user)
   const router = useRouter()
-  const allowed = isOwner(user?.email) || user?.type === 'province admin'
+  const owner = isOwner(user?.email)
+  const allowed = owner || user?.type === 'province admin'
 
   const [rows, setRows] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)
@@ -295,19 +296,22 @@ export default function MarriedReviewPage() {
         <Button variant="outline" onClick={load} disabled={loading}>
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
         </Button>
-        <Button
-          variant="blue"
-          disabled={loading || summary.length === 0}
-          onClick={() => {
-            try {
-              downloadSummaryExcel(summary, total)
-            } catch (e) {
-              toast.error(`Could not build the Excel file: ${(e as Error).message}`)
-            }
-          }}
-        >
-          <Download className="h-4 w-4" /> Download Excel
-        </Button>
+        {/* Download: owner only */}
+        {owner && (
+          <Button
+            variant="blue"
+            disabled={loading || summary.length === 0}
+            onClick={() => {
+              try {
+                downloadSummaryExcel(summary, total)
+              } catch (e) {
+                toast.error(`Could not build the Excel file: ${(e as Error).message}`)
+              }
+            }}
+          >
+            <Download className="h-4 w-4" /> Download Excel <OwnerMark />
+          </Button>
+        )}
       </div>
 
       <section className="rounded-lg border bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
