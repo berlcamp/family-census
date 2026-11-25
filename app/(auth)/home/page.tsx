@@ -10,8 +10,9 @@ export default function Page() {
   const user = useAppSelector((state) => state.user.user)
   const locations = useAppSelector((state) => state.locationsList.value)
 
-  // Province admins (and the owner, who counts as one) get no shortcuts.
-  const showShortcuts = !!user && user.type !== 'province admin'
+  // Same page for every user type. Admins get every barangay of their current
+  // municipality, other users the ones assigned to them (see AuthGuard).
+  const isAdmin = user?.type === 'super admin' || user?.type === 'province admin'
 
   return (
     <div className="w-full">
@@ -19,10 +20,13 @@ export default function Page() {
         <div className="text-center">
           <Greeting name={user?.name ?? ''} />
         </div>
-        {showShortcuts && (
+        {user && (
           <BarangayShortcuts
+            // New municipality: start with an empty search box.
+            key={user.address}
+            isAdmin={isAdmin}
             locations={locations ?? []}
-            isViewer={user?.type === 'viewer'}
+            isViewer={user.type === 'viewer'}
           />
         )}
       </div>
@@ -32,9 +36,11 @@ export default function Page() {
 
 function BarangayShortcuts({
   locations,
+  isAdmin,
   isViewer
 }: {
   locations: { id: number; name: string; address: string; color: string }[]
+  isAdmin: boolean
   isViewer: boolean
 }) {
   const [filter, setFilter] = useState('')
@@ -63,8 +69,9 @@ function BarangayShortcuts({
           </>
         ) : (
           <p className="text-sm text-gray-700 dark:text-gray-300">
-            No barangay is assigned to you yet. Please ask your administrator to
-            assign one.
+            {isAdmin
+              ? 'No barangays found for this municipality.'
+              : 'No barangay is assigned to you yet. Please ask your administrator to assign one.'}
           </p>
         )}
       </div>
@@ -76,7 +83,9 @@ function BarangayShortcuts({
       <div className="mb-3 flex flex-wrap items-end gap-3">
         <div className="flex-1">
           <h2 className="text-base font-semibold text-gray-900 dark:text-gray-50">
-            Your barangay{locations.length === 1 ? '' : 's'}
+            {isAdmin
+              ? `Barangays of ${locations[0].address}`
+              : `Your barangay${locations.length === 1 ? '' : 's'}`}
           </h2>
           <p className="text-sm text-gray-500">
             Click a barangay to view and manage its households.
